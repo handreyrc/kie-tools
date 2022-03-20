@@ -36,7 +36,7 @@ public class DMNDeleteConnectorCommand extends DeleteConnectorCommand {
     }
 
     @Override
-    protected SetConnectionTargetNodeCommand getSetConnectionTargetCommand(final Edge<? extends ViewConnector, Node> edge) {
+    protected SetConnectionTargetNodeCommand buildSetConnectionTargetCommand(final Edge<? extends ViewConnector, Node> edge) {
         return new DMNSetConnectionTargetNodeCommand(null,
                                                      edge,
                                                      null,
@@ -44,7 +44,7 @@ public class DMNDeleteConnectorCommand extends DeleteConnectorCommand {
     }
 
     @Override
-    protected SetConnectionSourceNodeCommand getSetConnectionSourceCommand(final Edge<? extends ViewConnector, Node> edge) {
+    protected SetConnectionSourceNodeCommand buildSetConnectionSourceCommand(final Edge<? extends ViewConnector, Node> edge) {
         return new DMNSetConnectionSourceNodeCommand(null,
                                                      edge,
                                                      null,

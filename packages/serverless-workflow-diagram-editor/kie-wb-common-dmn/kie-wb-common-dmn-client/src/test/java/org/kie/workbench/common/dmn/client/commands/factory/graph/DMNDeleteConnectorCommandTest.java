@@ -59,7 +59,7 @@ public class DMNDeleteConnectorCommandTest {
     @Test
     public void testGetSetConnectionSourceCommand() {
 
-        final SetConnectionSourceNodeCommand setConnectionSourceCommand = command.getSetConnectionSourceCommand(edgeParameter);
+        final SetConnectionSourceNodeCommand setConnectionSourceCommand = command.buildSetConnectionSourceCommand(edgeParameter);
 
         assertTrue(setConnectionSourceCommand instanceof DMNSetConnectionSourceNodeCommand);
         assertNull(setConnectionSourceCommand.getSourceNode());
@@ -70,7 +70,7 @@ public class DMNDeleteConnectorCommandTest {
     @Test
     public void testGetSetConnectionTargetCommand() {
 
-        final SetConnectionTargetNodeCommand setConnectionTargetCommand = command.getSetConnectionTargetCommand(edgeParameter);
+        final SetConnectionTargetNodeCommand setConnectionTargetCommand = command.buildSetConnectionTargetCommand(edgeParameter);
 
         assertTrue(setConnectionTargetCommand instanceof DMNSetConnectionTargetNodeCommand);
         assertNull(setConnectionTargetCommand.getSourceNode());

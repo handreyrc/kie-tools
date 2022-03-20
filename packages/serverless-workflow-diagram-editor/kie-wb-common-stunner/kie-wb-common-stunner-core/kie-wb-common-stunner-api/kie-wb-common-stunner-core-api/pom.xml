@@ -44,17 +44,6 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Form modeler. -->
-    <dependency>
-      <groupId>org.kie.kogito.stunner.serverless.editor</groupId>
-      <artifactId>kie-wb-common-forms-api</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.kie.kogito.stunner.serverless.editor</groupId>
-      <artifactId>kie-wb-common-dynamic-forms-api</artifactId>
-    </dependency>
-
     <!-- Uberfire & Errai. -->
 
 
