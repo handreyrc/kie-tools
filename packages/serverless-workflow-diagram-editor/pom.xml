@@ -98,7 +98,6 @@
     <module>appformer-bom</module>
     <module>appformer-client-api</module>
     <module>appformer-kogito-bridge</module>
-    <module>appformer-js-monaco</module>
     <module>uberfire-api</module>
     <module>uberfire-client-api</module>
     <module>uberfire-workbench</module>
@@ -107,14 +106,7 @@
     <!-- KIE-WB-COMMON -->
     <module>kie-wb-common-bom</module>
     <module>kie-wb-common-widgets</module>
-    <module>kie-wb-common-forms</module>
     <module>kie-wb-common-stunner</module>
-    <module>kie-wb-common-dmn</module>
-    <module>kie-wb-common-kogito</module>
-
-    <!-- DROOLS-WB -->
-    <module>drools-wb-bom</module>
-    <module>drools-wb-screens</module>
 
     <!-- LIENZO -->
     <module>lienzo-core</module>
@@ -161,7 +153,7 @@
     <!-- Overriding version that comes from kie-parent to enable the 'npx' goal. -->
     <version.frontend-maven-plugin>1.12.0</version.frontend-maven-plugin>
 
-    <!-- For kie-parent and modules in kie-bom, kie-soup-bom, drools-bom, jbpm-bom and kie-dmn-bom -->
+    <!-- For kie-parent and modules in kie-bom, kie-soup-bom -->
     <version.org.kie7>7.65.0.Final</version.org.kie7>
     <version.org.kie>8.17.0.Beta</version.org.kie>
 
@@ -258,14 +250,6 @@
       </dependency>
 
       <dependency>
-        <groupId>org.kie</groupId>
-        <artifactId>kie-dmn-bom</artifactId>
-        <version>${version.org.kie}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
-      <dependency>
         <groupId>com.google.elemental2</groupId>
         <artifactId>elemental2-dom</artifactId>
         <version>${version.com.google.elemental2}</version>
@@ -295,15 +279,6 @@
       <dependency>
         <groupId>org.kie.kogito.stunner.serverless.editor</groupId>
         <artifactId>kie-wb-common-bom</artifactId>
-        <version>${project.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
-      <!-- All drools-wb's modules and third-party versions are defined in this POM -->
-      <dependency>
-        <groupId>org.kie.kogito.stunner.serverless.editor</groupId>
-        <artifactId>drools-wb-bom</artifactId>
         <version>${project.version}</version>
         <type>pom</type>
         <scope>import</scope>
@@ -353,7 +328,6 @@
           <exclude>org/appformer/**/*.java</exclude>
           <exclude>org/uberfire/**/*.java</exclude>
           <exclude>org/kie/workbench/**/*.java</exclude>
-          <exclude>org/drools/workbench/**/*.java</exclude>
         </excludes>
       </resource>
       <resource>
@@ -568,9 +542,6 @@
               <!-- Include integration tests from kie-wb-common -->
               <include>org/kie/workbench/**/*IntegrationTest.java</include>
               <include>org/kie/workbench/**/*IT.java</include>
-              <!-- Include integration tests from drools-wb -->
-              <include>org/drools/workbench/**/*IntegrationTest.java</include>
-              <include>org/drools/workbench/**/*IT.java</include>
             </includes>
             <argLine>-Xmx1024m -Dfile.encoding=UTF-8</argLine>
           </configuration>
@@ -775,7 +746,6 @@
                       <ignoreClass>javax.enterprise.*</ignoreClass>
 
                       <!-- TODO: Fix and remove these ignores -->
-                      <ignoreClass>org.kie.dmn.feel.*</ignoreClass>
                       <ignoreClass>org.dominokit.domino.logger.ConsoleLoggerAdapter</ignoreClass>
                       <ignoreClass>org.slf4j.*</ignoreClass>
                       <ignoreClass>org.antlr.v4.runtime.*</ignoreClass>
@@ -917,8 +887,6 @@
               <include>org/uberfire/**/*Test.java</include>
               <!-- Include all from kie-wb-common -->
               <include>org/kie/workbench/**/*Test.java</include>
-              <!-- Include all from drools-wb -->
-              <include>org/drools/workbench/**/*Test.java</include>
             </includes>
             <excludes>
               <!-- Exclude all from errai as each module has its own configuration -->

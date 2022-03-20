@@ -202,14 +202,6 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Layout Editor API -->
-    <!-- Needed by kie-wb-common-dynamic-forms that is needed by stunner -->
-    <dependency>
-      <groupId>org.kie.kogito.stunner.serverless.editor</groupId>
-      <artifactId>uberfire-layout-editor-api</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
     <!-- UberFire Commons Editor -->
     <!-- Basics for uberfire's generic editor support -->
     <dependency>
@@ -334,13 +326,6 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Kogito -->
-    <dependency>
-      <groupId>org.kie.kogito.stunner.serverless.editor</groupId>
-      <artifactId>kie-wb-common-kogito-client</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
     <!--  Appformer Kogito -->
     <dependency>
       <groupId>org.kie.kogito.stunner.serverless.editor</groupId>
@@ -408,7 +393,6 @@
             <!-- Errai, Drools etc -->
             <compileSourcesArtifact>org.kie.kogito.stunner.serverless.editor:errai-data-binding</compileSourcesArtifact>
             <compileSourcesArtifact>org.kie.kogito.stunner.serverless.editor:kie-wb-common-ui</compileSourcesArtifact>
-            <compileSourcesArtifact>org.kie.kogito.stunner.serverless.editor:kie-wb-common-kogito-client</compileSourcesArtifact>
             <!-- UF-ext -->
             <compileSourcesArtifact>org.kie.kogito.stunner.serverless.editor:uberfire-commons-editor-api</compileSourcesArtifact>
             <compileSourcesArtifact>org.kie.kogito.stunner.serverless.editor:uberfire-commons-editor-client</compileSourcesArtifact>

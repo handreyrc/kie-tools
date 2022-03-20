@@ -20,7 +20,6 @@ import javax.annotation.PostConstruct;
 
 import org.jboss.errai.ioc.client.api.EntryPoint;
 import org.jboss.errai.ui.shared.api.annotations.Bundle;
-import org.uberfire.client.views.pfly.sys.PatternFlyBootstrapper;
 
 @EntryPoint
 @Bundle("resources/i18n/SWConstants.properties")
@@ -28,6 +27,6 @@ public class SWEntryPoint {
 
     @PostConstruct
     public void init() {
-        PatternFlyBootstrapper.ensureMonacoEditorLoaderIsAvailable();
+        //TODO Check it needed
     }
 }
