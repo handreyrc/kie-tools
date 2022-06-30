@@ -129,7 +129,7 @@ public class LienzoCanvasMediators {
 
     public void setMaxScale(final double maxScale) {
         mediators.getZoomMediator().setMaxScale(maxScale);
-        mediators.getPreviewMediator().setMaxScale(maxScale);
+        //mediators.getPreviewMediator().setMaxScale(maxScale); //handrey just for testing
     }
 
     public void setZoomFactor(final double factor) {

@@ -42,7 +42,6 @@ import org.kie.workbench.common.stunner.client.widgets.canvas.ScrollableLienzoPa
 import org.kie.workbench.common.stunner.client.widgets.editor.StunnerEditor;
 import org.kie.workbench.common.stunner.client.widgets.presenters.session.SessionPresenter;
 import org.kie.workbench.common.stunner.core.client.canvas.AbstractCanvasHandler;
-import org.kie.workbench.common.stunner.core.client.canvas.CanvasHandler;
 import org.kie.workbench.common.stunner.core.client.canvas.controls.CanvasRegistrationControl;
 import org.kie.workbench.common.stunner.core.client.canvas.controls.SelectionControl;
 import org.kie.workbench.common.stunner.core.client.canvas.util.CanvasFileExport;
@@ -62,6 +61,7 @@ import org.kie.workbench.common.stunner.core.graph.Edge;
 import org.kie.workbench.common.stunner.core.graph.Element;
 import org.kie.workbench.common.stunner.core.graph.Node;
 import org.kie.workbench.common.stunner.core.graph.content.view.View;
+import org.kie.workbench.common.stunner.sw.client.metrics.DiagramEditorStressTool;
 import org.kie.workbench.common.stunner.sw.client.services.ClientDiagramService;
 import org.kie.workbench.common.stunner.sw.client.services.IncrementalMarshaller;
 import org.uberfire.backend.vfs.Path;
@@ -106,13 +106,21 @@ public class DiagramEditor {
         return stunnerEditor.getView();
     }
 
+    //handrey call it here
+    @Inject
+    DiagramEditorStressTool stressTool;
+
     public Promise<String> getPreview() {
-        CanvasHandler canvasHandler = stunnerEditor.getCanvasHandler();
-        if (canvasHandler != null) {
-            return promises.resolve(canvasFileExport.exportToSvg((AbstractCanvasHandler) canvasHandler));
-        } else {
-            return promises.resolve("");
-        }
+//        CanvasHandler canvasHandler = stunnerEditor.getCanvasHandler();
+//        if (canvasHandler != null) {
+//            return promises.resolve(canvasFileExport.exportToSvg((AbstractCanvasHandler) canvasHandler));
+//        } else {
+//            return promises.resolve("");
+//        }
+
+        //handrey memory test
+        stressTool.run();
+        return promises.resolve("");
     }
 
     public Promise validate() {
@@ -125,8 +133,10 @@ public class DiagramEditor {
 
     public Promise<Void> setContent(final String path, final String value) {
         if (stunnerEditor.isClosed() || !isSameWorkflow(value)) {
+            //DomGlobal.console.log("Opening Workflow...");
             return setNewContent(path, value);
         }
+        //DomGlobal.console.log("Refreshing Workflow...");
         return updateContent(path, value);
     }
 

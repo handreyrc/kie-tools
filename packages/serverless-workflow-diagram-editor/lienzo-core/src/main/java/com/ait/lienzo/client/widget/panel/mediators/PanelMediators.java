@@ -95,7 +95,7 @@ public class PanelMediators {
         viewport.getMediators().push(panMediator);
 
         if (panel instanceof ScrollablePanel) {
-            previewMediator = previewMediatorBuilder.get();
+            //previewMediator = previewMediatorBuilder.get(); //handrey just for testing
         }
 
         mouseLeaveListener = mouseLeaveEvent -> disablePreview();
