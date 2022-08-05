@@ -89,6 +89,9 @@ public class DiagramEditor {
     private final CanvasFileExport canvasFileExport;
     private final UpdateDiagramTimer updateDiagramTimer;
 
+    //Handrey PoC
+    private final KeyboardEventHandler keyboardEventHandler;
+
     JsCanvas jsCanvas;
 
     @Inject
@@ -96,13 +99,17 @@ public class DiagramEditor {
                          StunnerEditor stunnerEditor,
                          ClientDiagramService diagramService,
                          IncrementalMarshaller incrementalMarshaller,
-                         CanvasFileExport canvasFileExport) {
+                         CanvasFileExport canvasFileExport,
+                         KeyboardEventHandler keyboardEventHandler) { //Handrey PoC
         this.promises = promises;
         this.stunnerEditor = stunnerEditor;
         this.diagramService = diagramService;
         this.incrementalMarshaller = incrementalMarshaller;
         this.canvasFileExport = canvasFileExport;
         this.updateDiagramTimer = new UpdateDiagramTimer();
+
+        this.keyboardEventHandler = keyboardEventHandler;
+
         this.jsCanvas = null;
     }
 
@@ -149,6 +156,9 @@ public class DiagramEditor {
                                                          public void onSuccess() {
                                                              onDiagramOpenSuccess();
                                                              scaleToFitWorkflow(stunnerEditor);
+
+                                                             keyboardEventHandler.initKeyHandlers(stunnerEditor); //Handrey PoC
+
                                                              success.onInvoke((Void) null);
                                                          }
 
@@ -202,6 +212,9 @@ public class DiagramEditor {
                                          public void onSuccess(final Diagram diagram) {
                                              renderDiagram = diagram;
                                              updateDiagramTimer.schedule(UPDATE_DIAGRAM_TIMER_INTERVAL, diagram);
+
+                                             keyboardEventHandler.initKeyHandlers(stunnerEditor); //Handrey PoC
+
                                              success.onInvoke((Void) null);
                                          }
 
@@ -216,7 +229,8 @@ public class DiagramEditor {
     }
 
     public void onStartup(final PlaceRequest place) {
-        stunnerEditor.setReadOnly(true);
+        //stunnerEditor.setReadOnly(true); //Handrey just for testing uncomment later
+
     }
 
     public void onOpen() {

@@ -211,11 +211,11 @@ public class DiagramEditorTest {
         when(viewerSession.getCanvasHandler()).thenReturn(canvasHandler2);
         when(stunnerEditor2.getCanvasHandler()).thenReturn(canvasHandler2);
         when(stunnerEditor2.getDiagram()).thenReturn(diagram);
-        tested = spy(new DiagramEditor(promises,
-                                       stunnerEditor2,
-                                       diagramServices,
-                                       incrementalMarshaller,
-                                       canvasFileExport));
+//        tested = spy(new DiagramEditor(promises,
+//                                       stunnerEditor2,
+//                                       diagramServices,
+//                                       incrementalMarshaller,
+//                                       canvasFileExport));
         tested.jsRegExp = jsRegExp;
         tested.jsCanvas = jsCanvas;
     }
