@@ -63,6 +63,7 @@ import org.kie.workbench.common.stunner.sw.definition.State;
 import org.kie.workbench.common.stunner.sw.definition.SwitchState;
 import org.kie.workbench.common.stunner.sw.definition.Transition;
 import org.kie.workbench.common.stunner.sw.definition.Workflow;
+import org.kie.workbench.common.stunner.sw.dom.DomTimings;
 import org.kie.workbench.common.stunner.sw.factory.DiagramFactory;
 import org.uberfire.client.promise.Promises;
 
@@ -112,6 +113,9 @@ public class Marshaller {
     private Context context;
     private Workflow workflow;
 
+    //Enable for profiling test only
+    public static boolean IS_STRUCTURAL_PROFILING_ENABLED = true;
+
     @Inject
     public Marshaller(DefinitionManager definitionManager,
                       FactoryManager factoryManager,
@@ -126,6 +130,10 @@ public class Marshaller {
 
     @SuppressWarnings("all")
     public Promise<ParseResult> unmarshallGraph(String raw) {
+        if (IS_STRUCTURAL_PROFILING_ENABLED) {
+            DomTimings.time(DomTimings.PARSE);
+        }
+
         try {
             final Object root = parse(raw);
             if (null == workflow) {
@@ -141,6 +149,11 @@ public class Marshaller {
                     rejectCallbackFn.onInvoke(new ClientRuntimeError("Error parsing JSON file.", e));
                 }
             });
+        }
+
+        if (IS_STRUCTURAL_PROFILING_ENABLED) {
+            DomTimings.timeEnd(DomTimings.PARSE);
+            DomTimings.time(DomTimings.UNMARSHALL);
         }
 
         final GraphImpl<Object> graph;
@@ -199,6 +212,11 @@ public class Marshaller {
 
         removeEdgesWithNullTargets(graph);
 
+        if (IS_STRUCTURAL_PROFILING_ENABLED) {
+            DomTimings.timeEnd(DomTimings.UNMARSHALL);
+            DomTimings.time(DomTimings.AUTOLAYOUT);
+        }
+
         try {
             final Promise<Node> layout = AutoLayout.applyLayout(graph, context.getWorkflowRootNode(), promises, builderContext.buildExecutionContext(), false);
             return promises.create(new Promise.PromiseExecutorCallbackFn<ParseResult>() {
@@ -207,6 +225,10 @@ public class Marshaller {
                     layout.then(new IThenable.ThenOnFulfilledCallbackFn<Node, Object>() {
                         @Override
                         public IThenable<Object> onInvoke(Node node) {
+                            if (IS_STRUCTURAL_PROFILING_ENABLED) {
+                                DomTimings.timeEnd(DomTimings.AUTOLAYOUT);
+                            }
+
                             success.onInvoke(
                                     new ParseResult(new DiagramFactory().build("diagram", new MetadataImpl(), (Graph) graph),
                                                     context.getMessages()));

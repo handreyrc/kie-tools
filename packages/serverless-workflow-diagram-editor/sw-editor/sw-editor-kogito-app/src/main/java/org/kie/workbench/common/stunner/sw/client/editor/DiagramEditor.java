@@ -63,8 +63,10 @@ import org.kie.workbench.common.stunner.core.graph.Edge;
 import org.kie.workbench.common.stunner.core.graph.Element;
 import org.kie.workbench.common.stunner.core.graph.Node;
 import org.kie.workbench.common.stunner.core.graph.content.view.View;
+import org.kie.workbench.common.stunner.sw.client.metrics.DiagramEditorStressTool;
 import org.kie.workbench.common.stunner.sw.client.services.ClientDiagramService;
 import org.kie.workbench.common.stunner.sw.client.services.IncrementalMarshaller;
+import org.kie.workbench.common.stunner.sw.dom.DomTimings;
 import org.kie.workbench.common.stunner.sw.marshall.Message;
 import org.kie.workbench.common.stunner.sw.marshall.ParseResult;
 import org.uberfire.backend.vfs.Path;
@@ -73,6 +75,8 @@ import org.uberfire.client.promise.Promises;
 import org.uberfire.mvp.ParameterizedCommand;
 import org.uberfire.mvp.PlaceRequest;
 import org.uberfire.workbench.model.bridge.Notification;
+
+import static org.kie.workbench.common.stunner.sw.marshall.Marshaller.IS_STRUCTURAL_PROFILING_ENABLED; // Handrey
 
 @ApplicationScoped
 public class DiagramEditor {
@@ -94,6 +98,9 @@ public class DiagramEditor {
     JsCanvas jsCanvas;
 
     @Inject
+    private DiagramEditorStressTool stressTool;
+
+    @Inject
     public DiagramEditor(Promises promises,
                          StunnerEditor stunnerEditor,
                          ClientDiagramService diagramService,
@@ -113,6 +120,11 @@ public class DiagramEditor {
     }
 
     public Promise<String> getPreview() {
+        if (IS_STRUCTURAL_PROFILING_ENABLED) {
+                stressTool.run();
+                return promises.resolve("");
+        }
+
         CanvasHandler canvasHandler = stunnerEditor.getCanvasHandler();
         if (canvasHandler != null) {
             return promises.resolve(canvasFileExport.exportToSvg((AbstractCanvasHandler) canvasHandler));
@@ -137,18 +149,36 @@ public class DiagramEditor {
     }
 
     public Promise<Void> setNewContent(final String path, final String value) {
+        if (IS_STRUCTURAL_PROFILING_ENABLED) {
+            DomTimings.time(DomTimings.SWF_VIEWER_E2E);
+        }
+
         return promises.create((success, failure) -> {
             stunnerEditor.clearAlerts();
+
+            if (IS_STRUCTURAL_PROFILING_ENABLED) {
+                DomTimings.time(DomTimings.TRANSFORM);
+            }
+
             diagramService.transform(path,
                                      value,
                                      new ServiceCallback<ParseResult>() {
                                          @Override
                                          public void onSuccess(final ParseResult parseResult) {
+                                             if (IS_STRUCTURAL_PROFILING_ENABLED) {
+                                                 DomTimings.timeEnd(DomTimings.TRANSFORM);
+                                                 DomTimings.time(DomTimings.OPEN);
+                                             }
+
                                              stunnerEditor
                                                      .close()
                                                      .open(parseResult.getDiagram(), new SessionPresenter.SessionPresenterCallback() {
                                                          @Override
                                                          public void onSuccess() {
+                                                             if (IS_STRUCTURAL_PROFILING_ENABLED) {
+                                                                 DomTimings.timeEnd(DomTimings.OPEN);
+                                                             }
+
                                                              onDiagramOpenSuccess();
                                                              scaleToFitWorkflow(stunnerEditor);
                                                              if (parseResult.getMessages().length > 0) {
@@ -156,6 +186,11 @@ public class DiagramEditor {
                                                                      stunnerEditor.addError(m.toString());
                                                                  }
                                                              }
+
+                                                             if (IS_STRUCTURAL_PROFILING_ENABLED) {
+                                                                 DomTimings.timeEnd(DomTimings.SWF_VIEWER_E2E);
+                                                             }
+
                                                              success.onInvoke((Void) null);
                                                          }
 

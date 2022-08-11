@@ -129,7 +129,8 @@ public class LienzoCanvasMediators {
 
     public void setMaxScale(final double maxScale) {
         mediators.getZoomMediator().setMaxScale(maxScale);
-        mediators.getPreviewMediator().setMaxScale(maxScale);
+        // TODO: Handrey Disabled as it produces async calls (after setContent)
+        //mediators.getPreviewMediator().setMaxScale(maxScale);
     }
 
     public void setZoomFactor(final double factor) {

@@ -26,6 +26,7 @@
 
   <source path="autolayout"/>
   <source path="definition"/>
+  <source path="dom"/>
   <source path="factory"/>
   <source path="marshall"/>
   <source path="" includes="SWEditor.java"/>
