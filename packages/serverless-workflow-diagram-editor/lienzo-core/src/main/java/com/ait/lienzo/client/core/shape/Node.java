@@ -89,6 +89,7 @@ import com.ait.lienzo.tools.client.event.HandlerRegistration;
 import com.ait.lienzo.tools.client.event.INodeEvent;
 import com.ait.lienzo.tools.client.event.INodeEvent.Type;
 import com.ait.lienzo.tools.common.api.java.util.UUID;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsIgnore;
 import jsinterop.annotations.JsProperty;
 import jsinterop.annotations.JsType;
@@ -615,6 +616,15 @@ public abstract class Node<T extends Node<T>> implements IDrawable<T> {
                            this::getPossibleNodeTransform);
     }
 
+    //handrey
+    @Override
+    public void drawWithTransforms(final OffscreenCanvasRenderingContext2D context, final double alpha, final BoundingBox bounds) {
+        drawWithTransforms(context,
+                           alpha,
+                           bounds,
+                           this::getPossibleNodeTransform);
+    }
+
     public void drawWithTransforms(final Context2D context, final double alpha, final BoundingBox bounds, final Supplier<Transform> transformSupplier) {
         if ((context.isSelection()) && (!isListening())) {
             return;
@@ -633,6 +643,28 @@ public abstract class Node<T extends Node<T>> implements IDrawable<T> {
         }
     }
 
+    //handrey
+    public void drawWithTransforms(final OffscreenCanvasRenderingContext2D context, final double alpha, final BoundingBox bounds, final Supplier<Transform> transformSupplier) {
+
+        if (isVisible()) {
+            context.save();
+
+            final Transform xfrm = transformSupplier.get();
+
+            if (null != xfrm) {
+                context.transform(xfrm.getScaleX(),
+                                  xfrm.getShearY(),
+                                  xfrm.getShearX(),
+                                  xfrm.getScaleY(),
+                                  xfrm.getTranslateX(),
+                                  xfrm.getTranslateY());
+            }
+            drawWithoutTransforms(context, alpha, bounds);
+
+            context.restore();
+        }
+    }
+
     /**
      * Used internally. Draws the node in the current Context2D
      * without applying the transformation-related attributes
@@ -645,6 +677,8 @@ public abstract class Node<T extends Node<T>> implements IDrawable<T> {
      * @param context
      */
     protected abstract void drawWithoutTransforms(Context2D context, double alpha, BoundingBox bounds);
+    //handrey
+    protected abstract void drawWithoutTransforms(OffscreenCanvasRenderingContext2D context, double alpha, BoundingBox bounds);
 
     @Override
     public Point2D getAbsoluteLocation() {

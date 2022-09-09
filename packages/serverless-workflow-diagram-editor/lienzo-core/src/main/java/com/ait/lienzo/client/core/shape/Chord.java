@@ -23,6 +23,7 @@ import com.ait.lienzo.client.core.Attribute;
 import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.types.BoundingBox;
 import com.ait.lienzo.shared.core.types.ShapeType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsProperty;
 
 /**
@@ -76,6 +77,30 @@ public class Chord extends Shape<Chord> {
      */
     @Override
     protected boolean prepare(final Context2D context, final double alpha) {
+        final double r = getRadius();
+
+        final double beg = getStartAngle();
+
+        final double end = getEndAngle();
+
+        if (r > 0) {
+            context.beginPath();
+
+            if (beg == end) {
+                context.arc(0, 0, r, 0, Math.PI * 2, true);
+            } else {
+                context.arc(0, 0, r, beg, end, isCounterClockwise());
+            }
+            context.closePath();
+
+            return true;
+        }
+        return false;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context, final double alpha) {
         final double r = getRadius();
 
         final double beg = getStartAngle();

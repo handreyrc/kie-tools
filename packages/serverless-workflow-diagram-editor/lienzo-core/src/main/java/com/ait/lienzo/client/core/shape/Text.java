@@ -30,6 +30,7 @@ import com.ait.lienzo.shared.core.types.ShapeType;
 import com.ait.lienzo.shared.core.types.TextAlign;
 import com.ait.lienzo.shared.core.types.TextBaseLine;
 import com.ait.lienzo.shared.core.types.TextUnit;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import elemental2.dom.TextMetrics;
 import jsinterop.annotations.JsIgnore;
 import jsinterop.annotations.JsProperty;
@@ -181,6 +182,38 @@ public class Text extends Shape<Text> {
         stroke(context, alpha, fill);
     }
 
+    //handrey
+    @Override
+    protected void drawWithoutTransforms(final OffscreenCanvasRenderingContext2D context, double alpha, BoundingBox bounds) {
+        alpha = alpha * getAlpha();
+
+        if (alpha <= 0) {
+            return;
+        }
+        final String text = getText();
+
+        final double size = getFontSize();
+
+        if ((null == text) || (text.isEmpty()) || (!(size > 0))) {
+            return;
+        }
+
+        setAppliedShadow(false);
+
+        if (textBaseLine != null) {
+            context.setTextBaseline(textBaseLine.getValue());
+        }
+        if (textAlign != null) {
+            context.setTextAlign(getTextAlign().getValue());
+        }
+
+        context.font = getFontString(size, getTextUnit(), getFontStyle(), getFontFamily());
+
+        final boolean fill = fill(context, alpha);
+
+        stroke(context, alpha, fill);
+    }
+
     /**
      * Draws this text
      *
@@ -188,6 +221,12 @@ public class Text extends Shape<Text> {
      */
     @Override
     protected boolean prepare(final Context2D context, final double alpha) {
+        return false;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context, final double alpha) {
         return false;
     }
 

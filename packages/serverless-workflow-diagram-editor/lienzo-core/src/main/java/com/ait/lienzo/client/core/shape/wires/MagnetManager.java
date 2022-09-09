@@ -41,6 +41,7 @@ import com.ait.lienzo.shared.core.types.DragMode;
 import com.ait.lienzo.tools.client.collection.NFastStringMap;
 import com.ait.lienzo.tools.client.event.HandlerRegistrationManager;
 import elemental2.dom.ImageData;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 
 public class MagnetManager {
 
@@ -65,7 +66,7 @@ public class MagnetManager {
 
     public ImageData drawMagnetsToBack(Magnets magnets, NFastStringMap<WiresShape> shapeColors, NFastStringMap<WiresMagnet> magnetColors, ScratchPad scratch) {
         scratch.clear();
-        Context2D ctx = scratch.getContext();
+        OffscreenCanvasRenderingContext2D ctx = scratch.getContext();
 
         drawShapeToBacking(magnets, shapeColors, ctx);
 
@@ -81,6 +82,12 @@ public class MagnetManager {
         BackingColorMapUtils.drawShapeToBacking(ctx, magnets.getWiresShape(), m_c_rotor.next(), shapeColorMap);
     }
 
+    //handrey
+    protected void drawShapeToBacking(Magnets magnets, NFastStringMap<WiresShape> shapeColorMap, OffscreenCanvasRenderingContext2D ctx) {
+        // the Shape doesn't need recording, we just need to know the mouse is over something
+        BackingColorMapUtils.drawShapeToBacking(ctx, magnets.getWiresShape(), m_c_rotor.next(), shapeColorMap);
+    }
+
     protected void drawMagnet(NFastStringMap<WiresMagnet> magnetColorMap, Context2D ctx, WiresMagnet m) {
         String c = m_c_rotor.next();
         magnetColorMap.put(c, m);
@@ -88,6 +95,19 @@ public class MagnetManager {
         ctx.setStrokeWidth(m_ctrlSize);
         ctx.setStrokeColor(c);
         ctx.setFillColor(c);
+        ctx.arc(m.getControl().getX(), m.getControl().getY(), m_ctrlSize, 0, 2 * Math.PI, false);
+        ctx.stroke();
+        ctx.fill();
+    }
+
+    //handrey
+    protected void drawMagnet(NFastStringMap<WiresMagnet> magnetColorMap, OffscreenCanvasRenderingContext2D ctx, WiresMagnet m) {
+        String c = m_c_rotor.next();
+        magnetColorMap.put(c, m);
+        ctx.beginPath();
+        ctx.lineWidth = m_ctrlSize;
+        ctx.strokeColor = c;
+        ctx.fillColor = c;
         ctx.arc(m.getControl().getX(), m.getControl().getY(), m_ctrlSize, 0, 2 * Math.PI, false);
         ctx.stroke();
         ctx.fill();

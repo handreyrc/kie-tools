@@ -34,6 +34,7 @@ import com.google.gwt.resources.client.ImageResource;
 import elemental2.dom.HTMLImageElement;
 import elemental2.dom.Image;
 import elemental2.dom.ImageData;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 
 /**
  * ImageProxy is used by {@link AbstractImageShape} to load and draw the image.
@@ -487,27 +488,39 @@ public class ImageProxy<T extends AbstractImageShape<T>> implements ImageDataFil
         if (isLoaded()) {
             doUpdateCheck();
 
-            if (context.isSelection()) {
-                if (ImageSelectionMode.SELECT_BOUNDS == m_image.getImageSelectionMode()) {
-                    context.setFillColor(m_image.getColorKey());
-
-                    context.beginPath();
-
-                    context.rect(0, 0, m_dest_wide, m_dest_high);
-
-                    context.fill();
-
-                    context.closePath();
-                } else {
-                    context.drawImage(m_selectImage.getElement(), 0, 0);
-                }
-            } else {
-                if (m_fastout) {
+//            if (context.isSelection()) {
+//                if (ImageSelectionMode.SELECT_BOUNDS == m_image.getImageSelectionMode()) {
+//                    context.setFillColor(m_image.getColorKey());
+//
+//                    context.beginPath();
+//
+//                    context.rect(0, 0, m_dest_wide, m_dest_high);
+//
+//                    context.fill();
+//
+//                    context.closePath();
+//                } else {
+//                    // handrey this is never called
+//                    context.drawImage(m_selectImage.getElement(), 0, 0);
+//                }
+//            } else
+            {
+//                if (m_fastout) {
                     context.drawImage(m_jsimg, m_clip_xpos, m_clip_ypos, m_clip_wide, m_clip_high, 0, 0, m_dest_wide, m_dest_high);
-                } else {
-                    context.drawImage(m_filterImage.getElement(), 0, 0);
-                }
+//                } else {
+//                    context.drawImage(m_filterImage.getElement(), 0, 0);
+//                }
             }
+        }
+    }
+
+    //handrey
+    public void drawImage(final OffscreenCanvasRenderingContext2D context) {
+        if (isLoaded()) {
+            doUpdateCheck();
+
+            context.drawImage(m_jsimg, m_clip_xpos, m_clip_ypos, m_clip_wide, m_clip_high, 0, 0, m_dest_wide, m_dest_high);
+
         }
     }
 

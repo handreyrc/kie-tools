@@ -18,6 +18,7 @@ package com.ait.lienzo.client.core.shape;
 
 import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.types.BoundingBox;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 
 public final class BoundingBoxPathClipper extends AbstractPathClipper {
 
@@ -37,6 +38,18 @@ public final class BoundingBoxPathClipper extends AbstractPathClipper {
 
     @Override
     protected final boolean apply(final Context2D context) {
+        context.beginPath();
+
+        context.rect(m_bbox.getX(), m_bbox.getY(), m_bbox.getWidth(), m_bbox.getHeight());
+
+        context.clip();
+
+        return true;
+    }
+
+    //handrey
+    @Override
+    protected final boolean apply(final OffscreenCanvasRenderingContext2D context) {
         context.beginPath();
 
         context.rect(m_bbox.getX(), m_bbox.getY(), m_bbox.getWidth(), m_bbox.getHeight());

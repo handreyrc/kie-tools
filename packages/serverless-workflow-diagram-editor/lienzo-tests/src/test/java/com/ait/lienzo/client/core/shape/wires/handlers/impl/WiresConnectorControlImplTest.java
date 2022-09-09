@@ -57,6 +57,7 @@ import com.ait.lienzo.test.LienzoMockitoTestRunner;
 import com.ait.lienzo.tools.client.event.HandlerRegistrationManager;
 import elemental2.dom.HTMLDivElement;
 import elemental2.dom.ImageData;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -208,6 +209,8 @@ public class WiresConnectorControlImplTest {
 
     @Mock
     private Context2D context;
+    @Mock
+    private OffscreenCanvasRenderingContext2D contextOff;
 
     @Mock
     private ImageData imageData;
@@ -247,7 +250,7 @@ public class WiresConnectorControlImplTest {
         when(layer.getContext()).thenReturn(context);
         when(layer.getViewport()).thenReturn(viewport);
         when(viewport.getElement()).thenReturn(element);
-        when(scratchPad.getContext()).thenReturn(context);
+        when(scratchPad.getContext()).thenReturn(contextOff);
         when(context.getImageData(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(imageData);
         when(wiresLayer.getLayer()).thenReturn(layer);
         when(headDecorator.getPath()).thenReturn(headPath);

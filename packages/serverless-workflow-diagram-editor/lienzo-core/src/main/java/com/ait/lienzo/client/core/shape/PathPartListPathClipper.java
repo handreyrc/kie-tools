@@ -18,6 +18,7 @@ package com.ait.lienzo.client.core.shape;
 
 import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.types.PathPartList;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 
 public final class PathPartListPathClipper extends AbstractPathClipper {
 
@@ -54,6 +55,27 @@ public final class PathPartListPathClipper extends AbstractPathClipper {
                 context.clip();
             }
             return fill;
+        }
+        return false;
+    }
+
+    //handrey
+    @Override
+    protected final boolean apply(final OffscreenCanvasRenderingContext2D context) {
+        if (null != m_path) {
+            context.beginPath();
+
+            context.clip(m_path.getPath2D());
+
+            //handrey clip does return void
+//            final boolean fill = context.clip(m_path);
+//
+//            if (fill) {
+//                context.clip();
+//            }
+//            return fill;
+
+            return true;
         }
         return false;
     }

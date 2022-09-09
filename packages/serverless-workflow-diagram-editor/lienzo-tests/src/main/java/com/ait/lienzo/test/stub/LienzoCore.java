@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.List;
 
 import com.ait.lienzo.client.core.Attribute;
-import com.ait.lienzo.client.core.util.ScratchPad;
 import com.ait.lienzo.shared.core.types.IColor;
 import com.ait.lienzo.shared.core.types.ImageSelectionMode;
 import com.ait.lienzo.shared.core.types.LayerClearMode;
@@ -272,13 +271,16 @@ public class LienzoCore {
             return m_backingStorePixelRatio;
         }
         if (IS_CANVAS_SUPPORTED) {
-            try {
-                m_backingStorePixelRatio = new ScratchPad(1, 1).getContext().getBackingStorePixelRatio();
-            } catch (Exception e) {
-                m_backingStorePixelRatio = 1;
+            // TODO this is not supported
+//            try {
+//                m_backingStorePixelRatio = new ScratchPad(1, 1).getContext().getBackingStorePixelRatio();
+//            } catch (Exception e) {
+//                m_backingStorePixelRatio = 1;
+//
+//                error("Backing Store Pixel Ratio failed ", e);
+//            }
 
-                error("Backing Store Pixel Ratio failed ", e);
-            }
+            m_backingStorePixelRatio = 1;
         } else {
             m_backingStorePixelRatio = 1;
         }

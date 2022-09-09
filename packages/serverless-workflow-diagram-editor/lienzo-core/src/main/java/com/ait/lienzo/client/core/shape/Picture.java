@@ -30,6 +30,7 @@ import com.ait.lienzo.client.core.image.filter.ImageDataFilterable;
 import com.ait.lienzo.shared.core.types.ImageSelectionMode;
 import com.ait.lienzo.shared.core.types.ShapeType;
 import com.google.gwt.resources.client.ImageResource;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsProperty;
 
 /**
@@ -1371,6 +1372,24 @@ public class Picture extends AbstractImageShape<Picture> implements ImageDataFil
                 doApplyShadow(context);
             }
         }
+        getImageProxy().drawImage(context);
+
+        context.restore();
+
+        return false;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(OffscreenCanvasRenderingContext2D context, double alpha) {
+        context.save();
+
+        context.globalAlpha = alpha;
+
+        if (getShadow() != null) {
+            doApplyShadow(context);
+        }
+
         getImageProxy().drawImage(context);
 
         context.restore();

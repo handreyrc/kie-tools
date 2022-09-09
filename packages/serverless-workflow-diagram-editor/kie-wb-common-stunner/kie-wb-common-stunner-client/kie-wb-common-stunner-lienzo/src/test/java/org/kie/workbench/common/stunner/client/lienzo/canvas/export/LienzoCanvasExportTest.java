@@ -32,6 +32,7 @@ import com.ait.lienzo.client.core.util.ScratchPad;
 import com.ait.lienzo.shared.core.types.DataURLType;
 import com.ait.lienzo.test.LienzoMockitoTestRunner;
 import elemental2.dom.HTMLDivElement;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -88,7 +89,7 @@ public class LienzoCanvasExportTest {
     private ScratchPad scratchPad;
 
     @Mock
-    private Context2D context2D;
+    private OffscreenCanvasRenderingContext2D context2D;
 
     private LienzoCanvasExport tested;
 

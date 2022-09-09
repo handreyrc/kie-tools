@@ -24,7 +24,9 @@ import com.ait.lienzo.client.core.types.BoundingBox;
 import com.ait.lienzo.client.core.types.PathPartList;
 import com.ait.lienzo.client.core.types.Point2DArray;
 import com.ait.lienzo.client.core.util.Geometry;
+import com.ait.lienzo.client.core.util.ScratchPad;
 import com.ait.lienzo.shared.core.types.ShapeType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsProperty;
 
 /**
@@ -114,6 +116,22 @@ public class RegularPolygon extends Shape<RegularPolygon> {
             return false;
         }
         context.path(m_list);
+
+        return true;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context, final double alpha) {
+        if (m_list.size() < 1) {
+            if (!parse()) {
+                return false;
+            }
+        }
+        if (m_list.size() < 1) {
+            return false;
+        }
+        ScratchPad.path(context, m_list.getJSO(), true);
 
         return true;
     }

@@ -16,12 +16,16 @@
 
 package com.ait.lienzo.client.core.util;
 
-import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.config.LienzoCore;
+import com.ait.lienzo.client.core.types.ImageDataPixelColor;
+import com.ait.lienzo.client.core.types.PathPartEntryJSO;
+import com.ait.lienzo.client.core.types.PathPartListJSO;
 import com.ait.lienzo.shared.core.types.DataURLType;
-import elemental2.dom.DomGlobal;
-import elemental2.dom.HTMLCanvasElement;
 import elemental2.dom.HTMLImageElement;
+import elemental2.dom.OffscreenCanvas;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
+import elemental2.dom.URL;
+import jsinterop.base.Js;
 
 public final class ScratchPad {
 
@@ -29,9 +33,13 @@ public final class ScratchPad {
 
     private int m_high;
 
-    private final HTMLCanvasElement m_element;
+    //handrey
+    //private final HTMLCanvasElement m_element;
+    private final OffscreenCanvas m_element;
 
-    private final Context2D m_context;
+    //handrey
+    //private final Context2D m_context;
+    private final OffscreenCanvasRenderingContext2D m_context;
 
     public ScratchPad(final int wide, final int high) {
         m_wide = wide;
@@ -39,13 +47,16 @@ public final class ScratchPad {
         m_high = high;
 
         if (LienzoCore.IS_CANVAS_SUPPORTED) {
-            m_element = (HTMLCanvasElement) DomGlobal.document.createElement("canvas");;
+            //handrey
+//            m_element = (HTMLCanvasElement) DomGlobal.document.createElement("canvas");
+//            m_element.width = wide;
+//            m_element.height = high;
 
-            m_element.width = wide;
+            m_element = new OffscreenCanvas(wide, high);
 
-            m_element.height = high;
-
-            m_context = new Context2D(m_element);
+            //handrey
+            //m_context = new Context2D(m_element);
+            m_context = Js.cast(m_element.getContext("2d"));
         } else {
             m_element = null;
 
@@ -54,7 +65,9 @@ public final class ScratchPad {
     }
 
     public final void clear() {
-        Context2D context = getContext();
+        //handrey
+        //Context2D context = getContext();
+        OffscreenCanvasRenderingContext2D context = getContext();
 
         if (null != context) {
             context.clearRect(0, 0, m_wide, m_high);
@@ -67,7 +80,11 @@ public final class ScratchPad {
         m_element.height = m_high = high;
     }
 
-    public final HTMLCanvasElement getElement() {
+    //handrey
+//    public final HTMLCanvasElement getElement() {
+//        return m_element;
+//    }
+    public final OffscreenCanvas getElement() {
         return m_element;
     }
 
@@ -79,10 +96,15 @@ public final class ScratchPad {
         return m_high;
     }
 
-    public final Context2D getContext() {
+    //handrey
+//    public final Context2D getContext() {
+//        return m_context;
+//    }
+    public final OffscreenCanvasRenderingContext2D getContext() {
         return m_context;
     }
 
+    //handrey not supported
     public final String toDataURL() {
         if (null != m_element) {
             return toDataURL(m_element);
@@ -125,11 +147,95 @@ public final class ScratchPad {
         return canvas.toDataURL();
     }
 
-    private static final String toDataURL(final HTMLCanvasElement element) {
-        return element.toDataURL(null); // @FIXME Make sure this accepts null (mdp)
+    //handrey
+//    private static final String toDataURL(final HTMLCanvasElement element) {
+//        return element.toDataURL(null); // @FIXME Make sure this accepts null (mdp)
+//    }
+    private static final String toDataURL(final OffscreenCanvas element) {
+        String[] dataURL = new String[]{""};
+        element.convertToBlob(null).then(blob -> {
+//            FileReader fileReader = new FileReader();
+//            fileReader.readAsDataURL(blob);
+//            dataURL[0] = fileReader.result.asString();
+            dataURL[0] = URL.createObjectURL(blob);
+            return null;
+        });
+
+
+        return dataURL.toString();
     }
 
-    private static final String toDataURL(HTMLCanvasElement element, String mimetype, double quality) {
-        return element.toDataURL(mimetype, quality);
+    //handrey
+//    private static final String toDataURL(HTMLCanvasElement element, String mimetype, double quality) {
+//        return element.toDataURL(mimetype, quality);
+//    }
+    private static final String toDataURL(OffscreenCanvas element, String mimetype, double quality) {
+        final OffscreenCanvas.ConvertToBlobOptionsType convertToBlobOptionsType = OffscreenCanvas.ConvertToBlobOptionsType.create();
+        convertToBlobOptionsType.setType(mimetype);
+        convertToBlobOptionsType.setQuality(quality);
+
+        String[] dataURL = new String[]{""};
+        element.convertToBlob(convertToBlobOptionsType).then(blob -> {
+//            FileReader fileReader = new FileReader();
+//            fileReader.readAsDataURL(blob);
+//            dataURL[0] = fileReader.result.asString();
+            dataURL[0] = URL.createObjectURL(blob);
+            return null;
+        });
+
+        return dataURL.toString();
+    }
+
+    //handrey
+    public final static boolean path(final OffscreenCanvasRenderingContext2D context, PathPartListJSO list, boolean beginPath) {
+        if (list == null) {
+            return false;
+        }
+        int leng = list.length();
+        if (leng < 1) {
+            return false;
+        }
+        int indx = 0;
+        boolean fill = false;
+        if (beginPath) {
+            context.beginPath();
+        }
+        while (indx < leng) {
+            PathPartEntryJSO e = list.get(indx++);
+            double[] p = e.getPoints();
+
+            switch (e.getCommand()) {
+                case 1:
+                    context.lineTo(p[0], p[1]);
+                    break;
+                case 2:
+                    context.moveTo(p[0], p[1]);
+                    break;
+                case 3:
+                    context.bezierCurveTo(p[0], p[1], p[2], p[3], p[4], p[5]);
+                    break;
+                case 4:
+                    context.quadraticCurveTo(p[0], p[1], p[2], p[3]);
+                    break;
+                case 5:
+                    context.ellipse(p[0], p[1], p[2], p[3], p[6], p[4], p[4] + p[5],
+                                    (1 - p[7]) > 0);
+                    break;
+                case 6:
+                    if (beginPath) {
+                        context.closePath();
+                    }
+                    fill = true;
+                    break;
+                case 7:
+                    context.arcTo(p[0], p[1], p[2], p[3], p[4]);
+                    break;
+            }
+        }
+        return fill;
+    }
+
+    public static ImageDataPixelColor getImageDataPixelColor(final OffscreenCanvasRenderingContext2D context,final int x, final int y) {
+        return new ImageDataPixelColor(context.getImageData(x, y, 1, 1));
     }
 }

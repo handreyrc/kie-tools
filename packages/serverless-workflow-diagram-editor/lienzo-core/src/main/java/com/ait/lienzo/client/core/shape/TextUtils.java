@@ -16,7 +16,6 @@
 
 package com.ait.lienzo.client.core.shape;
 
-import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.types.BoundingBox;
 import com.ait.lienzo.client.core.util.ScratchPad;
 import com.ait.lienzo.shared.core.types.ColorName;
@@ -26,6 +25,7 @@ import com.ait.lienzo.shared.core.types.TextUnit;
 import com.ait.lienzo.tools.client.collection.NFastDoubleArray;
 import com.ait.lienzo.tools.client.collection.NFastStringMap;
 import elemental2.core.Uint8ClampedArray;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 
 /**
  * Text utilities.
@@ -73,11 +73,11 @@ public class TextUtils {
             throw new Error();
         }
 
-        FORBOUNDS.getContext().setTextFont(font);
+        FORBOUNDS.getContext().font = font;
 
-        FORBOUNDS.getContext().setTextAlign(TextAlign.LEFT);
+        FORBOUNDS.getContext().setTextAlign(TextAlign.LEFT.getValue());
 
-        FORBOUNDS.getContext().setTextBaseline(TextBaseLine.ALPHABETIC);
+        FORBOUNDS.getContext().setTextBaseline(TextBaseLine.ALPHABETIC.getValue());
 
         final int m = (int) FORBOUNDS.getContext().measureText("M").width;
 
@@ -87,19 +87,19 @@ public class TextUtils {
 
         final ScratchPad temp = new ScratchPad(w, h);
 
-        final Context2D ctxt = temp.getContext();
+        final OffscreenCanvasRenderingContext2D ctxt = temp.getContext();
 
-        ctxt.setFillColor(ColorName.BLACK);
+        ctxt.fillColor = ColorName.BLACK.getValue();
 
         ctxt.fillRect(0, 0, w, h);
 
-        ctxt.setTextFont(font);
+        ctxt.font = font;
 
-        ctxt.setTextAlign(TextAlign.LEFT);
+        ctxt.setTextAlign(TextAlign.LEFT.getValue());
 
-        ctxt.setTextBaseline(baseline);
+        ctxt.setTextBaseline(baseline.getValue());
 
-        ctxt.setFillColor(ColorName.WHITE);
+        ctxt.fillColor = ColorName.WHITE.getValue();
 
         ctxt.fillText("Mg", 0, m * 2.0);
 
@@ -124,11 +124,11 @@ public class TextUtils {
             return BoundingBox.fromDoubles(0, 0, 0, 0);
         }
 
-        FORBOUNDS.getContext().setTextFont(font);
+        FORBOUNDS.getContext().font = font;
 
-        FORBOUNDS.getContext().setTextAlign(TextAlign.LEFT);
+        FORBOUNDS.getContext().setTextAlign(TextAlign.LEFT.getValue());
 
-        FORBOUNDS.getContext().setTextBaseline(TextBaseLine.ALPHABETIC);
+        FORBOUNDS.getContext().setTextBaseline(TextBaseLine.ALPHABETIC.getValue());
 
         final double wide = FORBOUNDS.getContext().measureText(text).width;
 

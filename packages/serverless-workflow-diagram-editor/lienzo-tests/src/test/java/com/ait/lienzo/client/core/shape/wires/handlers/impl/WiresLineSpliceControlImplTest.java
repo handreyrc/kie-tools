@@ -18,7 +18,6 @@ package com.ait.lienzo.client.core.shape.wires.handlers.impl;
 
 import java.util.List;
 
-import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.shape.Group;
 import com.ait.lienzo.client.core.shape.IDirectionalMultiPointShape;
 import com.ait.lienzo.client.core.shape.IPrimitive;
@@ -51,6 +50,7 @@ import com.ait.lienzo.tools.client.event.HandlerRegistration;
 import elemental2.core.Uint8ClampedArray;
 import elemental2.dom.HTMLDivElement;
 import elemental2.dom.ImageData;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -171,7 +171,7 @@ public class WiresLineSpliceControlImplTest {
     private ScratchPad scratchPad;
 
     @Mock
-    private Context2D context;
+    private OffscreenCanvasRenderingContext2D context;
 
     @Mock
     private ImageData imageData;

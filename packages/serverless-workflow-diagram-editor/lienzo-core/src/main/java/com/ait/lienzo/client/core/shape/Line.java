@@ -26,6 +26,7 @@ import com.ait.lienzo.client.core.types.DashArray;
 import com.ait.lienzo.client.core.types.Point2D;
 import com.ait.lienzo.client.core.types.Point2DArray;
 import com.ait.lienzo.shared.core.types.ShapeType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsIgnore;
 import jsinterop.annotations.JsType;
 
@@ -124,6 +125,51 @@ public class Line extends AbstractOffsetMultiPointShape<Line> {
         return false;
     }
 
+    //handrey
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context, final double alpha) {
+        final Point2DArray list = getPoints();
+
+        if ((null != list) && (list.size() == 2)) {
+            if (getDashArray() != null) {
+                if (!LienzoCore.get().isNativeLineDashSupported()) {
+                    DashArray dash = getDashArray();
+
+                    if (dash != null) {
+                        double[] data = dash.getNormalizedArray();
+
+                        if (data.length > 0) {
+                            if (setStrokeParams(context, alpha, false)) {
+                                Point2D p0 = list.get(0);
+
+                                Point2D p1 = list.get(1);
+
+                                context.beginPath();
+
+                                drawDashedLine(context, p0.getX(), p0.getY(), p1.getX(), p1.getY(), data, getStrokeWidth() / 2);
+
+                                context.restore();
+                            }
+                            return true;
+                        }
+                    }
+                }
+            }
+            context.beginPath();
+
+            final Point2D p0 = list.get(0);
+
+            context.moveTo(p0.getX(), p0.getY());
+
+            final Point2D p1 = list.get(1);
+
+            context.lineTo(p1.getX(), p1.getY());
+
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public boolean parse() {
         throw new UnsupportedOperationException();
@@ -174,6 +220,55 @@ public class Line extends AbstractOffsetMultiPointShape<Line> {
      * @param plus
      */
     protected void drawDashedLine(final Context2D context, double x, double y, final double x2, final double y2, final double[] da, final double plus) {
+        final int dashCount = da.length;
+
+        final double dx = (x2 - x);
+
+        final double dy = (y2 - y);
+
+        final boolean xbig = (Math.abs(dx) > Math.abs(dy));
+
+        final double slope = (xbig) ? dy / dx : dx / dy;
+
+        context.moveTo(x, y);
+
+        double distRemaining = Math.sqrt(dx * dx + dy * dy) + plus;
+
+        int dashIndex = 0;
+
+        while (distRemaining >= 0.1) {
+            double dashLength = Math.min(distRemaining, da[dashIndex % dashCount]);
+
+            double step = Math.sqrt(dashLength * dashLength / (1 + slope * slope));
+
+            if (xbig) {
+                if (dx < 0) {
+                    step = -step;
+                }
+                x += step;
+
+                y += slope * step;
+            } else {
+                if (dy < 0) {
+                    step = -step;
+                }
+                x += slope * step;
+
+                y += step;
+            }
+            if (dashIndex % 2 == 0) {
+                context.lineTo(x, y);
+            } else {
+                context.moveTo(x, y);
+            }
+            distRemaining -= dashLength;
+
+            dashIndex++;
+        }
+    }
+
+    //handrey
+    protected void drawDashedLine(final OffscreenCanvasRenderingContext2D context, double x, double y, final double x2, final double y2, final double[] da, final double plus) {
         final int dashCount = da.length;
 
         final double dx = (x2 - x);

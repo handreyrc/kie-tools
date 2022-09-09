@@ -31,6 +31,7 @@ import com.ait.lienzo.client.widget.DefaultDragConstraintEnforcer;
 import com.ait.lienzo.client.widget.DragConstraintEnforcer;
 import com.ait.lienzo.shared.core.types.NodeType;
 import com.ait.lienzo.shared.core.types.ProxyType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 
 public abstract class CompositeProxy<C extends CompositeProxy<C, P>, P extends IPrimitive<?>> extends Node<C> implements IPrimitive<C> {
 
@@ -228,6 +229,20 @@ public abstract class CompositeProxy<C extends CompositeProxy<C, P>, P extends I
     @Override
     protected void drawWithoutTransforms(final Context2D context, double alpha, final BoundingBox bounds) {
         if ((context.isSelection()) && (!isListening())) {
+            return;
+        }
+        alpha = alpha * getAlpha();
+
+        if (alpha <= 0) {
+            return;
+        }
+        getProxy().drawWithTransforms(context, alpha, bounds);
+    }
+
+    //handrey
+    @Override
+    protected void drawWithoutTransforms(final OffscreenCanvasRenderingContext2D context, double alpha, final BoundingBox bounds) {
+        if (!isListening()) {
             return;
         }
         alpha = alpha * getAlpha();

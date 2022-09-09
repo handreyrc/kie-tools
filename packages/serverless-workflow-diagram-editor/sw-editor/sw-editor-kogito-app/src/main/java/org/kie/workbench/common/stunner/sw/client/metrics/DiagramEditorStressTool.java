@@ -37,7 +37,7 @@ public class DiagramEditorStressTool {
     }
 
     public void run() {
-        setContentByStatesCount(new int[]{1, 1, 2, 3, 4});
+        setContentByStatesCount(new int[]{1, 1, 2, 5, 10, 25, 50, 100, 150, 200, 250, 300, 600});
     }
 
     private void setContentByStatesCount(int[] iterations) {

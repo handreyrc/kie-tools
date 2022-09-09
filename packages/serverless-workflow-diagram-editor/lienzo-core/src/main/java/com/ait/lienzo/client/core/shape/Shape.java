@@ -43,6 +43,7 @@ import com.ait.lienzo.shared.core.types.LineCap;
 import com.ait.lienzo.shared.core.types.LineJoin;
 import com.ait.lienzo.shared.core.types.NodeType;
 import com.ait.lienzo.shared.core.types.ShapeType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import elemental2.dom.Path2D;
 import jsinterop.annotations.JsIgnore;
 import jsinterop.annotations.JsProperty;
@@ -225,6 +226,24 @@ public abstract class Shape<T extends Shape<T>> extends Node<T> implements IPrim
         }
     }
 
+    //handrey
+    @Override
+    protected void drawWithoutTransforms(final OffscreenCanvasRenderingContext2D context, double alpha, BoundingBox bounds) {
+        alpha = alpha * getAlpha();
+
+        if (alpha <= 0) {
+            return;
+        }
+
+        setAppliedShadow(false);
+
+        if (prepare(context, alpha)) {
+            final boolean fill = fill(context, alpha);
+
+            stroke(context, alpha, fill);
+        }
+    }
+
     public PathPartList getPathPartList() {
         return null;
     }
@@ -238,6 +257,8 @@ public abstract class Shape<T extends Shape<T>> extends Node<T> implements IPrim
     }
 
     protected abstract boolean prepare(Context2D context, double alpha);
+    //handrey
+    protected abstract boolean prepare(OffscreenCanvasRenderingContext2D context, double alpha);
 
     protected boolean fill(final Context2D context, double alpha) {
         final boolean filled = hasFill();
@@ -314,6 +335,77 @@ public abstract class Shape<T extends Shape<T>> extends Node<T> implements IPrim
                     context.restore();
 
                     return true;
+                }
+            }
+            context.restore();
+        }
+        return false;
+    }
+
+    //handrey
+    protected boolean fill(final OffscreenCanvasRenderingContext2D context, double alpha) {
+        final boolean filled = hasFill();
+
+        if ((filled) || (isFillShapeForSelection())) {
+            alpha = alpha * getFillAlpha();
+
+            if (alpha <= 0) {
+                return false;
+            }
+
+            if (!filled) {
+                return false;
+            }
+            context.save();
+
+            if (getShadow() != null) {
+                doApplyShadow(context);
+            }
+
+            context.globalAlpha = alpha;
+
+            final String fill = getFillColor();
+
+            if (null != fill) {
+                context.fillColor = fill;
+
+                context.fill();
+
+                context.restore();
+
+                return true;
+            }
+            final FillGradient grad = getFillGradient();
+
+            if (null != grad) {
+                final String type = grad.getType();
+
+                if (LinearGradient.TYPE.equals(type)) {
+                    context.createLinearGradient(grad.asLinearGradient().getJSO().sx,
+                                                 grad.asLinearGradient().getJSO().sy,
+                                                 grad.asLinearGradient().getJSO().ex,
+                                                 grad.asLinearGradient().getJSO().ey);
+
+                    context.fill();
+
+                    context.restore();
+
+                    return true;
+                } else if (RadialGradient.TYPE.equals(type)) {
+                    context.createRadialGradient(grad.asRadialGradient().getJSO().sx,
+                                                 grad.asRadialGradient().getJSO().sy,
+                                                 grad.asRadialGradient().getJSO().sr,
+                                                 grad.asRadialGradient().getJSO().ex,
+                                                 grad.asRadialGradient().getJSO().ey,
+                                                 grad.asRadialGradient().getJSO().er);
+
+                    context.fill();
+
+                    context.restore();
+
+                    return true;
+                } else if (PatternGradient.TYPE.equals(type)) {
+                    //pattern gradient is not supported
                 }
             }
             context.restore();
@@ -434,6 +526,77 @@ public abstract class Shape<T extends Shape<T>> extends Node<T> implements IPrim
         return false;
     }
 
+//handrey
+    protected boolean fill(final OffscreenCanvasRenderingContext2D context, double alpha, final Path2D path) {
+        final boolean filled = hasFill();
+
+        if ((filled) || (isFillShapeForSelection())) {
+            alpha = alpha * getFillAlpha();
+
+            if (alpha <= 0) {
+                return false;
+            }
+
+            if (!filled) {
+                return false;
+            }
+            context.save();
+
+            if (getShadow() != null) {
+                doApplyShadow(context);
+            }
+            context.globalAlpha = alpha;
+
+            final String fill = getFillColor();
+
+            if (null != fill) {
+                context.fillColor = fill;
+
+                context.fill(path);
+
+                context.restore();
+
+                return true;
+            } else {
+                final FillGradient grad = getFillGradient();
+
+                if (null != grad) {
+                    final String type = grad.getType();
+
+                    if (LinearGradient.TYPE.equals(type)) {
+                        context.createLinearGradient(grad.asLinearGradient().getJSO().sx,
+                                                     grad.asLinearGradient().getJSO().sy,
+                                                     grad.asLinearGradient().getJSO().ex,
+                                                     grad.asLinearGradient().getJSO().ey);
+
+                        context.fill(path);
+
+                        context.restore();
+
+                        return true;
+                    } else if (RadialGradient.TYPE.equals(type)) {
+                        context.createRadialGradient(grad.asRadialGradient().getJSO().sx,
+                                                     grad.asRadialGradient().getJSO().sy,
+                                                     grad.asRadialGradient().getJSO().sr,
+                                                     grad.asRadialGradient().getJSO().ex,
+                                                     grad.asRadialGradient().getJSO().ey,
+                                                     grad.asRadialGradient().getJSO().er);
+
+                        context.fill(path);
+
+                        context.restore();
+
+                        return true;
+                    } else if (PatternGradient.TYPE.equals(type)) {
+                        //pattern gradient is not supported
+                    }
+                }
+            }
+            context.restore();
+        }
+        return false;
+    }
+
     protected boolean setStrokeParams(final Context2D context, double alpha, final boolean filled) {
         double width = getStrokeWidth();
 
@@ -512,6 +675,74 @@ public abstract class Shape<T extends Shape<T>> extends Node<T> implements IPrim
         return true;
     }
 
+//handrey
+    protected boolean setStrokeParams(final OffscreenCanvasRenderingContext2D context, double alpha, final boolean filled) {
+        double width = getStrokeWidth();
+
+        String color = getStrokeColor();
+
+        if (null == color) {
+            if (width > 0) {
+                color = LienzoCore.get().getDefaultStrokeColor();
+            }
+        } else if (width <= 0) {
+            width = LienzoCore.get().getDefaultStrokeWidth();
+        }
+        if ((null == color) && (width <= 0)) {
+            if (filled) {
+                return false;
+            }
+            color = LienzoCore.get().getDefaultStrokeColor();
+
+            width = LienzoCore.get().getDefaultStrokeWidth();
+        }
+        alpha = alpha * getStrokeAlpha();
+
+        if (alpha <= 0) {
+            return false;
+        }
+        double offset = 0;
+
+        context.save();
+
+        context.globalAlpha = alpha;
+        context.strokeColor = color;
+        //TODO handrey stroke width?
+        context.lineWidth = width + offset;
+
+        if (!hasExtraStrokeAttributes()) {
+            return true;
+        }
+        boolean isdashed = false;
+
+        if (getDashArray() != null) {
+            if (LienzoCore.get().isLineDashSupported()) {
+                DashArray dash = getDashArray();
+
+                if ((null != dash) && (dash.size() > 0)) {
+                    context.setLineDash(dash.getNormalizedArray());
+
+                    if (dashOffset > 0) {
+                        context.lineDashOffset = getDashOffset();
+                    }
+                    isdashed = true;
+                }
+            }
+        }
+        if ((isdashed) || (doStrokeExtraProperties())) {
+            if (lineJoin != null) {
+                context.setLineJoin(getLineJoin().getValue());
+            }
+            if (lineCap != null) {
+                context.setLineCap(getLineCap().getValue());
+            }
+            if (miterLimit > 0) {
+                context.setMiterLimit(getMiterLimit());
+            }
+        }
+        return true;
+    }
+
     private final boolean hasExtraStrokeAttributes() {
         boolean hasAttribute = dashArray != null || lineJoin != null || lineCap != null || miterLimit > 0;
         return hasAttribute;
@@ -532,9 +763,33 @@ public abstract class Shape<T extends Shape<T>> extends Node<T> implements IPrim
         }
     }
 
+    //handrey
+    protected void stroke(final OffscreenCanvasRenderingContext2D context, final double alpha, final boolean filled) {
+        if (setStrokeParams(context, alpha, filled)) {
+            if (getShadow() != null) {
+                doApplyShadow(context);
+            }
+            context.stroke();
+
+            context.restore();
+        }
+    }
+
     protected void stroke(final Context2D context, final double alpha, final Path2D path, final boolean filled) {
         if (setStrokeParams(context, alpha, filled)) {
             if (getShadow() != null && !context.isSelection()) {
+                doApplyShadow(context);
+            }
+            context.stroke(path);
+
+            context.restore();
+        }
+    }
+
+    //handrey
+    protected void stroke(final OffscreenCanvasRenderingContext2D context, final double alpha, final Path2D path, final boolean filled) {
+        if (setStrokeParams(context, alpha, filled)) {
+            if (getShadow() != null) {
                 doApplyShadow(context);
             }
             context.stroke(path);
@@ -551,6 +806,22 @@ public abstract class Shape<T extends Shape<T>> extends Node<T> implements IPrim
 
             if (null != shadow) {
                 context.setShadow(shadow);
+            }
+        }
+    }
+
+    //handrey
+    protected final void doApplyShadow(final OffscreenCanvasRenderingContext2D context) {
+        if (!isAppliedShadow() && getShadow() != null) {
+            setAppliedShadow(true);
+
+            final Shadow shadow = getShadow();
+
+            if (null != shadow) {
+                context.shadowBlur = shadow.getBlur();
+                context.shadowColor = shadow.getColor();
+                context.shadowOffsetX = shadow.getOffset().getX();
+                context.shadowOffsetY = shadow.getOffset().getY();
             }
         }
     }

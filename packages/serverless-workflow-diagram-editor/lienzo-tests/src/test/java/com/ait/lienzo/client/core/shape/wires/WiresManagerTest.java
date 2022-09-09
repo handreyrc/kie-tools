@@ -18,7 +18,6 @@
 
 package com.ait.lienzo.client.core.shape.wires;
 
-import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.event.OnEventHandlers;
 import com.ait.lienzo.client.core.shape.AbstractDirectionalMultiPointShape;
 import com.ait.lienzo.client.core.shape.Group;
@@ -37,6 +36,7 @@ import com.ait.lienzo.test.LienzoMockitoTestRunner;
 import com.ait.lienzo.tools.client.event.HandlerRegistration;
 import com.ait.lienzo.tools.client.event.HandlerRegistrationManager;
 import elemental2.dom.HTMLDivElement;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -152,7 +152,7 @@ public class WiresManagerTest {
         when(pad.getWidth()).thenReturn(10);
         when(pad.getHeight()).thenReturn(10);
 
-        final Context2D context2D = mock(Context2D.class);
+        final OffscreenCanvasRenderingContext2D context2D = mock(OffscreenCanvasRenderingContext2D.class);
         when(pad.getContext()).thenReturn(context2D);
 
         final IContainmentAcceptor containmentAcceptor = mock(IContainmentAcceptor.class);

@@ -25,6 +25,7 @@ import com.ait.lienzo.client.core.shape.Picture;
 import com.ait.lienzo.client.core.shape.Shape;
 import com.ait.lienzo.client.core.types.BoundingBox;
 import com.ait.lienzo.shared.core.types.ShapeType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsProperty;
 
 public class Image
@@ -227,6 +228,25 @@ public class Image
         return false;
     }
 
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context,
+                              final double alpha) {
+        context.save();
+
+
+        context.globalAlpha = alpha;
+
+        if (getShadow() != null) {
+            doApplyShadow(context);
+        }
+
+        drawImage(context);
+
+        context.restore();
+
+        return false;
+    }
+
     void drawImage(final Context2D context) {
         if (imageProxy.isLoaded()) {
 
@@ -243,6 +263,16 @@ public class Image
                     context.restore();
                 }
             } else {
+                imageProxy.draw(context,
+                                getImageClipBounds());
+            }
+        }
+    }
+
+    //handrey
+    void drawImage(final OffscreenCanvasRenderingContext2D context) {
+        if (imageProxy.isLoaded()) {
+             {
                 imageProxy.draw(context,
                                 getImageClipBounds());
             }

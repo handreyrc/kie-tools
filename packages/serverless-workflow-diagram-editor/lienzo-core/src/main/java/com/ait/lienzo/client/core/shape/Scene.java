@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.function.Predicate;
 
 import com.ait.lienzo.client.core.Attribute;
-import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.config.LienzoCore;
 import com.ait.lienzo.client.core.shape.storage.IStorageEngine;
 import com.ait.lienzo.client.core.shape.storage.SceneFastArrayStorageEngine;
@@ -36,6 +35,7 @@ import com.ait.lienzo.tools.client.event.INodeEvent;
 import elemental2.dom.CSSProperties;
 import elemental2.dom.DomGlobal;
 import elemental2.dom.HTMLDivElement;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.base.Js;
 
 /**
@@ -552,7 +552,9 @@ public class Scene extends ContainerNode<Layer, Scene> {
         if (LienzoCore.IS_CANVAS_SUPPORTED) {
             final ScratchPad scratch = new ScratchPad(getWidth(), getHeight());
 
-            final Context2D context = scratch.getContext();
+            //handrey
+            //final Context2D context = scratch.getContext();
+            final OffscreenCanvasRenderingContext2D context = scratch.getContext();
 
             final NFastArrayList<Layer> layers = getChildNodes();
 
@@ -598,7 +600,9 @@ public class Scene extends ContainerNode<Layer, Scene> {
         if (LienzoCore.IS_CANVAS_SUPPORTED) {
             final ScratchPad scratch = new ScratchPad(getWidth(), getHeight());
 
-            final Context2D context = scratch.getContext();
+            //handrey
+            //final Context2D context = scratch.getContext();
+            final OffscreenCanvasRenderingContext2D context = scratch.getContext();
 
             final NFastArrayList<Layer> layers = getChildNodes();
 
@@ -645,7 +649,9 @@ public class Scene extends ContainerNode<Layer, Scene> {
         if (LienzoCore.IS_CANVAS_SUPPORTED) {
             final ScratchPad scratch = new ScratchPad(getWidth(), getHeight());
 
-            final Context2D context = scratch.getContext();
+            //handrey
+            //final Context2D context = scratch.getContext();
+            final OffscreenCanvasRenderingContext2D context = scratch.getContext();
 
             final NFastArrayList<Layer> layers = getChildNodes();
 
@@ -691,7 +697,9 @@ public class Scene extends ContainerNode<Layer, Scene> {
         if (LienzoCore.IS_CANVAS_SUPPORTED) {
             final ScratchPad scratch = new ScratchPad(getWidth(), getHeight());
 
-            final Context2D context = scratch.getContext();
+            //handrey
+            //final Context2D context = scratch.getContext();
+            final OffscreenCanvasRenderingContext2D context = scratch.getContext();
 
             final NFastArrayList<Layer> layers = getChildNodes();
 

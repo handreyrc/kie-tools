@@ -1,8 +1,8 @@
 package com.ait.lienzo.client.core.types;
 
-import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.util.ScratchPad;
 import elemental2.dom.ImageData;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 
 public class ImageDataUtil {
 
@@ -27,7 +27,7 @@ public class ImageDataUtil {
      * ImageData can't be cloned or deep-copied, it's an internal data structure and has some CRAZY crap in it, this is cheeeeeezy, but hey, it works, and it's portable!!!
      */
     public static final ImageData copy(ImageData image) {
-        final Context2D context = new ScratchPad(image.width, image.height).getContext();
+        final OffscreenCanvasRenderingContext2D context = new ScratchPad(image.width, image.height).getContext();
 
         context.putImageData(image, 0, 0);
 
@@ -35,7 +35,7 @@ public class ImageDataUtil {
     }
 
     public static ImageData create(ImageData imageData) {
-        return SCRATCH.getContext().createImageData(imageData);
+        return SCRATCH.getContext().createImageData(imageData.width, imageData.height);
     }
 
     /**

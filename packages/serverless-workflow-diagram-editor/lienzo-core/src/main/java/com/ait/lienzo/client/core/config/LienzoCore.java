@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.List;
 
 import com.ait.lienzo.client.core.Attribute;
-import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.style.Style.Cursor;
 import com.ait.lienzo.client.core.types.DashArray;
 import com.ait.lienzo.client.core.types.ImageDataUtil;
@@ -34,6 +33,7 @@ import com.ait.lienzo.shared.core.types.LineCap;
 import elemental2.dom.DomGlobal;
 import elemental2.dom.HTMLCanvasElement;
 import elemental2.dom.ImageData;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.base.Js;
 import jsinterop.base.JsPropertyMap;
 
@@ -324,13 +324,16 @@ public final class LienzoCore {
             return m_backingStorePixelRatio;
         }
         if (IS_CANVAS_SUPPORTED) {
-            try {
-                m_backingStorePixelRatio = new ScratchPad(1, 1).getContext().getBackingStorePixelRatio();
-            } catch (Exception e) {
-                m_backingStorePixelRatio = 1;
+            //TODO handrey m_backingStorePixelRatio is not supported check it
+//            try {
+//                m_backingStorePixelRatio = new ScratchPad(1, 1).getContext().getBackingStorePixelRatio();
+//            } catch (Exception e) {
+//                m_backingStorePixelRatio = 1;
+//
+//                error("Backing Store Pixel Ratio failed ", e);
+//            }
 
-                error("Backing Store Pixel Ratio failed ", e);
-            }
+            m_backingStorePixelRatio = 1; //handrey temporary
         } else {
             m_backingStorePixelRatio = 1;
         }
@@ -357,13 +360,13 @@ public final class LienzoCore {
             try {
                 final ScratchPad scratch = new ScratchPad(20, 10);
 
-                final Context2D context = scratch.getContext();
+                final OffscreenCanvasRenderingContext2D context = scratch.getContext();
 
-                context.setStrokeWidth(10);
+                context.lineWidth = 10d;
 
-                context.setLineCap(LineCap.BUTT);
+                context.setLineCap(LineCap.BUTT.getValue());
 
-                context.setStrokeColor(ColorName.BLUE);
+                context.setStrokeColor(ColorName.BLUE.getValue());
 
                 context.beginPath();
 
@@ -373,9 +376,9 @@ public final class LienzoCore {
 
                 context.stroke();
 
-                context.setStrokeColor(ColorName.RED);
-
-                context.setLineDash(new DashArray(5, 5));
+                context.strokeColor = ColorName.RED.getValue();
+                
+                context.setLineDash(new DashArray(5, 5).getNormalizedArray());
 
                 context.beginPath();
 

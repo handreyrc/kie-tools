@@ -20,7 +20,9 @@ import java.util.List;
 
 import com.ait.lienzo.client.core.Attribute;
 import com.ait.lienzo.client.core.Context2D;
+import com.ait.lienzo.client.core.util.ScratchPad;
 import com.ait.lienzo.shared.core.types.ShapeType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsProperty;
 
 public abstract class AbstractOffsetMultiPointShape<T extends AbstractOffsetMultiPointShape<T> & IOffsetMultiPointShape<T>> extends AbstractMultiPointShape<T> implements IOffsetMultiPointShape<T> {
@@ -74,6 +76,17 @@ public abstract class AbstractOffsetMultiPointShape<T extends AbstractOffsetMult
 
         if (prepared) {
             context.path(getPathPartList());
+        }
+        return prepared;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context, final double alpha) {
+        final boolean prepared = isPathPartListPrepared();
+
+        if (prepared) {
+            ScratchPad.path(context, getPathPartList().getJSO(), true);
         }
         return prepared;
     }

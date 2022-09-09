@@ -25,7 +25,9 @@ import com.ait.lienzo.client.core.types.PathPartList;
 import com.ait.lienzo.client.core.types.Point2D;
 import com.ait.lienzo.client.core.types.Point2DArray;
 import com.ait.lienzo.client.core.util.Geometry;
+import com.ait.lienzo.client.core.util.ScratchPad;
 import com.ait.lienzo.shared.core.types.ShapeType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsIgnore;
 import jsinterop.annotations.JsProperty;
 import jsinterop.annotations.JsType;
@@ -92,6 +94,23 @@ public class Triangle extends AbstractMultiPointShape<Triangle> {
             return false;
         }
         context.path(plist);
+
+        return true;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context, final double alpha) {
+        PathPartList plist = getPathPartList();
+        if (plist.size() < 1) {
+            if (!parse()) {
+                return false;
+            }
+        }
+        if (plist.size() < 1) {
+            return false;
+        }
+        ScratchPad.path(context, plist.getJSO(), true);
 
         return true;
     }

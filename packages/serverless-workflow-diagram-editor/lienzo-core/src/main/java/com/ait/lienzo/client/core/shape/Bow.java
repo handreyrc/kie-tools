@@ -23,6 +23,7 @@ import com.ait.lienzo.client.core.Attribute;
 import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.types.BoundingBox;
 import com.ait.lienzo.shared.core.types.ShapeType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsIgnore;
 import jsinterop.annotations.JsProperty;
 import jsinterop.annotations.JsType;
@@ -88,6 +89,36 @@ public class Bow extends Shape<Bow> {
      */
     @Override
     protected boolean prepare(final Context2D context, final double alpha) {
+        final double end = getEndAngle();
+
+        final double beg = getStartAngle();
+
+        if (beg == end) {
+            return false;
+        }
+        final double ord = getOuterRadius();
+
+        final double ird = getInnerRadius();
+
+        final boolean ccw = isCounterClockwise();
+
+        if ((ord > 0) && (ird > 0)) {
+            context.beginPath();
+
+            context.arc(0, 0, ord, beg, end, ccw);
+
+            context.arc(0, 0, ird, end, beg, (!ccw));
+
+            context.closePath();
+
+            return true;
+        }
+        return false;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context, final double alpha) {
         final double end = getEndAngle();
 
         final double beg = getStartAngle();

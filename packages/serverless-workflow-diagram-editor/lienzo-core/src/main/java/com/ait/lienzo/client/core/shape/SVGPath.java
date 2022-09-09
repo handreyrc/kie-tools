@@ -24,8 +24,10 @@ import com.ait.lienzo.client.core.LienzoPath2D;
 import com.ait.lienzo.client.core.types.BoundingBox;
 import com.ait.lienzo.client.core.types.PathPartEntryJSO;
 import com.ait.lienzo.client.core.types.PathPartList;
+import com.ait.lienzo.client.core.util.ScratchPad;
 import com.ait.lienzo.shared.core.types.ShapeType;
 import com.ait.lienzo.tools.client.collection.NFastDoubleArray;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsProperty;
 import jsinterop.annotations.JsType;
 
@@ -85,8 +87,49 @@ public class SVGPath extends Shape<SVGPath> {
         }
     }
 
+    //handrey
+    @Override
+    protected void drawWithoutTransforms(final OffscreenCanvasRenderingContext2D context, double alpha, BoundingBox bounds) {
+        if (m_list.size() < 1) {
+            return;
+        }
+
+        alpha = alpha * getAlpha();
+
+        if (alpha <= 0) {
+            return;
+        }
+
+        setAppliedShadow(false);
+
+        final LienzoPath2D path = m_list.getPath2D();
+
+        boolean fill = false;
+
+        if (null != path) {
+            if (path.isClosed()) {
+                fill = fill(context, alpha, path);
+            }
+            stroke(context, alpha, path, fill);
+        } else {
+            if (ScratchPad.path(context,m_list.getJSO(), true)) {
+                fill = fill(context, alpha);
+            }
+            stroke(context, alpha, fill);
+        }
+    }
+
     @Override
     protected boolean prepare(final Context2D context, double alpha) {
+        if (m_list.size() < 1) {
+            return false;
+        }
+        return true;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context, double alpha) {
         if (m_list.size() < 1) {
             return false;
         }

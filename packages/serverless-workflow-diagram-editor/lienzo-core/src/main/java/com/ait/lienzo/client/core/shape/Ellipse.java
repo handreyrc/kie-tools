@@ -22,6 +22,7 @@ import com.ait.lienzo.client.core.Attribute;
 import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.types.BoundingBox;
 import com.ait.lienzo.shared.core.types.ShapeType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsProperty;
 import jsinterop.annotations.JsType;
 
@@ -74,6 +75,25 @@ public class Ellipse extends Shape<Ellipse> {
      */
     @Override
     protected boolean prepare(final Context2D context, final double alpha) {
+        final double w = getWidth();
+
+        final double h = getHeight();
+
+        if ((w > 0) && (h > 0)) {
+            context.beginPath();
+
+            context.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2, true);
+
+            context.closePath();
+
+            return true;
+        }
+        return false;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context, final double alpha) {
         final double w = getWidth();
 
         final double h = getHeight();

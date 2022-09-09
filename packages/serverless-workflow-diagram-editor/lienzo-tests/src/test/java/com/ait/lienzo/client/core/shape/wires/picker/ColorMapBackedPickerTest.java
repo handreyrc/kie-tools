@@ -16,7 +16,6 @@
 
 package com.ait.lienzo.client.core.shape.wires.picker;
 
-import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.shape.Group;
 import com.ait.lienzo.client.core.shape.MultiPath;
 import com.ait.lienzo.client.core.shape.wires.PickerPart;
@@ -28,6 +27,7 @@ import com.ait.lienzo.client.core.util.ScratchPad;
 import com.ait.lienzo.shared.core.types.Color;
 import com.ait.lienzo.test.LienzoMockitoTestRunner;
 import com.ait.lienzo.tools.client.collection.NFastArrayList;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,7 +58,7 @@ public class ColorMapBackedPickerTest {
     private PathPartList partList;
 
     @Mock
-    private Context2D context;
+    private OffscreenCanvasRenderingContext2D context;
 
     @Mock
     private ImageDataPixelColor pixelColor;
@@ -78,7 +78,7 @@ public class ColorMapBackedPickerTest {
         when(path.getActualPathPartListArray()).thenReturn(pathPartList);
         when(scratchPad.getContext()).thenReturn(context);
         when(path.getComputedLocation()).thenReturn(location);
-        when(context.getImageDataPixelColor(X, Y)).thenReturn(pixelColor);
+        when(ScratchPad.getImageDataPixelColor(context,X, Y)).thenReturn(pixelColor);
         when(pixelColor.toBrowserRGB()).thenReturn(Color.rgbToBrowserHexColor(0, 0, 0));
         when(pickerPart.getShape()).thenReturn(shape);
         tested = new ColorMapBackedPicker(scratchPad, pickerOptions);
@@ -90,7 +90,7 @@ public class ColorMapBackedPickerTest {
         tested.drawShape("#000000", 1, pickerPart, true);
         PickerPart shapeAt = tested.findShapeAt(X, Y);
         assertEquals(pickerPart, shapeAt);
-        verify(context).getImageDataPixelColor(X, Y);
+        verify(scratchPad).getImageDataPixelColor(context,X, Y);
         verify(pixelColor).toBrowserRGB();
     }
 }

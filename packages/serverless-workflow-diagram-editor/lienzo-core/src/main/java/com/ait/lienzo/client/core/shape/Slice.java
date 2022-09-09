@@ -22,6 +22,7 @@ import com.ait.lienzo.client.core.Attribute;
 import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.types.BoundingBox;
 import com.ait.lienzo.shared.core.types.ShapeType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsIgnore;
 import jsinterop.annotations.JsProperty;
 import jsinterop.annotations.JsType;
@@ -86,6 +87,38 @@ public class Slice extends Shape<Slice> {
      */
     @Override
     protected boolean prepare(final Context2D context, final double alpha) {
+        final double beg = getStartAngle();
+
+        final double end = getEndAngle();
+
+        if (beg == end) {
+            return false;
+        }
+        final double r = getRadius();
+
+        if (r > 0) {
+            boolean pacman = true;
+
+            if ((Math.abs(beg - end) % (Math.PI * 2)) == 0) {
+                pacman = false;
+            }
+            context.beginPath();
+
+            context.arc(0, 0, r, beg, end, isCounterClockwise());
+
+            if (pacman) {
+                context.lineTo(0, 0);
+            }
+            context.closePath();
+
+            return true;
+        }
+        return false;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context, final double alpha) {
         final double beg = getStartAngle();
 
         final double end = getEndAngle();

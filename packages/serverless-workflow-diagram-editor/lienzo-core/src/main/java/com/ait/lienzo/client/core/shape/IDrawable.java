@@ -55,6 +55,7 @@ import com.ait.lienzo.gwtlienzo.event.shared.EventHandler;
 import com.ait.lienzo.shared.core.types.NodeType;
 import com.ait.lienzo.tools.client.event.HandlerRegistration;
 import com.ait.lienzo.tools.client.event.INodeEvent.Type;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 
 /**
  * Interface to be implemented by drawable objects.
@@ -280,6 +281,8 @@ public interface IDrawable<T extends IDrawable<T>> extends EventReceiver {
      * @param context
      */
     void drawWithTransforms(Context2D context, double alpha, BoundingBox bounds);
+    //handrey
+    void drawWithTransforms(OffscreenCanvasRenderingContext2D context, double alpha, BoundingBox bounds);
 
     /**
      * Move the object's {@link Layer} one level up

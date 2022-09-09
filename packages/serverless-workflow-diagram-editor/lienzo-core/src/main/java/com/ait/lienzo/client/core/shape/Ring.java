@@ -22,6 +22,7 @@ import com.ait.lienzo.client.core.Attribute;
 import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.types.BoundingBox;
 import com.ait.lienzo.shared.core.types.ShapeType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsProperty;
 
 /**
@@ -65,6 +66,27 @@ public class Ring extends Shape<Ring> {
      */
     @Override
     protected boolean prepare(final Context2D context, final double alpha) {
+        final double ord = getOuterRadius();
+
+        final double ird = getInnerRadius();
+
+        if ((ord > 0) && (ird > 0) && (ord > ird)) {
+            context.beginPath();
+
+            context.arc(0, 0, ord, 0, Math.PI * 2, false);
+
+            context.arc(0, 0, ird, 0, Math.PI * 2, true);
+
+            context.closePath();
+
+            return true;
+        }
+        return false;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context, final double alpha) {
         final double ord = getOuterRadius();
 
         final double ird = getInnerRadius();

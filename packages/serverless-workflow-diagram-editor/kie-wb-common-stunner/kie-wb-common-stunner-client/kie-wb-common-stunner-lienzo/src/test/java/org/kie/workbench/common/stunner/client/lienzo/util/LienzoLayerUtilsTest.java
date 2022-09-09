@@ -16,7 +16,6 @@
 
 package org.kie.workbench.common.stunner.client.lienzo.util;
 
-import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.shape.Layer;
 import com.ait.lienzo.client.core.shape.MultiPath;
 import com.ait.lienzo.client.core.shape.Shape;
@@ -25,6 +24,7 @@ import com.ait.lienzo.client.core.types.BoundingBox;
 import com.ait.lienzo.client.core.util.ScratchPad;
 import com.ait.lienzo.shared.core.types.DataURLType;
 import com.ait.lienzo.test.LienzoMockitoTestRunner;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -89,7 +89,7 @@ public class LienzoLayerUtilsTest {
     @Test
     public void testLayerToDataURL() {
         ScratchPad scratchPad = mock(ScratchPad.class);
-        Context2D context2D = mock(Context2D.class);
+        OffscreenCanvasRenderingContext2D context2D = mock(OffscreenCanvasRenderingContext2D.class);
         when(layer.getScratchPad()).thenReturn(scratchPad);
         when(scratchPad.getContext()).thenReturn(context2D);
         when(scratchPad.toDataURL(eq(DataURLType.JPG), eq(1d))).thenReturn("theResultData");

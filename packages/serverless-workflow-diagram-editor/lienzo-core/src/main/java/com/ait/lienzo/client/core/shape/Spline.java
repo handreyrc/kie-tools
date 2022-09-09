@@ -24,8 +24,10 @@ import com.ait.lienzo.client.core.types.BoundingBox;
 import com.ait.lienzo.client.core.types.PathPartList;
 import com.ait.lienzo.client.core.types.Point2D;
 import com.ait.lienzo.client.core.types.Point2DArray;
+import com.ait.lienzo.client.core.util.ScratchPad;
 import com.ait.lienzo.shared.core.types.ShapeType;
 import com.ait.lienzo.tools.client.collection.NFastArrayList;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsProperty;
 import jsinterop.annotations.JsType;
 
@@ -78,6 +80,21 @@ public class Spline extends AbstractMultiPointShape<Spline> {
             return false;
         }
         m_fill = context.path(plist);
+
+        return true;
+    }
+
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context, final double alpha) {
+        PathPartList plist = getPathPartList();
+
+        if (plist.size() < 1) {
+            parse();
+        }
+        if (plist.size() < 1) {
+            return false;
+        }
+        m_fill = ScratchPad.path(context, plist.getJSO(), true);
 
         return true;
     }

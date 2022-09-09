@@ -22,6 +22,7 @@ import com.ait.lienzo.client.core.Attribute;
 import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.types.BoundingBox;
 import com.ait.lienzo.shared.core.types.ShapeType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsProperty;
 
 /**
@@ -88,6 +89,23 @@ public class EllipticalArc extends Shape<EllipticalArc> {
      */
     @Override
     protected boolean prepare(final Context2D context, final double alpha) {
+        final double rx = getRadiusX();
+
+        final double ry = getRadiusY();
+
+        if ((rx > 0) && (ry > 0)) {
+            context.beginPath();
+
+            context.ellipse(0, 0, rx, ry, 0, getStartAngle(), getEndAngle(), isCounterClockwise());
+
+            return true;
+        }
+        return false;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context, final double alpha) {
         final double rx = getRadiusX();
 
         final double ry = getRadiusY();

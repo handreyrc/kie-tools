@@ -20,6 +20,7 @@ import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.config.LienzoCore;
 import com.ait.lienzo.client.widget.RootPanel;
 import elemental2.dom.HTMLImageElement;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 
 public class ImageElementProxy {
 
@@ -56,6 +57,23 @@ public class ImageElementProxy {
     }
 
     public void draw(final Context2D context,
+                     final ImageClipBounds clipBounds) {
+        final double clipX = clipBounds.getClipXPos();
+        final double clipY = clipBounds.getClipYPos();
+        final int width = getWidth();
+        final int height = getHeight();
+        final double _clipWide = clipBounds.getClipWide();
+        final double clipWide = _clipWide > 0 ? _clipWide : width;
+        final double _clipHigh = clipBounds.getClipHigh();
+        final double clipHigh = _clipHigh > 0 ? _clipHigh : height;
+        final double _destWide = clipBounds.getDestWide();
+        final double destWide = _destWide > 0 ? _destWide : width;
+        final double _destHigh = clipBounds.getDestHigh();
+        final double destHigh = _destHigh > 0 ? _destHigh : height;
+        context.drawImage(imageElement, clipX, clipY, clipWide, clipHigh, 0, 0, destWide, destHigh);
+    }
+
+    public void draw(final OffscreenCanvasRenderingContext2D context,
                      final ImageClipBounds clipBounds) {
         final double clipX = clipBounds.getClipXPos();
         final double clipY = clipBounds.getClipYPos();

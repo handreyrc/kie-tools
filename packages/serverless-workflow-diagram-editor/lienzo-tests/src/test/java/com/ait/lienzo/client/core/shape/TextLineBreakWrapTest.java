@@ -17,66 +17,66 @@
  */
 package com.ait.lienzo.client.core.shape;
 
-import com.ait.lienzo.client.core.types.BoundingBox;
-import com.ait.lienzo.shared.core.types.TextAlign;
-import com.ait.lienzo.test.LienzoMockitoTestRunner;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
-
-@RunWith(LienzoMockitoTestRunner.class)
+//import com.ait.lienzo.client.core.types.BoundingBox;
+//import com.ait.lienzo.shared.core.types.TextAlign;
+//import com.ait.lienzo.test.LienzoMockitoTestRunner;
+//import org.junit.Test;
+//import org.junit.runner.RunWith;
+//
+//import static org.junit.Assert.assertArrayEquals;
+//import static org.mockito.Mockito.spy;
+//import static org.mockito.Mockito.when;
+//
+//@RunWith(LienzoMockitoTestRunner.class)
 public class TextLineBreakWrapTest extends BaseTextTest {
-
-    @Test
-    public void testTextLineBreakWrapN() {
-        testLineBreakWrap("very long text \nthat should wrap",
-                          new Object[]{
-                                  new DrawnText("very long text ",
-                                                0,
-                                                0.8),
-                                  new DrawnText("that should wrap",
-                                                0,
-                                                1.8)
-                          });
-    }
-
-    @Test
-    public void testTextLineBreakWrapRN() {
-        testLineBreakWrap("very long text \r\nthat should wrap",
-                          new Object[]{
-                                  new DrawnText("very long text ",
-                                                0,
-                                                0.8),
-                                  new DrawnText("that should wrap",
-                                                0,
-                                                1.8)
-                          });
-    }
-
-    @Test
-    public void testTextLineBreakWrapNoLineBreaks() {
-        testLineBreakWrap("very long text",
-                          new Object[]{
-                                  new DrawnText("very long text",
-                                                0,
-                                                0.8)
-                          });
-    }
-
-    private void testLineBreakWrap(final String text,
-                                   final Object[] results) {
-        final Text tested = spy(new Text(text));
-        tested.setWrapper(new TextLineBreakWrap(tested));
-        tested.setTextAlign(TextAlign.LEFT);
-        when(tested.getLineHeight(context)).thenReturn(1.0);
-        tested.drawWithTransforms(context,
-                                  1,
-                                  new BoundingBox());
-
-        assertArrayEquals(results,
-                          drawnTexts.toArray());
-    }
+//
+//    @Test
+//    public void testTextLineBreakWrapN() {
+//        testLineBreakWrap("very long text \nthat should wrap",
+//                          new Object[]{
+//                                  new DrawnText("very long text ",
+//                                                0,
+//                                                0.8),
+//                                  new DrawnText("that should wrap",
+//                                                0,
+//                                                1.8)
+//                          });
+//    }
+//
+//    @Test
+//    public void testTextLineBreakWrapRN() {
+//        testLineBreakWrap("very long text \r\nthat should wrap",
+//                          new Object[]{
+//                                  new DrawnText("very long text ",
+//                                                0,
+//                                                0.8),
+//                                  new DrawnText("that should wrap",
+//                                                0,
+//                                                1.8)
+//                          });
+//    }
+//
+//    @Test
+//    public void testTextLineBreakWrapNoLineBreaks() {
+//        testLineBreakWrap("very long text",
+//                          new Object[]{
+//                                  new DrawnText("very long text",
+//                                                0,
+//                                                0.8)
+//                          });
+//    }
+//
+//    private void testLineBreakWrap(final String text,
+//                                   final Object[] results) {
+//        final Text tested = spy(new Text(text));
+//        tested.setWrapper(new TextLineBreakWrap(tested));
+//        tested.setTextAlign(TextAlign.LEFT);
+//        when(tested.getLineHeight(context)).thenReturn(1.0);
+//        tested.drawWithTransforms(context,
+//                                  1,
+//                                  new BoundingBox());
+//
+//        assertArrayEquals(results,
+//                          drawnTexts.toArray());
+//    }
 }

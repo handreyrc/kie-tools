@@ -51,6 +51,7 @@ import com.ait.lienzo.client.core.types.Point2D;
 import com.ait.lienzo.client.core.types.Point2DArray;
 import com.ait.lienzo.client.core.util.Geometry;
 import com.ait.lienzo.client.core.util.JsInteropUtils;
+import com.ait.lienzo.client.core.util.ScratchPad;
 import com.ait.lienzo.client.widget.DragConstraintEnforcer;
 import com.ait.lienzo.client.widget.DragContext;
 import com.ait.lienzo.shared.core.types.DragMode;
@@ -60,6 +61,7 @@ import com.ait.lienzo.tools.client.collection.NFastDoubleArray;
 import com.ait.lienzo.tools.client.event.HandlerRegistration;
 import com.ait.lienzo.tools.client.event.HandlerRegistrationManager;
 import elemental2.core.JsArray;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsIgnore;
 import jsinterop.annotations.JsProperty;
 
@@ -185,6 +187,31 @@ public abstract class AbstractMultiPathPartShape<T extends AbstractMultiPathPart
         return true;
     }
 
+//handrey
+    @Override
+    protected boolean prepare(OffscreenCanvasRenderingContext2D context, double alpha) {
+        double radius = getCornerRadius();
+
+        if (radius != 0) {
+            m_cornerPoints = new NFastArrayList<PathPartList>();
+
+            for (int i = 0; i < m_points.size(); i++) {
+                PathPartList baseList = m_points.get(i);
+
+                Point2DArray basePoints = baseList.getPoints();
+
+                PathPartList cornerList = new PathPartList();
+
+                Geometry.drawArcJoinedLines(cornerList, baseList, basePoints, radius);
+
+                m_cornerPoints.add(cornerList);
+            }
+        }
+
+        return true;
+    }
+
+
     protected final void add(final PathPartList list) {
         m_points.add(list);
     }
@@ -230,6 +257,44 @@ public abstract class AbstractMultiPathPartShape<T extends AbstractMultiPathPart
                     if (context.path(list)) {
                         fill = fill(context, alpha);
                     }
+                    stroke(context, alpha, fill);
+                }
+            }
+        }
+    }
+
+    //handrey
+    @Override
+    protected void drawWithoutTransforms(final OffscreenCanvasRenderingContext2D context, double alpha, BoundingBox bounds) {
+        alpha = alpha * getAlpha();
+
+        if (alpha <= 0) {
+            return;
+        }
+        if (prepare(context, alpha)) {
+            NFastArrayList<PathPartList> points = m_points;
+
+            if (getCornerRadius() > 0) {
+                points = m_cornerPoints;
+            }
+            final int size = points.size();
+
+            if (size < 1) {
+                return;
+            }
+            for (int i = 0; i < size; i++) {
+                setAppliedShadow(false);
+
+                final PathPartList list = points.get(i);
+
+                if (list.size() > 1) {
+                    boolean fill = false;
+
+
+                    if (ScratchPad.path(context, list.getJSO(), true)) {
+                        fill = fill(context, alpha);
+                    }
+
                     stroke(context, alpha, fill);
                 }
             }

@@ -32,6 +32,7 @@ import com.ait.lienzo.shared.core.types.ShapeType;
 import com.ait.lienzo.tools.client.Timer;
 import com.google.gwt.resources.client.ImageResource;
 import elemental2.dom.HTMLImageElement;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsProperty;
 
 public class Sprite extends Shape<Sprite> {
@@ -356,6 +357,34 @@ public class Sprite extends Shape<Sprite> {
 
                     context.restore();
                 }
+            }
+        }
+        return false;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(OffscreenCanvasRenderingContext2D context, double alpha) {
+        if ((null != m_frames) && (null != m_sprite) && (m_index < m_frames.length)) {
+            final BoundingBox bbox = m_frames[m_index];
+
+            if (null != bbox) {
+                if (!m_inited) {
+                    m_inited = true;
+
+                    if (isAutoPlay()) {
+                        play();
+                    }
+                }
+
+                context.save();
+
+                context.globalAlpha = alpha;
+
+                context.drawImage(m_sprite, bbox.getX(), bbox.getY(), bbox.getWidth(), bbox.getHeight(), 0, 0, bbox.getWidth(), bbox.getHeight());
+
+                context.restore();
+
             }
         }
         return false;

@@ -23,6 +23,7 @@ import com.ait.lienzo.client.core.types.Point2D;
 import com.ait.lienzo.client.core.types.Point2DArray;
 import com.ait.lienzo.client.core.types.Transform;
 import com.ait.lienzo.shared.core.types.NodeType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 
 /**
  * GridLayer is a layer that draws a grid behind its child nodes.
@@ -295,6 +296,147 @@ public class GridLayer extends Layer {
 
     @Override
     protected void drawWithoutTransforms(Context2D context, double alpha, final BoundingBox bounds) {
+        if (!isVisible()) {
+            return;
+        }
+        Viewport vp = getViewport();
+
+        int vw = vp.getWidth();
+
+        int vh = vp.getHeight();
+
+        Point2D a = new Point2D(0, 0);
+
+        Point2D b = new Point2D(vw, vh);
+
+        double scaleX = 1;
+        double scaleY = 1;
+
+        Transform t = isTransformable() ? vp.getTransform() : null;
+
+        if (t != null) {
+            scaleX = t.getScaleX();
+
+            scaleY = t.getScaleY();
+
+            t = t.getInverse();
+
+            t.transform(a, a);
+
+            t.transform(b, b);
+        }
+        double x1 = a.getX();
+
+        double y1 = a.getY();
+
+        double x2 = b.getX();
+
+        double y2 = b.getY();
+
+        for (int direction = X; direction <= Y; direction++) {
+            boolean vertical = (direction == X);
+
+            double scale = vertical ? scaleX : scaleY;
+
+            double min = vertical ? x1 : y1;
+
+            double max = vertical ? x2 : y2;
+
+            for (int primSec = 0; primSec <= 1; primSec++) {
+                int index = primSec * 2 + direction;
+
+                boolean isSecondary = (primSec == 1);
+
+                if (m_lines[index] == null) {
+                    continue;
+                }
+                int n = 0;
+
+                if (isSecondary) {
+                    // n = primarySize div secondary
+                    // ASSUMPTION: primarySize is a multiple of secondarySize
+
+                    n = (int) Math.round(m_sizes[direction] / m_sizes[index]);
+                }
+                Line line = m_lines[index];
+
+                double size = m_sizes[index];
+
+                double previousLineWidth = line.getStrokeWidth();
+
+                line.setStrokeWidth(previousLineWidth / scale);
+
+                DashArray previousDashes = line.getDashArray();
+
+                if (previousDashes != null) {
+                    double[] d = previousDashes.getNormalizedArray();
+
+                    double[] copy = new double[d.length];
+                    for (int i = 0; i < d.length; i++) {
+                        copy[i] = d[i] / scale;
+                    }
+                    DashArray dashes = new DashArray(copy);
+                    line.setDashArray(dashes);
+                }
+                long n1 = Math.round(min / size);
+
+                if (n1 * size < min) {
+                    n1++;
+                }
+                long n2 = Math.round(max / size);
+
+                if (n2 * size > max) {
+                    n2--;
+                }
+                Point2DArray points = line.getPoints();
+
+                Point2D p1 = points.get(0);
+
+                Point2D p2 = points.get(1);
+
+                if (vertical) {
+                    p1.setY(y1);
+
+                    p2.setY(y2);
+                } else {
+                    p1.setX(x1);
+
+                    p2.setX(x2);
+                }
+                for (long ni = n1; ni <= n2; ni++) {
+                    if (isSecondary && (ni % n == 0)) // skip primary lines
+                    {
+                        continue;
+                    }
+                    if (vertical) {
+                        double x = ni * size;
+
+                        p1.setX(x);
+
+                        p2.setX(x);
+                    } else {
+                        double y = ni * size;
+
+                        p1.setY(y);
+
+                        p2.setY(y);
+                    }
+                    line.drawWithTransforms(context, alpha, bounds);
+                }
+                line.setStrokeWidth(previousLineWidth); // restore stroke width
+
+                if (previousDashes != null) {
+                    line.setDashArray(previousDashes);
+                }
+            }
+        }
+        // Draw children (if any)
+        super.drawWithoutTransforms(context, alpha, bounds);
+    }
+
+    //handrey
+    @Override
+    protected void drawWithoutTransforms(OffscreenCanvasRenderingContext2D context, double alpha, final BoundingBox bounds) {
         if (!isVisible()) {
             return;
         }

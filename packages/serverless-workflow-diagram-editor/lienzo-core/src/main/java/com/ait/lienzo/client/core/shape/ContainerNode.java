@@ -28,6 +28,7 @@ import com.ait.lienzo.client.core.types.BoundingBox;
 import com.ait.lienzo.client.core.types.BoundingPoints;
 import com.ait.lienzo.shared.core.types.NodeType;
 import com.ait.lienzo.tools.client.collection.NFastArrayList;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsIgnore;
 
 /**
@@ -170,6 +171,44 @@ public abstract class ContainerNode<M extends IDrawable<?>, T extends ContainerN
     @Override
     protected void drawWithoutTransforms(final Context2D context, double alpha, final BoundingBox bounds) {
         if ((context.isSelection()) && (!isListening())) {
+            return;
+        }
+        alpha = alpha * getAlpha();
+
+        if (alpha <= 0) {
+            return;
+        }
+        BoundingBox bbox = getStorageBounds();
+
+        if (null == bbox) {
+            bbox = bounds;
+        }
+        final NFastArrayList<M> list = getChildNodes(bbox);
+
+        final int size = list.size();
+
+        final IPathClipper clip = getPathClipper();
+
+        if ((null != clip) && (clip.isActive())) {
+            context.save();
+
+            clip.clip(context);
+
+            for (int i = 0; i < size; i++) {
+                list.get(i).drawWithTransforms(context, alpha, bbox);
+            }
+            context.restore();
+        } else {
+            for (int i = 0; i < size; i++) {
+                list.get(i).drawWithTransforms(context, alpha, bbox);
+            }
+        }
+    }
+
+    //handrey
+    @Override
+    protected void drawWithoutTransforms(final OffscreenCanvasRenderingContext2D context, double alpha, final BoundingBox bounds) {
+        if (!isListening()) {
             return;
         }
         alpha = alpha * getAlpha();

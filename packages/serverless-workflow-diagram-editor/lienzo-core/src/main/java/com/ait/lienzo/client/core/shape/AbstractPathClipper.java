@@ -20,6 +20,7 @@ import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.types.BoundingBox;
 import com.ait.lienzo.client.core.types.PathPartList;
 import com.ait.lienzo.shared.core.types.PathClipperType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsIgnore;
 import jsinterop.annotations.JsProperty;
 import jsinterop.annotations.JsType;
@@ -89,6 +90,25 @@ public abstract class AbstractPathClipper implements IPathClipper {
         return false;
     }
 
+    //handrey
+    @Override
+    public boolean clip(final OffscreenCanvasRenderingContext2D context) {
+        if (isActive() && (null != getBoundBox() || null != getPathPartList())) {
+            final double x = getX();
+
+            final double y = getY();
+
+            context.translate(x, y);
+
+            final boolean good = apply(context);
+
+            context.translate(-x, -y);
+
+            return good;
+        }
+        return false;
+    }
+
     protected final PathPartList getPathPartList() {
         return m_jso.getPathPartList();
     }
@@ -98,6 +118,8 @@ public abstract class AbstractPathClipper implements IPathClipper {
     }
 
     abstract protected boolean apply(Context2D context);
+    //handrey
+    abstract protected boolean apply(OffscreenCanvasRenderingContext2D context);
 
     @JsType
     public static final class PathClipperJSO {

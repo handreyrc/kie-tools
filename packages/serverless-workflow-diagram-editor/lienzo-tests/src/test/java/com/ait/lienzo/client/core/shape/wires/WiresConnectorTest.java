@@ -16,7 +16,6 @@
 
 package com.ait.lienzo.client.core.shape.wires;
 
-import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.shape.Layer;
 import com.ait.lienzo.client.core.shape.MultiPath;
 import com.ait.lienzo.client.core.shape.MultiPathDecorator;
@@ -26,6 +25,7 @@ import com.ait.lienzo.client.core.types.Point2D;
 import com.ait.lienzo.client.core.types.Point2DArray;
 import com.ait.lienzo.client.core.util.ScratchPad;
 import com.ait.lienzo.test.LienzoMockitoTestRunner;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -150,7 +150,7 @@ public class WiresConnectorTest {
     @Test
     public void testGetIndexForSelectedSegment() {
         ScratchPad scratch = mock(ScratchPad.class);
-        Context2D context = mock(Context2D.class);
+        OffscreenCanvasRenderingContext2D context = mock(OffscreenCanvasRenderingContext2D.class);
         when(line.getScratchPad()).thenReturn(scratch);
         when(scratch.getContext()).thenReturn(context);
 

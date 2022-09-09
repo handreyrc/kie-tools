@@ -27,6 +27,7 @@ import com.ait.lienzo.client.core.util.Geometry;
 import com.ait.lienzo.client.core.util.GeometryException;
 import com.ait.lienzo.shared.core.types.ArrowType;
 import com.ait.lienzo.shared.core.types.ShapeType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsProperty;
 import jsinterop.annotations.JsType;
 
@@ -117,6 +118,32 @@ public class Arrow extends Shape<Arrow> {
      */
     @Override
     protected boolean prepare(Context2D context, double alpha) {
+        Point2DArray list = getPolygon();// is null for invalid arrow definition
+
+        if ((null != list) && (list.size() > 2)) {
+            Point2D point = list.get(0);
+
+            context.beginPath();
+
+            context.moveTo(point.getX(), point.getY());
+
+            final int leng = list.size();
+
+            for (int i = 1; i < leng; i++) {
+                point = list.get(i);
+
+                context.lineTo(point.getX(), point.getY());
+            }
+            context.closePath();
+
+            return true;
+        }
+        return false;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(OffscreenCanvasRenderingContext2D context, double alpha) {
         Point2DArray list = getPolygon();// is null for invalid arrow definition
 
         if ((null != list) && (list.size() > 2)) {

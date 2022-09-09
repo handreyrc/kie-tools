@@ -46,6 +46,7 @@ import elemental2.dom.DomGlobal;
 import elemental2.dom.HTMLImageElement;
 import elemental2.dom.HTMLVideoElement;
 import elemental2.dom.MediaError;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import elemental2.dom.TextMetrics;
 import jsinterop.annotations.JsProperty;
 import jsinterop.base.Js;
@@ -231,6 +232,41 @@ public class Movie extends Shape<Movie> implements ImageDataFilterable<Movie> {
         return tf;
     }
 
+    //handrey
+    private final String getTextBestFit(final OffscreenCanvasRenderingContext2D context, final String text, final int wide) {
+        double pt = LienzoCore.get().getDefaultFontSize();
+
+        String st = LienzoCore.get().getDefaultFontStyle();
+
+        String fm = LienzoCore.get().getDefaultFontFamily();
+
+        String tf = textUtils.getFontString(pt, TextUnit.PT, st, fm);
+
+        context.save();
+
+        //TODO not supported
+        //context.setToIdentityTransform();
+
+        while (true) {
+            context.font = tf;
+
+            final TextMetrics tm = context.measureText(text);
+
+            if (tm.width < wide) {
+                break;
+            }
+            pt = pt - 2;
+
+            if (pt < 6) {
+                break;
+            }
+            tf = textUtils.getFontString(pt, TextUnit.PT, st, fm);
+        }
+        context.restore();
+
+        return tf;
+    }
+
     public Movie onEnded(final MovieEndedHandler onend) {
         m_onend = onend;
 
@@ -342,25 +378,112 @@ public class Movie extends Shape<Movie> implements ImageDataFilterable<Movie> {
             context.setGlobalAlpha(alpha);
 
             if ((!m_xorig) && (m_filters.isActive())) {
-                try {
-                    m_canvas.getContext().drawImage(m_video, 0, 0, wide, high);
-
-                    m_canvas.getContext().putImageData(m_filters.filter(m_canvas.getContext().getImageData(0, 0, wide, high), false), 0, 0);
-
-                    context.drawImage(m_canvas.getElement(), 0, 0, wide, high);
-                } catch (Exception e) {
-                    // We should only get an exception here if the URL is cross-origin, and getImageData() is basically a security exception.
-                    // ...or other unknown bad things, either way, turn off filtering. DSJ 7/18/2014
-
-                    context.drawImage(m_video, 0, 0, wide, high);
-
-                    m_xorig = true;
-
-                    LienzoCore.get().error("ERROR: In Movie filtering " + m_video.src + " " + e.getMessage());
-                }
+                //TODO handrey why??? draw movie on scratch pad???
+//                try {
+//                    m_canvas.getContext().drawImage(m_video, 0, 0, wide, high);
+//
+//                    m_canvas.getContext().putImageData(m_filters.filter(m_canvas.getContext().getImageData(0, 0, wide, high), false), 0, 0);
+//
+//                    context.drawImage(m_canvas.getElement(), 0, 0, wide, high);
+//                } catch (Exception e) {
+//                    // We should only get an exception here if the URL is cross-origin, and getImageData() is basically a security exception.
+//                    // ...or other unknown bad things, either way, turn off filtering. DSJ 7/18/2014
+//
+//                    context.drawImage(m_video, 0, 0, wide, high);
+//
+//                    m_xorig = true;
+//
+//                    LienzoCore.get().error("ERROR: In Movie filtering " + m_video.src + " " + e.getMessage());
+//                }
             } else {
                 context.drawImage(m_video, 0, 0, wide, high);
             }
+            context.restore();
+        }
+        return false;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context, final double alpha) {
+        if (m_inits) {
+            init();
+
+            if ((null == m_error) && (isAutoPlay())) {
+                play();
+            }
+        }
+        int wide = getWidth();
+
+        int high = getHeight();
+
+        if (null != m_error) {
+            if (wide < 1) {
+                wide = MOVIE_ERROR_WIDE;
+            }
+            if (high < 1) {
+                high = MOVIE_ERROR_HIGH;
+            }
+            context.save();
+
+            context.fillColor = ColorName.BLACK.getValue();
+
+            context.rect(0, 0, wide, high);
+
+            context.fill();
+
+            context.setTextAlign(TextAlign.CENTER.getValue());
+
+            context.setTextBaseline(TextBaseLine.MIDDLE.getValue());
+
+            context.font = getTextBestFit(context, m_error, wide);
+
+            context.fillColor = ColorName.WHITE.getValue();
+
+            context.rect(0, 0, wide, high);
+
+            context.clip();
+
+            context.fillText(m_error, wide / 2.0, high / 2.0);
+
+            context.restore();
+
+        } else {
+            if ((wide < 1) || (high < 1)) {
+                return false;
+            }
+            if (isEnded()) {
+                if (null != m_postr) {
+                    context.save();
+
+                    context.globalAlpha = alpha;
+
+                    context.drawImage(m_postr, 0, 0, wide, high);
+
+                    context.restore();
+                } else {
+                    String fill = getFillColor();
+
+                    if (null != fill) {
+                        context.save();
+
+                        context.globalAlpha = alpha;
+
+                        context.fillColor = fill;
+
+                        context.fillRect(0, 0, wide, high);
+
+                        context.restore();
+                    }
+                }
+                return false;
+            }
+            context.save();
+
+            context.globalAlpha = alpha;
+
+            context.drawImage(m_video, 0, 0, wide, high);
+
             context.restore();
         }
         return false;

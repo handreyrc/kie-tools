@@ -22,6 +22,7 @@ import com.ait.lienzo.client.core.shape.SVGPath;
 import com.ait.lienzo.client.core.shape.Text;
 import com.ait.lienzo.client.core.types.BoundingBox;
 import com.ait.lienzo.shared.core.types.Color;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 
 class EmptyStateLayer extends Layer {
 
@@ -41,6 +42,19 @@ class EmptyStateLayer extends Layer {
 
     @Override
     public void drawWithoutTransforms(final Context2D context,
+                                      final double alpha,
+                                      final BoundingBox bounds) {
+
+        drawBackground(context);
+        updateCaption();
+        updateMessage();
+        updateCursor();
+        super.drawWithoutTransforms(context, alpha, bounds);
+    }
+
+    //handrey
+    @Override
+    public void drawWithoutTransforms(final OffscreenCanvasRenderingContext2D context,
                                       final double alpha,
                                       final BoundingBox bounds) {
 
@@ -87,6 +101,16 @@ class EmptyStateLayer extends Layer {
         context.save();
         context.setFillColor(Color.fromColorString(EmptyStateView.BACKGROUND_FILL_COLOR));
 
+        context.fillRect(0, 0, getWidth(), this.getHeight());
+
+        context.restore();
+    }
+
+    //handrey
+    private void drawBackground(final OffscreenCanvasRenderingContext2D context) {
+        context.save();
+
+        context.fillColor = EmptyStateView.BACKGROUND_FILL_COLOR;
         context.fillRect(0, 0, getWidth(), this.getHeight());
 
         context.restore();

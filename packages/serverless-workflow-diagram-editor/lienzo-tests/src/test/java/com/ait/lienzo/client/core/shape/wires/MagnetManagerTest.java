@@ -29,6 +29,7 @@ import com.ait.lienzo.test.LienzoMockitoTestRunner;
 import com.ait.lienzo.tools.client.collection.NFastStringMap;
 import com.google.gwtmockito.WithClassesToStub;
 import elemental2.core.JsArray;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -73,7 +74,7 @@ public class MagnetManagerTest {
     @Test
     public void testDrawMagnetsToBack() {
         // ScratchPad and it's context preparations
-        final Context2D context = mock(Context2D.class);
+        final OffscreenCanvasRenderingContext2D context = mock(OffscreenCanvasRenderingContext2D.class);
         when(scratchPad.getContext()).thenReturn(context);
         when(scratchPad.getWidth()).thenReturn(121);
         when(scratchPad.getHeight()).thenReturn(132);

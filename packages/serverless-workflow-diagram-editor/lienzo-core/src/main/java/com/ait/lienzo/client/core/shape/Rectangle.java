@@ -22,6 +22,7 @@ import com.ait.lienzo.client.core.Attribute;
 import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.types.BoundingBox;
 import com.ait.lienzo.shared.core.types.ShapeType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsIgnore;
 import jsinterop.annotations.JsProperty;
 import jsinterop.annotations.JsType;
@@ -79,6 +80,46 @@ public class Rectangle extends Shape<Rectangle> {
      */
     @Override
     protected boolean prepare(final Context2D context, final double alpha) {
+        final double w = getWidth();
+
+        final double h = getHeight();
+
+        final double r = getCornerRadius();
+
+        if ((w > 0) && (h > 0)) {
+            context.beginPath();
+
+            if ((r > 0) && (r < (w / 2)) && (r < (h / 2))) {
+                context.moveTo(r, 0);
+
+                context.lineTo(w - r, 0);
+
+                context.arc(w - r, r, r, Math.PI * 3 / 2, 0, false);
+
+                context.lineTo(w, h - r);
+
+                context.arc(w - r, h - r, r, 0, Math.PI / 2, false);
+
+                context.lineTo(r, h);
+
+                context.arc(r, h - r, r, Math.PI / 2, Math.PI, false);
+
+                context.lineTo(0, r);
+
+                context.arc(r, r, r, Math.PI, Math.PI * 3 / 2, false);
+            } else {
+                context.rect(0, 0, w, h);
+            }
+            context.closePath();
+
+            return true;
+        }
+        return false;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context, final double alpha) {
         final double w = getWidth();
 
         final double h = getHeight();

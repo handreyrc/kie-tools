@@ -18,7 +18,6 @@ package com.ait.lienzo.client.core.shape.wires;
 
 import java.util.Objects;
 
-import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.shape.Group;
 import com.ait.lienzo.client.core.shape.IDirectionalMultiPointShape;
 import com.ait.lienzo.client.core.shape.IPrimitive;
@@ -44,6 +43,7 @@ import com.ait.lienzo.tools.client.event.HandlerManager;
 import com.ait.lienzo.tools.client.event.HandlerRegistration;
 import elemental2.dom.HTMLElement;
 import elemental2.dom.ImageData;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 
 import static com.ait.lienzo.client.core.shape.wires.IControlHandle.ControlHandleStandardType.POINT;
 
@@ -689,10 +689,10 @@ public class WiresConnector {
         String color = MagnetManager.m_c_rotor.next();
         colorMap.put(color,
                      pointsIndex);
-        Context2D ctx = scratch.getContext();
+        OffscreenCanvasRenderingContext2D ctx = scratch.getContext();
         double strokeWidth = line.asShape().getStrokeWidth();
         //setting a minimum stroke width to makeXY finding a close point to the connector easier
-        ctx.setStrokeWidth((strokeWidth < MINIMUM_STROKE_WITH ? MINIMUM_STROKE_WITH : strokeWidth));
+        ctx.lineWidth = strokeWidth < MINIMUM_STROKE_WITH ? MINIMUM_STROKE_WITH : strokeWidth;
 
         Point2D absolutePos = connector.getLine().getComputedLocation();
         double offsetX = absolutePos.getX();

@@ -16,10 +16,10 @@
 
 package com.ait.lienzo.client.core.util;
 
-import com.ait.lienzo.client.core.Context2D;
 import com.ait.lienzo.client.core.types.ImageDataUtil;
 import com.ait.lienzo.shared.core.types.Color;
 import elemental2.dom.ImageData;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 
 public final class ColorExtractor {
 
@@ -31,9 +31,9 @@ public final class ColorExtractor {
     public static final Color extract(final String color) {
         SCRATCH.clear();
 
-        final Context2D context = SCRATCH.getContext();
+        final OffscreenCanvasRenderingContext2D context = SCRATCH.getContext();
 
-        context.setFillColor(color);
+        context.fillColor = color;
 
         context.fillRect(0, 0, 2, 2);
 

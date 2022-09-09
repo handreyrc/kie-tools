@@ -25,6 +25,7 @@ import com.ait.lienzo.client.core.types.Point2D;
 import com.ait.lienzo.client.core.types.Point2DArray;
 import com.ait.lienzo.client.core.util.Geometry;
 import com.ait.lienzo.shared.core.types.ShapeType;
+import elemental2.dom.OffscreenCanvasRenderingContext2D;
 import jsinterop.annotations.JsIgnore;
 import jsinterop.annotations.JsType;
 
@@ -83,6 +84,29 @@ public class QuadraticCurve extends AbstractMultiPointShape<QuadraticCurve> {
      */
     @Override
     protected boolean prepare(final Context2D context, final double alpha) {
+        final Point2DArray points = getControlPoints();
+
+        if ((points != null) && (points.size() == 3)) {
+            context.beginPath();
+
+            final Point2D p0 = points.get(0);
+
+            final Point2D p1 = points.get(1);
+
+            final Point2D p2 = points.get(2);
+
+            context.moveTo(p0.getX(), p0.getY());
+
+            context.quadraticCurveTo(p1.getX(), p1.getY(), p2.getX(), p2.getY());
+
+            return true;
+        }
+        return false;
+    }
+
+    //handrey
+    @Override
+    protected boolean prepare(final OffscreenCanvasRenderingContext2D context, final double alpha) {
         final Point2DArray points = getControlPoints();
 
         if ((points != null) && (points.size() == 3)) {
