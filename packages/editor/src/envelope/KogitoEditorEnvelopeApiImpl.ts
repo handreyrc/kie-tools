@@ -24,6 +24,7 @@ import {
   EditorContent,
   EditorFactory,
   EditorInitArgs,
+  EditorTheme,
   KogitoEditorChannelApi,
   KogitoEditorEnvelopeApi,
   KogitoEditorEnvelopeContextType,
@@ -147,6 +148,10 @@ export class KogitoEditorEnvelopeApiImpl<
 
   public kogitoEditor_validate() {
     return this.editor.validate();
+  }
+
+  public kogitoEditor_setTheme(theme: EditorTheme) {
+    return this.editor.setTheme(theme);
   }
 
   private setupI18n(initArgs: EditorInitArgs) {

@@ -193,7 +193,7 @@ const RefForwardingEmbeddedEditor: React.ForwardRefRenderFunction<EmbeddedEditor
             { showLoadingOverlay: false }
           ),
         validate: () => envelopeServer.envelopeApi.requests.kogitoEditor_validate(),
-        setTheme: (theme) => Promise.resolve(envelopeServer.shared.kogitoEditor_theme.set(theme)),
+        setTheme: (theme) => envelopeServer.envelopeApi.requests.kogitoEditor_setTheme(theme),
         onKeyDown: (ke: React.KeyboardEvent) => onKeyDown(envelopeServer, ke),
       };
     },

@@ -21,6 +21,7 @@ import { EditorContent } from "./EditorContent";
 import { KeyboardShortcutsEnvelopeApi } from "@kie-tools-core/keyboard-shortcuts/dist/api";
 import { I18nEnvelopeApi } from "@kie-tools-core/i18n/dist/api";
 import { Notification } from "@kie-tools-core/notifications/dist/api";
+import { EditorTheme } from "./EditorTheme";
 
 export interface Association {
   origin: string;
@@ -57,4 +58,5 @@ export interface KogitoEditorEnvelopeApi extends KeyboardShortcutsEnvelopeApi, I
   kogitoEditor_contentRequest(): Promise<EditorContent>;
   kogitoEditor_previewRequest(): Promise<string>;
   kogitoEditor_validate(): Promise<Notification[]>;
+  kogitoEditor_setTheme(theme: EditorTheme): Promise<void>;
 }

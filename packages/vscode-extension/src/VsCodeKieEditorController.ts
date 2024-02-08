@@ -142,7 +142,7 @@ export class VsCodeKieEditorController implements EditorApi {
   }
 
   public async setTheme(theme: EditorTheme) {
-    return this.envelopeServer.shared.kogitoEditor_theme.set(theme);
+    return this.envelopeServer.envelopeApi.requests.kogitoEditor_setTheme(theme);
   }
 
   public startInitPolling(apiImpl: KogitoEditorChannelApi) {
