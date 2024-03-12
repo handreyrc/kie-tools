@@ -23,36 +23,9 @@ package org.kie.workbench.common.stunner.core.client.shape.impl;
 import org.kie.workbench.common.stunner.core.client.shape.ShapeState;
 import org.kie.workbench.common.stunner.core.client.shape.impl.ShapeStateAttributeHandler.ShapeStateAttribute;
 import org.kie.workbench.common.stunner.core.client.shape.impl.ShapeStateAttributeHandler.ShapeStateAttributes;
+import org.kie.workbench.common.stunner.core.client.theme.StunnerTheme;
 
 public class ShapeStateAttributesFactory {
-
-    static final String COLOR_SELECTED = "#0066CC";
-    static final String COLOR_HIGHLIGHT = "#4F5255";
-    static final String COLOR_INVALID = "#FF0000";
-
-    static final String FILL_COLOR_SELECTED = "#E7F1FA";
-    static final String FILL_COLOR_INVALID = "#fff";
-
-
-    private static String getColorSelected() {
-        return COLOR_SELECTED;
-    }
-
-    private static String getColorHighlight() {
-        return COLOR_HIGHLIGHT;
-    }
-
-    private static String getColorInvalid() {
-        return COLOR_INVALID;
-    }
-
-    private static String getFillColorSelected() {
-        return FILL_COLOR_SELECTED;
-    }
-
-    private static String getFillColorInvalid() {
-        return FILL_COLOR_INVALID;
-    }
 
     public static ShapeStateAttributes buildStateAttributes(final ShapeState state) {
         final String COLOR = getAttributeColorByState(state);
@@ -77,11 +50,11 @@ public class ShapeStateAttributesFactory {
     private static String getAttributeColorByState(final ShapeState state) {
         switch (state) {
             case SELECTED:
-                return getColorSelected();
+                return StunnerTheme.getTheme().getShapeStrokeColorSelected();
             case HIGHLIGHT:
-                return getColorHighlight();
+                return StunnerTheme.getTheme().getShapeStrokeColorHighlight();
             case INVALID:
-                return getColorInvalid();
+                return StunnerTheme.getTheme().getShapeStrokeColorInvalid();
             default:
                 return null;
         }
@@ -90,9 +63,9 @@ public class ShapeStateAttributesFactory {
     private static String getFillAttributeColorByState(final ShapeState state) {
         switch (state) {
             case SELECTED:
-                return getFillColorSelected();
+                return StunnerTheme.getTheme().getShapeFillColorSelected();
             case INVALID:
-                return getFillColorInvalid();
+                return StunnerTheme.getTheme().getShapeFillColorInvalid();
             default:
                 return null;
         }
