@@ -46,11 +46,11 @@ public class ShapeStateAttributesFactory {
         return COLOR_INVALID;
     }
 
-    private static String getFillColorSelected {
+    private static String getFillColorSelected() {
         return FILL_COLOR_SELECTED;
     }
 
-    private static String getFillColorInvalid {
+    private static String getFillColorInvalid() {
         return FILL_COLOR_INVALID;
     }
 
@@ -90,9 +90,9 @@ public class ShapeStateAttributesFactory {
     private static String getFillAttributeColorByState(final ShapeState state) {
         switch (state) {
             case SELECTED:
-                return getFillColorSelected;
+                return getFillColorSelected();
             case INVALID:
-                return getFillColorInvalid;
+                return getFillColorInvalid();
             default:
                 return null;
         }
