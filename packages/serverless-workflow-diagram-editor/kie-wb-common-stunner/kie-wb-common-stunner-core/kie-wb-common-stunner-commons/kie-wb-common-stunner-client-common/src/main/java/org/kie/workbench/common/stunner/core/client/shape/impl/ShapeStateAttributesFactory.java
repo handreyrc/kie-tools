@@ -33,6 +33,27 @@ public class ShapeStateAttributesFactory {
     static final String FILL_COLOR_SELECTED = "#E7F1FA";
     static final String FILL_COLOR_INVALID = "#fff";
 
+
+    private static String getColorSelected() {
+        return COLOR_SELECTED;
+    }
+
+    private static String getColorHighlight() {
+        return COLOR_HIGHLIGHT;
+    }
+
+    private static String getColorInvalid() {
+        return COLOR_INVALID;
+    }
+
+    private static String getFillColorSelected {
+        return FILL_COLOR_SELECTED;
+    }
+
+    private static String getFillColorInvalid {
+        return FILL_COLOR_INVALID;
+    }
+
     public static ShapeStateAttributes buildStateAttributes(final ShapeState state) {
         final String COLOR = getAttributeColorByState(state);
         final String FILL_COLOR = getFillAttributeColorByState(state);
@@ -56,11 +77,11 @@ public class ShapeStateAttributesFactory {
     private static String getAttributeColorByState(final ShapeState state) {
         switch (state) {
             case SELECTED:
-                return COLOR_SELECTED;
+                return getColorSelected();
             case HIGHLIGHT:
-                return COLOR_HIGHLIGHT;
+                return getColorHighlight();
             case INVALID:
-                return COLOR_INVALID;
+                return getColorInvalid();
             default:
                 return null;
         }
@@ -69,9 +90,9 @@ public class ShapeStateAttributesFactory {
     private static String getFillAttributeColorByState(final ShapeState state) {
         switch (state) {
             case SELECTED:
-                return FILL_COLOR_SELECTED;
+                return getFillColorSelected;
             case INVALID:
-                return FILL_COLOR_INVALID;
+                return getFillColorInvalid;
             default:
                 return null;
         }
