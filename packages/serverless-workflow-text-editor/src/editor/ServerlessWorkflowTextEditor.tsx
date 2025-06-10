@@ -41,13 +41,13 @@ interface Props {
   onNewEdit: (edit: WorkspaceEdit) => void;
 
   /**
-   * Delegation for NotificationsChannelApi.kogitoNotifications_setNotifications(path, notifications) to report all validation
+   * Delegation for NotificationsChannelApi.kogitoNotifications_setNotifications(normalizedPosixPathRelativeToTheWorkspaceRoot, notifications) to report all validation
    * notifications to the Channel that will replace existing notification for the path. Increases the
    * decoupling of the ServerlessWorkflowEditor from the Channel.
-   * @param path The path that references the Notification
+   * @param normalizedPosixPathRelativeToTheWorkspaceRoot The path that references the Notification
    * @param notifications List of Notifications
    */
-  setNotifications: (path: string, notifications: Notification[]) => void;
+  setNotifications: (normalizedPosixPathRelativeToTheWorkspaceRoot: string, notifications: Notification[]) => void;
 
   /**
    * ChannelType where the component is running.
@@ -57,12 +57,12 @@ interface Props {
 }
 
 export type ServerlessWorkflowEditorRef = {
-  setContent(path: string, content: string): Promise<void>;
+  setContent(normalizedPosixPathRelativeToTheWorkspaceRoot: string, content: string): Promise<void>;
 };
 
 type ServerlessWorkflowEditorContent = {
   originalContent: string;
-  path: string;
+  normalizedPosixPathRelativeToTheWorkspaceRoot: string;
 };
 
 const RefForwardingServerlessWorkflowTextEditor: React.ForwardRefRenderFunction<
@@ -73,67 +73,64 @@ const RefForwardingServerlessWorkflowTextEditor: React.ForwardRefRenderFunction<
   const [initialContent, setInitialContent] = useState<ServerlessWorkflowEditorContent | undefined>(undefined);
   const swfTextEditorRef = useRef<SwfTextEditorApi>(null);
 
-  useImperativeHandle(
-    forwardedRef,
-    () => {
-      return {
-        setContent: (path: string, newContent: string): Promise<void> => {
-          try {
-            setInitialContent({
-              originalContent: newContent,
-              path: path,
-            });
-            return Promise.resolve();
-          } catch (e) {
-            console.error(e);
-            return Promise.reject();
-          }
-        },
-        getContent: (): Promise<string> => {
-          return Promise.resolve(swfTextEditorRef.current?.getContent() || "");
-        },
-        getPreview: (): Promise<string> => {
-          return Promise.resolve("");
-        },
-        undo: async (): Promise<void> => {
-          if (!swfTextEditorRef.current) {
-            return;
-          }
-          swfTextEditorRef.current.undo();
-          onStateControlCommandUpdate(StateControlCommand.UNDO);
-        },
-        redo: async (): Promise<void> => {
-          if (!swfTextEditorRef.current) {
-            return;
-          }
-          swfTextEditorRef.current.redo();
-          onStateControlCommandUpdate(StateControlCommand.REDO);
-        },
-        validate: (): Promise<Notification[]> => {
-          return Promise.resolve([]);
-        },
-        setTheme: (theme: EditorTheme): Promise<void> => {
-          return swfTextEditorRef.current?.setTheme(theme) || Promise.resolve();
-        },
-        moveCursorToNode: (nodeName: string): void => {
-          swfTextEditorRef.current?.moveCursorToNode(nodeName);
-        },
-        moveCursorToPosition: (position: Position): void => {
-          swfTextEditorRef.current?.moveCursorToPosition(position);
-        },
-      };
-    },
-    [onStateControlCommandUpdate]
-  );
+  useImperativeHandle(forwardedRef, () => {
+    return {
+      setContent: (normalizedPosixPathRelativeToTheWorkspaceRoot: string, newContent: string): Promise<void> => {
+        try {
+          setInitialContent({
+            originalContent: newContent,
+            normalizedPosixPathRelativeToTheWorkspaceRoot,
+          });
+          return Promise.resolve();
+        } catch (e) {
+          console.error(e);
+          return Promise.reject();
+        }
+      },
+      getContent: (): Promise<string> => {
+        return Promise.resolve(swfTextEditorRef.current?.getContent() || "");
+      },
+      getPreview: (): Promise<string> => {
+        return Promise.resolve("");
+      },
+      undo: async (): Promise<void> => {
+        if (!swfTextEditorRef.current) {
+          return;
+        }
+        swfTextEditorRef.current.undo();
+        onStateControlCommandUpdate(StateControlCommand.UNDO);
+      },
+      redo: async (): Promise<void> => {
+        if (!swfTextEditorRef.current) {
+          return;
+        }
+        swfTextEditorRef.current.redo();
+        onStateControlCommandUpdate(StateControlCommand.REDO);
+      },
+      validate: (): Promise<Notification[]> => {
+        return Promise.resolve([]);
+      },
+      setTheme: (theme: EditorTheme): Promise<void> => {
+        return swfTextEditorRef.current?.setTheme(theme) || Promise.resolve();
+      },
+      moveCursorToNode: (nodeName: string): void => {
+        swfTextEditorRef.current?.moveCursorToNode(nodeName);
+      },
+      moveCursorToPosition: (position: Position): void => {
+        swfTextEditorRef.current?.moveCursorToPosition(position);
+      },
+    };
+  }, [onStateControlCommandUpdate]);
 
   const setValidationErrors = useCallback(
     (errors: editor.IMarker[]) => {
       if (!initialContent) {
         return;
       }
+
       const notifications: Notification[] = errors.map((error: editor.IMarker) => ({
         type: "PROBLEM",
-        path: initialContent.path,
+        normalizedPosixPathRelativeToTheWorkspaceRoot: initialContent.normalizedPosixPathRelativeToTheWorkspaceRoot,
         severity: "ERROR",
         message: `${error.message}`,
         position: {
@@ -143,7 +140,7 @@ const RefForwardingServerlessWorkflowTextEditor: React.ForwardRefRenderFunction<
           endColumn: error.endColumn,
         },
       }));
-      props.setNotifications.apply(initialContent.path, notifications);
+      props.setNotifications.apply(initialContent.normalizedPosixPathRelativeToTheWorkspaceRoot, notifications);
     },
     [initialContent, props.setNotifications]
   );
@@ -181,7 +178,7 @@ const RefForwardingServerlessWorkflowTextEditor: React.ForwardRefRenderFunction<
         <SwfTextEditor
           channelType={props.channelType}
           content={initialContent.originalContent}
-          fileName={initialContent.path}
+          fileName={initialContent.normalizedPosixPathRelativeToTheWorkspaceRoot}
           onContentChange={onContentChanged}
           setValidationErrors={setValidationErrors}
           ref={swfTextEditorRef}

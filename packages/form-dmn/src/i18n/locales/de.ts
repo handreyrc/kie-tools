@@ -19,9 +19,9 @@
 
 import { de as de_common } from "@kie-tools/i18n-common-dictionary";
 import { FormDmnI18n } from "../FormDmnI18n";
-import { wrapped } from "@kie-tools-core/i18n/dist/core";
+import { TranslatedDictionary, wrapped } from "@kie-tools-core/i18n/dist/core";
 
-export const de: FormDmnI18n = {
+export const de: TranslatedDictionary<FormDmnI18n> = {
   ...de_common,
   form: {
     status: {
@@ -58,7 +58,7 @@ export const de: FormDmnI18n = {
   },
   result: {
     evaluation: {
-      success: "Erfolgreich evaluiert",
+      succeeded: "Erfolgreich evaluiert",
       skipped: "Evaluierung übersprungen",
       failed: "Evaluierung fehlgeschlagen",
     },

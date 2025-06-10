@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { EnvelopeBusMessageManager } from "../../dist/common";
-import { EnvelopeBusMessagePurpose, SharedValueProvider } from "../../dist/api";
+import { EnvelopeBusMessageManager } from "@kie-tools-core/envelope-bus/dist/common";
+import { EnvelopeBusMessagePurpose, SharedValueProvider } from "@kie-tools-core/envelope-bus/dist/api";
 
 interface ApiToProvide {
   setText(text: string): void;
@@ -386,7 +386,7 @@ describe("receive", () => {
         },
         apiImpl
       );
-    }).toThrowError();
+    }).toThrow();
   });
 
   test("response with no corresponding request", () => {
@@ -400,7 +400,7 @@ describe("receive", () => {
         },
         apiImpl
       );
-    }).toThrowError();
+    }).toThrow();
   });
 
   test("simple notification", () => {

@@ -35,7 +35,7 @@ export class Envelope<
   ApiToProvide extends ApiDefinition<ApiToProvide>,
   ApiToConsume extends ApiDefinition<ApiToConsume>,
   ViewType,
-  ContextType
+  ContextType,
 > {
   constructor(
     bus: EnvelopeBus,
@@ -48,6 +48,10 @@ export class Envelope<
 
   public get channelApi() {
     return this.envelopeClient.channelApi;
+  }
+
+  public get shared() {
+    return this.envelopeClient.shared;
   }
 
   public async start(

@@ -22,9 +22,9 @@ import {
   DMN15__tInformationItem,
   DMNDI15__DMNShape,
 } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/ts-gen/types";
-import { DmnBuiltInDataType } from "@kie-tools/boxed-expression-component/dist/api";
-import { useDmnEditorStore } from "../../store/Store";
-import { OnCreateDataType, OnTypeRefChange, TypeRefSelector } from "../../dataTypes/TypeRefSelector";
+import { Normalized } from "@kie-tools/dmn-marshaller/dist/normalization/normalize";
+import { useDmnEditorStore } from "../../store/StoreContext";
+import { OnCreateDataType, OnToggle, OnTypeRefChange, TypeRefSelector } from "../../dataTypes/TypeRefSelector";
 import { useDmnEditor } from "../../DmnEditorContext";
 import { useResolvedTypeRef } from "../../dataTypes/useResolvedTypeRef";
 
@@ -34,26 +34,27 @@ function stopPropagation(e: React.MouseEvent | React.KeyboardEvent) {
 
 export function DataTypeNodePanel(props: {
   isVisible: boolean;
-  variable: DMN15__tInformationItem | undefined;
-  shape: DMNDI15__DMNShape | undefined;
+  isReadOnly?: boolean;
+  variable: Normalized<DMN15__tInformationItem> | undefined;
+  shape: Normalized<DMNDI15__DMNShape> | undefined;
   onChange: OnTypeRefChange;
   onCreate?: OnCreateDataType;
-  namespace: string | undefined;
+  onToggle?: OnToggle;
+  dmnObjectNamespace: string | undefined;
 }) {
-  const diagram = useDmnEditorStore((s) => s.diagram);
+  const enableDataTypesToolbarOnNodes = useDmnEditorStore((s) => s.diagram.overlays.enableDataTypesToolbarOnNodes);
 
   const { dmnEditorRootElementRef } = useDmnEditor();
 
-  const resolvedTypeRef = useResolvedTypeRef(
-    props.variable?.["@_typeRef"] ?? DmnBuiltInDataType.Undefined,
-    props.namespace
-  );
+  const resolvedTypeRef = useResolvedTypeRef(props.variable?.["@_typeRef"], props.dmnObjectNamespace);
+
+  const isExternalNode = !!props.dmnObjectNamespace;
 
   return (
     <>
-      {props.isVisible && diagram.overlays.enableDataTypesToolbarOnNodes && (
+      {props.isVisible && enableDataTypesToolbarOnNodes && (
         <div
-          className={"kie-dmn-editor--data-type-node-panel"}
+          className={`kie-dmn-editor--data-type-node-panel ${props.isReadOnly ? "kie-dmn-editor--data-type-node-panel-readonly" : ""}`}
           // Do not allow any events to go to the node itself...
           onMouseDownCapture={stopPropagation}
           onKeyDownCapture={stopPropagation}
@@ -61,14 +62,16 @@ export function DataTypeNodePanel(props: {
           onDoubleClick={stopPropagation}
           onMouseLeave={stopPropagation}
         >
-          <div>
+          <div style={{ background: isExternalNode ? "rgb(240, 240, 240)" : undefined }}>
             <TypeRefSelector
               zoom={0.8}
               heightRef={dmnEditorRootElementRef}
               typeRef={resolvedTypeRef}
               onChange={props.onChange}
               onCreate={props.onCreate}
+              onToggle={props.onToggle}
               menuAppendTo={"parent"}
+              isDisabled={isExternalNode || props.isReadOnly}
             />
           </div>
         </div>

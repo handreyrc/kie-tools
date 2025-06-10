@@ -103,7 +103,7 @@ export const en: OnlineI18n = {
       deployYourModel: "Deploy",
       deployInstanceInfo: "Deploy instance information",
       disclaimer:
-        "When you set up the required information, you are able to create Dev deployments on your configured instance. All the information you provide is locally stored in the browser and is never shared with anyone.",
+        "When you set up the required information, you are able to create Dev Deployments on your configured instance. All the information you provide is locally stored in the browser and is never shared with anyone.",
       learnMore: "Learn more",
       requiredField: "This field cannot be empty.",
       deploying: "Deploying ...",
@@ -127,7 +127,7 @@ export const en: OnlineI18n = {
     },
     configModal: {
       hostInfo: `The hostname associated with your instance.`,
-      namespaceInfo: `The Namespace (project) you want your Dev deployments to be.`,
+      namespaceInfo: `The Namespace (project) you want your Dev Deployments to be.`,
       tokenInfo: `The token associated with your instance.`,
       insecurelyDisableTlsCertificateValidation: "Insecurely disable TLS certificate validation",
       insecurelyDisableTlsCertificateValidationInfo:
@@ -143,21 +143,21 @@ export const en: OnlineI18n = {
     },
     deployConfirmModal: {
       title: "Deploy",
-      body: "This action can take a few minutes to be completed and you will need to create a new deployment if you update your model, as Dev deployments are immutable.",
+      body: "This action can take a few minutes to be completed and you will need to create a new deployment if you update your model, as Dev Deployments are immutable.",
     },
     deleteConfirmModal: {
-      title: "Delete Dev deployment(s)",
-      body: "Are you sure you want to delete your Dev deployment(s)?",
+      title: "Delete Dev Deployment(s)",
+      body: "Are you sure you want to delete your Dev Deployment(s)?",
     },
     alerts: {
       deployStartedError:
-        "Something went wrong when creating your Dev deployment. Please check your configuration and try again.",
-      deployStartedSuccess: "Your Dev deployment has been successfully started and will be available shortly.",
-      deleteError: "Failed to delete Dev deployment(s). Please try again via OpenShift Console or CLI.",
-      deleteSuccess: "Dev deployment(s) successfully deleted.",
+        "Something went wrong when creating your Dev Deployment. Please check your configuration and try again.",
+      deployStartedSuccess: "Your Dev Deployment has been successfully started and will be available shortly.",
+      deleteError: "Failed to delete Dev Deployment(s). Please try again via OpenShift Console or CLI.",
+      deleteSuccess: "Dev Deployment(s) successfully deleted.",
     },
     introduction: {
-      explanation: `Create Dev deployments in the cloud and share with others.`,
+      explanation: `Create Dev Deployments in the cloud and share with others.`,
       disclaimer: `${
         en_common.names.devDeployments
       } is intended for ${"development".bold()} and should not be used for business-critical workloads.`,
@@ -173,10 +173,10 @@ export const en: OnlineI18n = {
           introduction: `In order to create your ${en_common.names.shortDevSandbox} instance:`,
           goToGetStartedPage: "Go to the Get Started page",
           followSteps: `Follow the steps to launch your instance. You will be asked to log in with your ${en_common.names.redHat} account.`,
-          informNamespace: `Once your instance is up and running, inform the Namespace (project) where you want your Dev deployments created.`,
+          informNamespace: `Once your instance is up and running, inform the Namespace (project) where you want your Dev Deployments created.`,
           inputReason:
-            "This information is necessary for creating your Dev deployments in the right Namespace (project).",
-          namespacePlaceholder: `The Namespace (project) where you want to create your Dev deployments.`,
+            "This information is necessary for creating your Dev Deployments in the right Namespace (project).",
+          namespacePlaceholder: `The Namespace (project) where you want to create your Dev Deployments.`,
         },
         second: {
           name: "Set credentials",
@@ -192,7 +192,7 @@ export const en: OnlineI18n = {
           name: "Connect",
           connectionSuccess: "Connection successfully established.",
           connectionError: "Connection refused.",
-          introduction: "Now you are able to create Dev deployments on this OpenShift instance.",
+          introduction: "Now you are able to create Dev Deployments on this OpenShift instance.",
           configNote: "The token you provide is locally stored in this browser and is never shared with anyone.",
           connectionErrorLong: `A connection with your ${en_common.names.shortDevSandbox} instance could not be established.`,
           checkInfo: "Please check the information provided and try again.",
@@ -212,7 +212,7 @@ export const en: OnlineI18n = {
       },
       fields: {
         namespace: "Namespace",
-        namespaceInfo: "The Namespace in the cluster where your Dev deployments will be created.",
+        namespaceInfo: "The Namespace in the cluster where your Dev Deployments will be created.",
         kubernetesApiServerUrl: "Kubernetes API Server URL",
         kubernetesApiServerUrlInfo: "The hostname associated with the Kubernetes API Server from your cluster.",
         tokenInfo: "The token associated with your Service Account.",
@@ -238,8 +238,8 @@ export const en: OnlineI18n = {
             "Only change the values below if you have a custom Kubernetes installation, but beware that things might not go as expected.",
           hostInputReason: "This information is necessary for establishing a connection with your Kubernetes cluster.",
           namespaceInputReason:
-            "This information is necessary for creating your Dev deployments in the correct Namespace.",
-          namespacePlaceholder: "The Namespace where you want to create your Dev deployments.",
+            "This information is necessary for creating your Dev Deployments in the correct Namespace.",
+          namespacePlaceholder: "The Namespace where you want to create your Dev Deployments.",
           hostPlaceholder: "The Kubernetes API Server URL",
         },
         third: {
@@ -254,7 +254,7 @@ export const en: OnlineI18n = {
           name: "Connect",
           connectionSuccess: "Connection successfully established.",
           connectionError: "Connection refused.",
-          introduction: "Now you are able to create Dev deployments on this Kubernetes instance.",
+          introduction: "Now you are able to create Dev Deployments on this Kubernetes instance.",
           configNote: "The token you provide is locally stored in this browser and is never shared with anyone.",
           connectionErrorLong: `A connection with your Kubernetes cluster could not be established.`,
           checkInfo: "Please check the information provided and try again.",
@@ -341,6 +341,31 @@ export const en: OnlineI18n = {
         token: {
           label: "Bitbucket App Password",
           placeHolder: "Paste your Bitbucket App Password here",
+        },
+      },
+    },
+    gitlab: {
+      header: {
+        title: `${en_common.names.gitlab} ${en_common.names.oauth} ${en_common.terms.token}`,
+        subtitle: `Set up your ${en_common.names.gitlab} token so you can interact with ${en_common.names.gitlab}.`,
+      },
+      footer: {
+        createNewToken: "Generate new token",
+        placeHolder: "Paste your token here",
+      },
+      body: {
+        learnMore: `Learn more about ${en_common.names.gitlab} tokens`,
+        note: `You should provide a token with the ${"'api' 'read_user' 'read_repository' 'write_repository'"} permission.`,
+      },
+      validation: {
+        scopes: {
+          helper: `Your token must include the ${"'api' 'read_user' 'read_repository' 'write_repository'"} scopes.`,
+        },
+      },
+      form: {
+        token: {
+          label: "Personal Access Token",
+          placeHolder: `Paste your ${en_common.names.gitlab} token here`,
         },
       },
     },
@@ -443,7 +468,7 @@ export const en: OnlineI18n = {
         notificationPanelExplanation: [
           `The Problems panel `,
           wrapped("icon"),
-          `, at the bottom-right corner of the Editor, displays live Execution messages to assist modeling your decisions.`,
+          `, at the bottom-right corner of the Editor, displays live Evaluation messages to assist modeling your Decisions.`,
         ],
       },
       wizard: {
@@ -456,6 +481,12 @@ export const en: OnlineI18n = {
         stoppedAlert: {
           title: `${en_common.names.extendedServices} has stopped!`,
           message: `It looks like the ${en_common.names.extendedServices} has suddenly stopped, please follow these instructions to start it again.`,
+        },
+        disabled: {
+          title: `${en_common.names.extendedServices}`,
+          alert: `You are not connected to ${en_common.names.extendedServices}.`,
+          message: `Note that some features, such as the ${en_common.names.dmnRunner}, are unavailable without ${en_common.names.extendedServices}.`,
+          helper: `Ensure ${en_common.names.extendedServices} is running, then review the host and port settings.`,
         },
         macos: {
           install: {
@@ -644,6 +675,21 @@ export const en: OnlineI18n = {
         },
       },
     },
+    gitlab: {
+      repository: `${en_common.names.gitlab} repository`,
+      createRepository: `Create ${en_common.names.gitlab} repository`,
+      description: (workspace: string) =>
+        `The contents of '${workspace}' will be all in the new ${en_common.names.gitlab} repository.`,
+      error: {
+        formAlert: (error: string) => `Error creating ${en_common.names.gitlab} repository. ${error}`,
+      },
+      form: {
+        select: {
+          label: "The new repository will be created under the following scope",
+          description: `Pick either your user account or a ${en_common.names.gitlab} group.`,
+        },
+      },
+    },
   },
   createGistOrSnippetModal: {
     form: {
@@ -689,6 +735,21 @@ export const en: OnlineI18n = {
         },
       },
     },
+    gitlab: {
+      gistOrSnippet: `${en_common.names.gitlab} Snippet`,
+      create: `Create ${en_common.names.gitlab} Snippet`,
+      description: (workspace: string) =>
+        `The contents of '${workspace}' will be all in the new ${en_common.names.gitlab} Snippet.`,
+      error: {
+        formAlert: (error: string) => `Error creating ${en_common.names.gitlab} Snippet. ${error}`,
+      },
+      form: {
+        select: {
+          label: "Pick a project under which the new Snippet will be created.",
+          description: "Pick either a personal or shared project.",
+        },
+      },
+    },
   },
   loadOrganizationsSelect: {
     bitbucket: {
@@ -698,6 +759,10 @@ export const en: OnlineI18n = {
     github: {
       user: "GitHub user",
       organizations: "GitHub organizations",
+    },
+    gitlab: {
+      user: `${en_common.names.gitlab} user`,
+      organizations: `${en_common.names.gitlab} groups`,
     },
   },
   gitStatusIndicatorActions: {

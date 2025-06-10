@@ -1,9 +1,29 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 /* (begin) global */
 .kie-dmn-editor--root {
   height: 100%;
+  scrollbar-color: rgba(121, 121, 121, 0.4) #f1f1f1;
 }
 
-.kie-dmn-editor--diagram-container {
+.kie-tools--dmn-editor--diagram-container {
   height: 100%;
   position: relative;
 }
@@ -50,12 +70,14 @@
   top: 0;
   left: 0;
   overflow: visible;
+  z-index: 10000; /* Makes the data type node panel appear correctly, on top of the node */
 }
 .kie-dmn-editor--node:focus {
   outline: none;
 }
 .kie-dmn-editor--node.dimmed,
-.kie-dmn-editor--node-shape.dimmed {
+.kie-dmn-editor--node-shape.dimmed,
+.kie-dmn-editor--input-data-node.dimmed {
   opacity: 0.3;
   pointer-events: none;
 }
@@ -68,6 +90,11 @@
   pointer-events: none;
   z-index: 1;
 }
+.kie-dmn-editor--input-data-node {
+  outline: none;
+  width: 100%;
+  height: 100%;
+}
 .kie-dmn-editor--text-annotation-node {
   text-align: left;
   display: block;
@@ -77,6 +104,57 @@
   color: red;
 }
 /* (end) nodes */
+
+/* (begin) decision node evaluation status */
+.kie-dmn-editor--decision-node--evaluation-status-failed::before {
+  content: "\2716";
+  font-size: 0.8em;
+  text-align: left;
+  color: white;
+  background-color: rgb(134, 106, 212);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  height: 40px;
+  width: 40px;
+  clip-path: polygon(0% 100%, 100% 0%, 0% 0%);
+  padding-left: 7px;
+  padding-top: 2px;
+}
+
+.kie-dmn-editor--decision-node--evaluation-status-succeeded::before {
+  content: "\2714";
+  font-size: 0.8em;
+  text-align: left;
+  color: white;
+  background-color: rgb(134, 106, 212);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  height: 40px;
+  width: 40px;
+  clip-path: polygon(0% 100%, 100% 0%, 0% 0%);
+  padding-left: 7px;
+  padding-top: 2px;
+}
+
+.kie-dmn-editor--decision-node--evaluation-status-skipped::before {
+  content: "\21B7";
+  font-size: 0.8em;
+  text-align: left;
+  color: white;
+  background-color: rgb(134, 106, 212);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  height: 40px;
+  width: 40px;
+  clip-path: polygon(0% 100%, 100% 0%, 0% 0%);
+  padding-left: 7px;
+  padding-top: 2px;
+}
+
+/* (end) decision node evaluation status */
 
 /* (begin) decisionService and group nodes */
 /* DECISION SERVICES AND GROUPS HAVE A SPECIFIC SELECTION MECHANISM TO ALLOW EDITING EDGES INSIDE THEM */
@@ -136,6 +214,28 @@
   text-align: center;
   bottom: 4px;
   line-height: 21px;
+  pointer-events: all;
+}
+.kie-dmn-editor--decision-service-node .button-inactive {
+  pointer-events: none !important;
+  opacity: 0.4;
+}
+.react-flow__node-node_decisionService.selected .kie-dmn-editor--decision-service-expanded-button {
+  border-color: #006ba4 !important;
+}
+.kie-dmn-editor--decision-service-node .kie-dmn-editor--decision-service-expanded-button {
+  border: 3px;
+  border-style: solid;
+  border-color: black;
+  font-weight: bold;
+  position: absolute;
+  width: 24px;
+  height: 25px;
+  font-size: 24px;
+  text-align: center;
+  bottom: 4px;
+  line-height: 21px;
+  pointer-events: all;
 }
 .react-flow__node-node_decisionService .kie-dmn-editor--node-shape .kie-dmn-editor--decision-service-label {
   font-family: system-ui;
@@ -146,10 +246,29 @@
 /* (end) decisionService and group nodes */
 
 /* (begin) external nodes */
-.kie-dmn-editor--node.external {
+.kie-dmn-editor--node-external {
   text-decoration: underline;
 }
 /* (end) external node */
+
+/* (begin) alternative input node */
+.kie-dmn-editor--selected-alternative-input-data-node:before {
+  content: "";
+  display: block;
+  position: absolute;
+  pointer-events: none;
+  border-radius: 6px;
+  top: -10px;
+  left: -10px;
+  width: calc(100% + 20px);
+  height: var(--selected-alternative-input-data-node-shape--height);
+  backdrop-filter: blur(8px);
+}
+.kie-dmn-editor--selected-alternative-input-data-node:before {
+  border: 1px dashed #006ba4;
+  background-color: rgb(161 222 255 / 20%); /* Very slightly blue hue */
+}
+/* (end) alternative input node */
 
 /* (begin) textAnnotation, and unknown nodes */
 .react-flow__node-node_unknown.selected:before,
@@ -176,7 +295,7 @@
 /* (end) textAnnotation, and unknown nodes */
 
 /* (begin) palette */
-.kie-dmn-editor--drd-selector-popover .pf-c-popover__body {
+.kie-dmn-editor--drd-selector-popover .pf-v5-c-popover__body {
   padding: 0;
 }
 .kie-dmn-editor--drd-selector {
@@ -229,12 +348,13 @@
   color: #0067cc;
   filter: brightness(95%);
 }
-.kie-dmn-editor--drd-list button:hover {
-  filter: brightness(95%);
-}
 .kie-dmn-editor--drd-list button:active {
   filter: brightness(90%);
 }
+.kie-dmn-editor--drd-properties--input-data-node-shape button {
+  height: 36px;
+}
+
 .kie-dmn-editor--palette {
   width: 42px;
   background: #fff;
@@ -313,22 +433,59 @@
 /* (end) properties panel toggle */
 
 /* (begin) version popover */
-.kie-dmn-editor--version-popover .pf-c-popover__body {
+.kie-dmn-editor--version-popover .pf-v5-c-popover__body {
   padding: 0;
 }
 /* (end) version popover */
 
-/* (begin) overlays panel toggle */
-.kie-dmn-editor--overlay-panel-popover .pf-c-popover__body {
-  padding: 0;
-}
-.kie-dmn-editor--overlays-panel-toggle {
-  margin-right: 16px;
+/* (begin) autolayout panel toggle */
+.kie-dmn-editor--autolayout-panel-toggle {
   width: 42px;
   background: #fff;
   border-radius: 40px;
   border: 1px solid black;
 }
+.kie-dmn-editor--autolayout-panel-toggle:not(:last-child) {
+  margin-right: 16px;
+}
+
+.kie-dmn-editor--autolayout-panel-toggle:hover {
+  box-shadow: -4px 4px 2px 0px rgb(127 127 127);
+}
+.kie-dmn-editor--autolayout-panel-toggle-button {
+  margin: 0;
+  width: 40px;
+  height: 40px;
+  max-width: 40px;
+  border-radius: 40px;
+  border: 0;
+  background: white;
+}
+.kie-dmn-editor--autolayout-panel-toggle-button:hover {
+  filter: brightness(95%);
+}
+.kie-dmn-editor--autolayout-panel-toggle-button:active {
+  filter: brightness(90%);
+}
+/* (end) autolayout panel toggle */
+
+/* (begin) evaluation-highlights panel toggle */
+.kie-dmn-editor--evaluation-highlights-panel-toggle {
+  min-width: 190px;
+}
+/* (end) evaluation-highlights panel toggle */
+
+/* (begin) overlays panel toggle */
+.kie-dmn-editor--overlays-panel-toggle {
+  width: 42px;
+  background: #fff;
+  border-radius: 40px;
+  border: 1px solid black;
+}
+.kie-dmn-editor--overlays-panel-toggle:not(:last-child) {
+  margin-right: 16px;
+}
+
 .kie-dmn-editor--overlays-panel-toggle:hover {
   box-shadow: -4px 4px 2px 0px rgb(127 127 127);
 }
@@ -348,7 +505,7 @@
   filter: brightness(90%);
 }
 
-.kie-dmn-editor--snap-slider .pf-c-slider__value > input {
+.kie-dmn-editor--snap-slider .pf-v5-c-slider__value > input {
   max-width: 60px;
   min-width: 60px;
   width: 60px;
@@ -395,7 +552,8 @@
   left: 58px;
   overflow: auto;
   box-shadow: 0px 5px 10px 0px lightgray;
-  background: white;
+  background: rgb(255, 255, 255, 90%);
+  backdrop-filter: blur(4px);
   width: 400px;
 }
 .kie-dmn-editor--external-nodes-panel-toggle {
@@ -452,8 +610,8 @@
 }
 
 /* (begin) node handles */
-/*  To make sure connection lines are steadly glued to the 
-handles, we make their indicators be ::before elements. The handle 
+/*  To make sure connection lines are steadly glued to the
+handles, we make their indicators be ::before elements. The handle
 itself is a 0px by 0px div, as connection lines can move freely when
 the cursor is inside it. By making it adimensional, that never happens.  */
 .kie-dmn-editor--node-handle.connecting::before {
@@ -517,18 +675,28 @@ the cursor is inside it. By making it adimensional, that never happens.  */
 .kie-dmn-editor--data-type-node-panel {
   position: absolute;
   top: -46px;
-  padding-bottom: 10px;
+  padding-bottom: 14px;
   display: flex;
   align-items: end;
-  zoom: 0.8;
+
+  /* zoom is not supported by Playwright library */
+  transform: scale(0.8);
 }
 .kie-dmn-editor--data-type-node-panel .kie-dmn-editor--data-type-jump-to-definition {
-  padding-left: 4px;
-  padding-right: 4px;
+  padding-right: 0px;
+  background: none;
+  border: none;
+  height: auto;
+  padding-top: 0;
+  padding-bottom: 0;
 }
+.kie-dmn-editor--data-type-node-panel-readonly .kie-dmn-editor--data-type-jump-to-definition {
+  padding-right: 6px;
+}
+
 /* Customizing some patternfly components is hard... */
 .kie-dmn-editor--data-type-node-panel > div > div:first-of-type > div:first-of-type > div:first-of-type > button,
-.kie-dmn-editor--data-type-node-panel > div > div:first-of-type > div:first-of-type > div:first-of-type input,
+.kie-dmn-editor--data-type-node-panel > div > div:first-of-type > div:first-of-type > div:first-of-type span input,
 .kie-dmn-editor--data-type-node-panel > div > div:first-of-type > div:first-of-type > div:first-of-type,
 .kie-dmn-editor--data-type-node-panel > div > div:first-of-type > div:first-of-type,
 .kie-dmn-editor--data-type-node-panel > div > div:first-of-type > button,
@@ -537,33 +705,35 @@ the cursor is inside it. By making it adimensional, that never happens.  */
   border-radius: 99999px;
   outline: none;
 }
+.kie-dmn-editor--data-type-node-panel .pf-v5-c-select__toggle.pf-m-typeahead {
+  padding-left: 10px;
+}
+.kie-dmn-editor--data-type-node-panel .pf-v5-c-select__toggle-wrapper {
+  padding-left: 10px;
+}
 .kie-dmn-editor--data-type-node-panel > div {
-  padding-left: 12px;
   border: 1.25px solid black;
   background: white;
   box-shadow: 5px 5px 2px 0px rgb(127 127 127);
 }
-.kie-dmn-editor--data-type-node-panel .pf-c-select__menu.pf-m-static {
+.kie-dmn-editor--data-type-node-panel .pf-v5-c-select__menu.pf-m-static {
   text-align: left;
   z-index: 999999;
 }
 .kie-dmn-editor--data-type-node-panel span {
   height: 19px;
 }
-.kie-dmn-editor--data-type-node-panel .pf-c-button.pf-c-select__toggle-button.pf-m-plain {
+.kie-dmn-editor--data-type-node-panel span.pf-v5-c-select__toggle-typeahead {
+  height: auto;
+}
+.kie-dmn-editor--data-type-node-panel .pf-v5-c-button.pf-v5-c-select__toggle-button.pf-m-plain {
   margin-left: 24px;
 }
-.kie-dmn-editor--data-type-node-panel .pf-c-button.pf-m-control::after,
-.kie-dmn-editor--data-type-node-panel .pf-c-select__toggle.pf-m-typeahead::before {
+.kie-dmn-editor--data-type-node-panel .pf-v5-c-button.pf-m-control::after,
+.kie-dmn-editor--data-type-node-panel .pf-v5-c-select__toggle.pf-m-typeahead::before {
   border: 0;
 }
-.kie-dmn-editor--data-type-node-panel > div:hover {
-  backdrop-filter: brightness(95%);
-}
-.kie-dmn-editor--data-type-node-panel > div:active {
-  backdrop-filter: brightness(90%);
-}
-/*    edit button on decision and bkm nodes */
+/* edit button on decision and bkm nodes */
 .kie-dmn-editor--edit-expression-node-panel {
   position: absolute;
   padding: 4px 8px;
@@ -574,7 +744,7 @@ the cursor is inside it. By making it adimensional, that never happens.  */
   background: white;
   color: black;
 }
-.kie-dmn-editor--edit-expression-node-panel > .pf-c-label__content::before {
+.kie-dmn-editor--edit-expression-node-panel > .pf-v5-c-label__content::before {
   border: 1px solid black;
 }
 .kie-dmn-editor--edit-expression-node-panel:hover {
@@ -604,8 +774,11 @@ the cursor is inside it. By making it adimensional, that never happens.  */
   font-weight: bold;
   box-shadow: 4px 4px 2px 0px rgb(127 127 127);
 }
-.kie-dmn-editor--info-label > .pf-c-label__content::before {
+.kie-dmn-editor--info-label > .pf-v5-c-label__content::before {
   border: 1px solid black;
+}
+.kie-dmn-editor--info-label .pf-v5-c-label__text {
+  line-height: 0;
 }
 .kie-dmn-editor--info-label:hover {
   filter: brightness(95%);
@@ -621,10 +794,10 @@ the cursor is inside it. By making it adimensional, that never happens.  */
   background: white;
   margin-left: -1px;
   height: 40px;
-  width: 192px;
+  width: 160px;
   justify-content: center;
 }
-.kie-dmn-editor--boxed-expression-back > .pf-c-label__content::before {
+.kie-dmn-editor--boxed-expression-back > .pf-v5-c-label__content::before {
   border: 1px solid black;
 }
 .kie-dmn-editor--boxed-expression-back:hover {
@@ -675,7 +848,8 @@ circle.kie-dmn-editor--diagram-edge-waypoint:hover {
   border-bottom: 1px solid lightgray;
 }
 .kie-dmn-editor--boxed-expression-header {
-  padding: 16px;
+  padding: 14px;
+  padding-left: 0;
 }
 .kie-dmn-editor--data-type-panel-header {
   padding: 0 16px 0 16px;
@@ -699,14 +873,13 @@ circle.kie-dmn-editor--diagram-edge-waypoint:hover {
 }
 .kie-dmn-editor--external-nodes-list-item {
   border-radius: 999px;
-  background: white;
 }
 .kie-dmn-editor--external-nodes-list-item:hover {
-  filter: brightness(95%);
+  background-color: rgba(0, 0, 0, 0.1);
   cursor: grab;
 }
 .kie-dmn-editor--external-nodes-list-item:active {
-  filter: brightness(90%);
+  background-color: rgba(0, 0, 0, 0.15);
   cursor: grabbing;
 }
 /* (end) external nodes */
@@ -831,6 +1004,11 @@ th {
   text-decoration: red dotted underline;
   text-underline-position: under;
 }
+
+.kie-dmn-editor--data-types-container .pf-v5-c-switch__input:disabled:checked ~ .pf-v5-c-switch__toggle {
+  background-color: var(--pf-v5-global--primary-color--100);
+  opacity: 50%;
+}
 /* (end) data types */
 
 /* ******************************* */
@@ -885,7 +1063,7 @@ th {
 .react-flow__node > .kie-dmn-editor--node-shape.drop-target-invalid {
   border-color: red !important;
 }
-.react-flow__node > .kie-dmn-editor--node-shape.drop-target-invalid > g * {
+.react-flow__node > .kie-dmn-editor--node-shape.drop-target-invalid > * {
   stroke: rgba(255, 0, 0, 0.2) !important;
   fill: rgba(164, 0, 0, 0.1) !important;
 }
@@ -897,12 +1075,14 @@ th {
   border-color: #006ba4 !important;
   filter: drop-shadow(2px 2px 2px #006ba477);
 }
-.react-flow__node > .kie-dmn-editor--node-shape.drop-target > g * {
+.react-flow__node > .kie-dmn-editor--node-shape.drop-target > * {
   stroke: #006ba4 !important;
   fill: rgba(0, 107, 164, 0.1) !important;
 }
 
-.react-flow__node.selected:not(.react-flow__node-node_unknown) > .kie-dmn-editor--node-shape > g * {
+.react-flow__node.selected:not(.react-flow__node-node_unknown):not(.react-flow__node-node_textAnnotation)
+  > .kie-dmn-editor--node-shape
+  > * {
   stroke: #006ba4 !important;
 }
 
@@ -1007,16 +1187,16 @@ th {
 /* ******************************* */
 /*   ⬇ (begin) pf4 overrides ⬇    */
 /* ******************************* */
-.pf-c-popover {
+.pf-v5-c-popover {
   max-width: unset;
 }
 
-.pf-c-truncate,
-.pf-c-truncate__start {
+.pf-v5-c-truncate,
+.pf-v5-c-truncate__start {
   min-width: 0 !important;
 }
 
-.pf-c-select__menu {
+.pf-v5-c-select__menu {
   margin-top: 1px;
 }
 /*   ⬆ (end) pf4 overrides ⬆      */

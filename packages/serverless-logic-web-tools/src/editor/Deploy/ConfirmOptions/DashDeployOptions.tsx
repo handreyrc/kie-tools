@@ -31,23 +31,19 @@ const RefForwardingDashDeployOptions: ForwardRefRenderFunction<ConfirmDeployOpti
   const openshift = useOpenShift();
   const [shouldDeployWorkspace, setShouldDeployWorkspace] = useState(false);
 
-  useImperativeHandle(
-    forwardedRef,
-    () => {
-      return {
-        deploy: async () =>
-          openshift.deploy({
-            targetFile: props.workspaceFile,
-            factoryArgs: {
-              kind: shouldDeployWorkspace
-                ? DeploymentStrategyKind.DASHBOARD_WORKSPACE
-                : DeploymentStrategyKind.DASHBOARD_SINGLE_MODEL,
-            },
-          }),
-      };
-    },
-    [openshift, props.workspaceFile, shouldDeployWorkspace]
-  );
+  useImperativeHandle(forwardedRef, () => {
+    return {
+      deploy: async () =>
+        openshift.deploy({
+          targetFile: props.workspaceFile,
+          factoryArgs: {
+            kind: shouldDeployWorkspace
+              ? DeploymentStrategyKind.DASHBOARD_WORKSPACE
+              : DeploymentStrategyKind.DASHBOARD_SINGLE_MODEL,
+          },
+        }),
+    };
+  }, [openshift, props.workspaceFile, shouldDeployWorkspace]);
   return (
     <>
       Are you sure you want to deploy this dashboard to your instance? You will need to create a new deployment if you
@@ -59,7 +55,7 @@ const RefForwardingDashDeployOptions: ForwardRefRenderFunction<ConfirmDeployOpti
         label="Deploy workspace"
         description={"All files in the workspace will be deployed along with this dashboard."}
         isChecked={shouldDeployWorkspace}
-        onChange={(checked) => setShouldDeployWorkspace(checked)}
+        onChange={(_event, checked) => setShouldDeployWorkspace(checked)}
       />
     </>
   );

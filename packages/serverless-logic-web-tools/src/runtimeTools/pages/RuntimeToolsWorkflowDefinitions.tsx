@@ -18,32 +18,61 @@
  */
 
 import React, { useCallback } from "react";
-import { WorkflowDefinitionListContainer } from "@kie-tools/runtime-tools-webapp-components/dist/WorkflowDefinitionListContainer";
+import { WorkflowDefinitionListContainer } from "@kie-tools/runtime-tools-swf-webapp-components/dist/WorkflowDefinitionListContainer";
 import { Card } from "@patternfly/react-core/dist/esm/components/Card";
 import { Page, PageSection } from "@patternfly/react-core/dist/js/components/Page";
 import { Text, TextContent, TextVariants } from "@patternfly/react-core/dist/js/components/Text";
-import { useHistory } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { routes } from "../../navigation/Routes";
-import { WorkflowDefinition } from "@kie-tools/runtime-tools-gateway-api/dist/types";
+import { WorkflowDefinition } from "@kie-tools/runtime-tools-swf-gateway-api/dist/types";
+import { CloudEventPageSource } from "@kie-tools/runtime-tools-swf-webapp-components/dist/CloudEventForm";
 
 const PAGE_TITLE = "Workflow Definitions";
 
 export function RuntimeToolsWorkflowDefinitions() {
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const onOpenWorkflowForm = useCallback(
     (workflowDefinition: WorkflowDefinition) => {
-      history.push({
-        pathname: routes.runtimeToolsWorkflowForm.path({ workflowName: workflowDefinition.workflowName }),
-        state: {
-          workflowDefinition: {
-            workflowName: workflowDefinition.workflowName,
-            endpoint: workflowDefinition.endpoint,
-          },
+      navigate(
+        {
+          pathname: routes.runtimeToolsWorkflowForm.path({ workflowName: workflowDefinition.workflowName }),
         },
-      });
+        {
+          state: {
+            workflowDefinition: {
+              workflowName: workflowDefinition.workflowName,
+              endpoint: workflowDefinition.endpoint,
+              serviceUrl: workflowDefinition.serviceUrl,
+            },
+          },
+        }
+      );
     },
-    [history]
+    [navigate]
+  );
+
+  const onOpenTriggerCloudEventForWorkflow = useCallback(
+    (workflowDefinition: WorkflowDefinition) => {
+      navigate(
+        {
+          pathname: routes.runtimeToolsTriggerCloudEventForWorkflowDefinition.path({
+            workflowName: workflowDefinition.workflowName,
+          }),
+        },
+        {
+          state: {
+            workflowDefinition: {
+              workflowName: workflowDefinition.workflowName,
+              endpoint: workflowDefinition.endpoint,
+              serviceUrl: workflowDefinition.serviceUrl,
+            },
+            source: CloudEventPageSource.DEFINITIONS,
+          },
+        }
+      );
+    },
+    [navigate]
   );
 
   return (
@@ -59,7 +88,10 @@ export function RuntimeToolsWorkflowDefinitions() {
 
       <PageSection isFilled aria-label="workflow-definitions-section">
         <Card>
-          <WorkflowDefinitionListContainer onOpenWorkflowForm={onOpenWorkflowForm} />
+          <WorkflowDefinitionListContainer
+            onOpenWorkflowForm={onOpenWorkflowForm}
+            onOpenTriggerCloudEventForWorkflow={onOpenTriggerCloudEventForWorkflow}
+          />
         </Card>
       </PageSection>
     </Page>

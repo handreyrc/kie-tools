@@ -20,27 +20,27 @@
 import { ChannelType, EditorTheme, StateControlCommand } from "@kie-tools-core/editor/dist/api";
 import { Notification } from "@kie-tools-core/notifications/dist/api";
 import { WorkspaceEdit } from "@kie-tools-core/workspace/dist/api";
-import { editor } from "monaco-editor";
+import { editor } from "@kie-tools-core/monaco-editor";
 import * as React from "react";
 import { useCallback, useImperativeHandle, useRef, useState } from "react";
-import { MonacoEditor } from "./monaco/MonacoEditor";
-import { MonacoEditorApi, MonacoEditorOperation } from "./monaco/MonacoEditorController";
+import { MonacoEditor } from "./monaco";
+import { MonacoEditorApi, MonacoEditorOperation } from "./monaco";
 
 interface Props {
   onStateControlCommandUpdate: (command: StateControlCommand) => void;
   onNewEdit: (edit: WorkspaceEdit) => void;
-  setNotifications: (path: string, notifications: Notification[]) => void;
+  setNotifications: (normalizedPosixPathRelativeToTheWorkspaceRoot: string, notifications: Notification[]) => void;
   channelType: ChannelType;
   isReadOnly: boolean;
 }
 
 export type TextEditorRef = {
-  setContent(path: string, content: string): Promise<void>;
+  setContent(normalizedPosixPathRelativeToTheWorkspaceRoot: string, content: string): Promise<void>;
 };
 
 type TextEditorContent = {
   originalContent: string;
-  path: string;
+  normalizedPosixPathRelativeToTheWorkspaceRoot: string;
 };
 
 const RefForwardingTextEditor: React.ForwardRefRenderFunction<TextEditorRef | undefined, Props> = (
@@ -50,52 +50,49 @@ const RefForwardingTextEditor: React.ForwardRefRenderFunction<TextEditorRef | un
   const [initialContent, setInitialContent] = useState<TextEditorContent | undefined>(undefined);
   const swfTextEditorRef = useRef<MonacoEditorApi>(null);
 
-  useImperativeHandle(
-    forwardedRef,
-    () => {
-      return {
-        setContent: (path: string, newContent: string): Promise<void> => {
-          try {
-            setInitialContent({
-              originalContent: newContent,
-              path: path,
-            });
-            return Promise.resolve();
-          } catch (e) {
-            console.error(e);
-            return Promise.reject();
-          }
-        },
-        getContent: (): Promise<string> => {
-          return Promise.resolve(swfTextEditorRef.current?.getContent() || "");
-        },
-        getPreview: (): Promise<string> => {
-          return Promise.resolve("");
-        },
-        undo: (): Promise<void> => {
-          return swfTextEditorRef.current?.undo() || Promise.resolve();
-        },
-        redo: (): Promise<void> => {
-          return swfTextEditorRef.current?.redo() || Promise.resolve();
-        },
-        validate: (): Notification[] => {
-          return [];
-        },
-        setTheme: (theme: EditorTheme): Promise<void> => {
-          return swfTextEditorRef.current?.setTheme(theme) || Promise.resolve();
-        },
-      };
-    },
-    []
-  );
+  useImperativeHandle(forwardedRef, () => {
+    return {
+      setContent: (normalizedPosixPathRelativeToTheWorkspaceRoot: string, newContent: string): Promise<void> => {
+        try {
+          setInitialContent({
+            originalContent: newContent,
+            normalizedPosixPathRelativeToTheWorkspaceRoot,
+          });
+          return Promise.resolve();
+        } catch (e) {
+          console.error(e);
+          return Promise.reject();
+        }
+      },
+      getContent: (): Promise<string> => {
+        return Promise.resolve(swfTextEditorRef.current?.getContent() || "");
+      },
+      getPreview: (): Promise<string> => {
+        return Promise.resolve("");
+      },
+      undo: (): Promise<void> => {
+        return swfTextEditorRef.current?.undo() || Promise.resolve();
+      },
+      redo: (): Promise<void> => {
+        return swfTextEditorRef.current?.redo() || Promise.resolve();
+      },
+      validate: (): Notification[] => {
+        return [];
+      },
+      setTheme: (theme: EditorTheme): Promise<void> => {
+        return swfTextEditorRef.current?.setTheme(theme) || Promise.resolve();
+      },
+    };
+  }, []);
 
   const setValidationErrors = (errors: editor.IMarker[]) => {
     if (!initialContent) {
       return;
     }
+
     const notifications: Notification[] = errors.map((error: editor.IMarker) => ({
       type: "PROBLEM",
-      path: initialContent.path,
+      normalizedPosixPathRelativeToTheWorkspaceRoot: initialContent.normalizedPosixPathRelativeToTheWorkspaceRoot,
       severity: "ERROR",
       message: `${error.message}`,
       position: {
@@ -105,7 +102,7 @@ const RefForwardingTextEditor: React.ForwardRefRenderFunction<TextEditorRef | un
         endColumn: error.endColumn,
       },
     }));
-    props.setNotifications(initialContent.path, notifications);
+    props.setNotifications(initialContent.normalizedPosixPathRelativeToTheWorkspaceRoot, notifications);
   };
 
   const isVscode = useCallback(() => {
@@ -142,7 +139,7 @@ const RefForwardingTextEditor: React.ForwardRefRenderFunction<TextEditorRef | un
           <MonacoEditor
             channelType={props.channelType}
             content={initialContent.originalContent}
-            fileName={initialContent.path}
+            fileName={initialContent.normalizedPosixPathRelativeToTheWorkspaceRoot}
             onContentChange={onContentChanged}
             setValidationErrors={setValidationErrors}
             ref={swfTextEditorRef}

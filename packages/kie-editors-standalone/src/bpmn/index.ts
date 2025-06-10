@@ -17,15 +17,21 @@
  * under the License.
  */
 
-import bpmnEnvelopeIndex from "!!raw-loader!../../dist/resources/bpmn/bpmnEnvelopeIndex.html";
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference
+/// <reference path="../global.d.ts" /> // Required for bundling types
+
+import bpmnEnvelopeIndex from "../../dist/resources/bpmn/bpmnEnvelopeIndex.html";
 import { EnvelopeServer } from "@kie-tools-core/envelope-bus/dist/channel";
-import { ChannelType, KogitoEditorChannelApi } from "@kie-tools-core/editor/dist/api";
+import {
+  ChannelType,
+  DEFAULT_WORKSPACE_ROOT_ABSOLUTE_POSIX_PATH,
+  KogitoEditorChannelApi,
+} from "@kie-tools-core/editor/dist/api";
 import { StandaloneEditorsEditorChannelApiImpl } from "../envelope/StandaloneEditorsEditorChannelApiImpl";
 import { StateControl } from "@kie-tools-core/editor/dist/channel";
-import { ContentType } from "@kie-tools-core/workspace/dist/api";
-import { createEditor, Editor, StandaloneEditorApi } from "../common/Editor";
-import { BpmnEditorEnvelopeApi } from "../../../kie-bc-editors/dist/bpmn/api";
+import { createEditor, Editor, EditorStandaloneResource, StandaloneEditorApi } from "../common/Editor";
 import { BpmnEditorDiagramApi } from "../jsdiagram/BpmnEditorDiagramApi";
+import { BpmnEditorEnvelopeApi } from "@kie-tools/kie-bc-editors/dist/bpmn/api";
 
 declare global {
   interface Window {
@@ -51,6 +57,7 @@ const createEnvelopeServer = (iframe: HTMLIFrameElement, readOnly?: boolean, ori
           initialLocale: "en-US",
           isReadOnly: readOnly ?? true,
           channel: ChannelType.EMBEDDED,
+          workspaceRootAbsolutePosixPath: DEFAULT_WORKSPACE_ROOT_ABSOLUTE_POSIX_PATH,
         }
       );
     }
@@ -63,7 +70,7 @@ export function open(args: {
   readOnly?: boolean;
   origin?: string;
   onError?: () => any;
-  resources?: Map<string, { contentType: ContentType; content: Promise<string> }>;
+  resources?: Map<string, EditorStandaloneResource>;
 }): StandaloneEditorApi & BpmnEditorDiagramApi {
   const iframe = document.createElement("iframe");
   iframe.srcdoc = bpmnEnvelopeIndex;
@@ -80,7 +87,8 @@ export function open(args: {
   const channelApiImpl = new StandaloneEditorsEditorChannelApiImpl(
     stateControl,
     {
-      fileName: "",
+      normalizedPosixPathRelativeToTheWorkspaceRoot: "", // FIXME: https://github.com/apache/incubator-kie-issues/issues/811
+      fileName: "", // FIXME: https://github.com/apache/incubator-kie-issues/issues/811
       fileExtension: "bpmn",
       getFileContents: () => Promise.resolve(args.initialContent),
       isReadOnly: args.readOnly ?? false,

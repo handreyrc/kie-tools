@@ -52,30 +52,10 @@
     <url>scm:git:git@github.com:apache/incubator-kie-tools.git</url>
   </scm>
 
-  <developers>
-    <developer>
-      <name>All developers are listed in the KIE GitHub organization</name>
-      <url>https://github.com/orgs/kiegroup/people</url>
-    </developer>
-  </developers>
-
   <issueManagement>
-    <system>jira</system>
+    <system>github-issues</system>
     <url>https://github.com/apache/incubator-kie-issues/issues</url>
   </issueManagement>
-
-  <repositories>
-    <repository>
-      <id>jboss</id>
-      <name>JBoss Public Repo</name>
-      <url>https://repository.jboss.org/nexus/content/groups/public</url>
-    </repository>
-    <repository>
-      <id>sonatype-public</id>
-      <name>Sonatype Public Snapshots Repo</name>
-      <url>https://oss.sonatype.org/content/repositories/public</url>
-    </repository>
-  </repositories>
 
   <properties>
     <sonar.skip>true</sonar.skip>
@@ -328,6 +308,10 @@
             <groupId>javax.annotation</groupId>
             <artifactId>javax.annotation-api</artifactId>
           </exclusion>
+          <exclusion>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+          </exclusion>
         </exclusions>
       </dependency>
 
@@ -515,7 +499,6 @@
         <scope>test</scope>
       </dependency>
 
-
       <!-- ARQUILLIAN -->
 
       <dependency>
@@ -570,5 +553,4 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-
 </project>

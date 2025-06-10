@@ -22,7 +22,7 @@ import { useEffect, useImperativeHandle, useMemo, useRef } from "react";
 import { YardTextEditorController, YardTextEditorApi } from "./YardTextEditorController";
 import { ChannelType, EditorTheme, useKogitoEditorEnvelopeContext } from "@kie-tools-core/editor/dist/api";
 import { useSharedValue } from "@kie-tools-core/envelope-bus/dist/hooks";
-import { YardEditorChannelApi } from "../api";
+import { YardEditorChannelApi, YardEditorEnvelopeApi } from "../api";
 import { editor } from "monaco-editor";
 import { YardFile } from "../types";
 import { initCodeLenses } from "./augmentation/codeLenses";
@@ -42,11 +42,14 @@ const RefForwardingYardTextEditor: React.ForwardRefRenderFunction<YardTextEditor
   forwardedRef
 ) => {
   const container = useRef<HTMLDivElement>(null);
-  const editorEnvelopeCtx = useKogitoEditorEnvelopeContext<YardEditorChannelApi>();
+  const editorEnvelopeCtx = useKogitoEditorEnvelopeContext<YardEditorEnvelopeApi, YardEditorChannelApi>();
   const [theme] = useSharedValue(editorEnvelopeCtx.channelApi?.shared.kogitoEditor_theme);
 
   const controller: YardTextEditorApi = useMemo<YardTextEditorApi>(() => {
-    if (file.path.endsWith(".yard.yaml") || file.path.endsWith(".yard.yml")) {
+    if (
+      file.normalizedPosixPathRelativeToTheWorkspaceRoot.endsWith(".yard.yaml") ||
+      file.normalizedPosixPathRelativeToTheWorkspaceRoot.endsWith(".yard.yml")
+    ) {
       return new YardTextEditorController(
         file.content,
         onContentChange,
@@ -56,7 +59,7 @@ const RefForwardingYardTextEditor: React.ForwardRefRenderFunction<YardTextEditor
         setValidationErrors
       );
     }
-    throw new Error(`Unsupported extension '${file.path}'`);
+    throw new Error(`Unsupported extension '${file.normalizedPosixPathRelativeToTheWorkspaceRoot}'`);
   }, [editorEnvelopeCtx.operatingSystem, file, onContentChange, isReadOnly, setValidationErrors]);
 
   useEffect(() => {

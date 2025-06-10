@@ -22,14 +22,14 @@
 }
 
 .expression-container .context-expression .context-result {
-  color: var(--pf-global--palette--black-600);
+  color: var(--pf-v5-global--palette--black-600);
   font-style: italic;
   font-family: Menlo, monospace;
   font-size: 0.8em;
   padding: 4px;
 }
 
-.expression-container .context-entry-info-cell,
+.expression-container .expression-variable-cell,
 .expression-container .context-expression .context-result {
   height: 100%;
   display: flex;

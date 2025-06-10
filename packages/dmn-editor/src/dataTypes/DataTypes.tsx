@@ -18,8 +18,10 @@
  */
 
 import * as React from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { DMN15__tItemDefinition } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/ts-gen/types";
+import { Normalized } from "@kie-tools/dmn-marshaller/dist/normalization/normalize";
+import { getNewDmnIdRandomizer } from "@kie-tools/dmn-marshaller/dist/idRandomizer/dmnIdRandomizer";
 import {
   Drawer,
   DrawerContent,
@@ -29,14 +31,14 @@ import {
 import { Flex } from "@patternfly/react-core/dist/js/layouts/Flex";
 import { InfrastructureIcon } from "@patternfly/react-icons/dist/js/icons/infrastructure-icon";
 import { PlusCircleIcon } from "@patternfly/react-icons/dist/js/icons/plus-circle-icon";
-import { State, useDmnEditorStore, useDmnEditorStoreApi } from "../store/Store";
+import { State } from "../store/Store";
+import { useDmnEditorStore, useDmnEditorStoreApi } from "../store/StoreContext";
 import { DataTypesEmptyState } from "./DataTypesEmptyState";
 import { DataTypePanel } from "./DataTypePanel";
-import { findDataTypeById, getNewItemDefinition, isStruct } from "./DataTypeSpec";
+import { findDataTypeById, isStruct } from "./DataTypeSpec";
 import { DataTypeName } from "./DataTypeName";
-import { useDmnEditorDerivedStore } from "../store/DerivedStore";
 import { Label } from "@patternfly/react-core/dist/js/components/Label";
-import { DMN15_SPEC } from "../Dmn15Spec";
+import { DMN15_SPEC } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/Dmn15Spec";
 import { invalidInlineFeelNameStyle } from "../feel/InlineFeelNameInput";
 import {
   Dropdown,
@@ -44,21 +46,27 @@ import {
   DropdownPosition,
   DropdownToggle,
   DropdownToggleAction,
-} from "@patternfly/react-core/dist/js/components/Dropdown";
+} from "@patternfly/react-core/deprecated";
 import { PasteIcon } from "@patternfly/react-icons/dist/js/icons/paste-icon";
-import { InputGroup } from "@patternfly/react-core/dist/js/components/InputGroup";
+import { InputGroup, InputGroupItem } from "@patternfly/react-core/dist/js/components/InputGroup";
 import { SearchInput } from "@patternfly/react-core/dist/js/components/SearchInput";
+import {
+  ImportJavaClassesWizard,
+  ImportJavaClassesI18nDictionariesProvider,
+} from "@kie-tools/import-java-classes-component";
 import {
   DMN_EDITOR_DATA_TYPES_CLIPBOARD_MIME_TYPE,
   DmnEditorDataTypesClipboard,
   getClipboard,
 } from "../clipboard/Clipboard";
-import { getNewDmnIdRandomizer } from "../idRandomizer/dmnIdRandomizer";
 import { addTopLevelItemDefinition as _addTopLevelItemDefinition } from "../mutations/addTopLevelItemDefinition";
-import { DmnBuiltInDataType } from "@kie-tools/boxed-expression-component/dist/api";
+import { useExternalModels } from "../includedModels/DmnEditorDependenciesContext";
+import { useSettings } from "../settings/DmnEditorSettingsContext";
+import { ImportJavaClassesDropdownItem, ImportJavaClassNameConflictsModal } from "./ImportJavaClasses";
+import { useImportJavaClasses } from "./useImportJavaClasses";
 
 export type DataType = {
-  itemDefinition: DMN15__tItemDefinition;
+  itemDefinition: Normalized<DMN15__tItemDefinition>;
   parentId: string | undefined;
   parents: Set<string>;
   index: number;
@@ -69,16 +77,20 @@ export type DataType = {
 export type DataTypeTreeViewDataItem = {};
 export type DataTypeIndex = Map<string, DataType>;
 
-export type AddItemComponent = (id: string, how: "unshift" | "push", partial?: Partial<DMN15__tItemDefinition>) => void;
-export type AddTopLevelItemDefinition = (partial: Partial<DMN15__tItemDefinition>) => void;
+export type AddItemComponent = (
+  id: string,
+  how: "unshift" | "push",
+  partial?: Partial<Normalized<DMN15__tItemDefinition>>
+) => void;
+export type AddTopLevelItemDefinition = (partial: Partial<Normalized<DMN15__tItemDefinition>>) => void;
 
 export type EditItemDefinition = (
   id: string,
   consumer: (
-    itemDefinition: DMN15__tItemDefinition,
-    items: DMN15__tItemDefinition[],
+    itemDefinition: Normalized<DMN15__tItemDefinition>,
+    items: Normalized<DMN15__tItemDefinition>[],
     index: number,
-    all: DMN15__tItemDefinition[],
+    all: Normalized<DMN15__tItemDefinition>[],
     state: State
   ) => void
 ) => void;
@@ -86,21 +98,44 @@ export type EditItemDefinition = (
 export function DataTypes() {
   const thisDmnsNamespace = useDmnEditorStore((s) => s.dmn.model.definitions["@_namespace"]);
   const dmnEditorStoreApi = useDmnEditorStoreApi();
-  const { activeItemDefinitionId } = useDmnEditorStore((s) => s.dataTypesEditor);
+  const activeItemDefinitionId = useDmnEditorStore((s) => s.dataTypesEditor.activeItemDefinitionId);
+  const { isReadOnly, isImportDataTypesFromJavaClassesSupported, javaCodeCompletionService } = useSettings();
 
   const [filter, setFilter] = useState("");
+  const { externalModelsByNamespace } = useExternalModels();
+  const allTopLevelItemDefinitionUniqueNames = useDmnEditorStore(
+    (s) => s.computed(s).getDataTypes(externalModelsByNamespace).allTopLevelItemDefinitionUniqueNames
+  );
+  const allDataTypesById = useDmnEditorStore(
+    (s) => s.computed(s).getDataTypes(externalModelsByNamespace).allDataTypesById
+  );
+  const dataTypesTree = useDmnEditorStore((s) => s.computed(s).getDataTypes(externalModelsByNamespace).dataTypesTree);
 
-  const { allDataTypesById, dataTypesTree, allTopLevelItemDefinitionUniqueNames } = useDmnEditorDerivedStore();
+  const [isOpenImportJavaClassesWizard, setOpenImportJavaClassesWizard] = useState(false);
+  const {
+    conflictsClasses,
+    handleConflictAction,
+    handleImportJavaClasses,
+    isConflictsOccured,
+    handleCloseConflictsModal,
+  } = useImportJavaClasses();
+  const handleImportJavaClassButtonClick = useCallback(() => {
+    setAddDataTypeDropdownOpen(false);
+    setOpenImportJavaClassesWizard((prevState) => !prevState);
+  }, []);
+
+  useEffect(() => {
+    if (isOpenImportJavaClassesWizard || isConflictsOccured) {
+      setAddDataTypeDropdownOpen(false);
+    }
+  }, [isOpenImportJavaClassesWizard, isConflictsOccured]);
 
   const activeDataType = useMemo(() => {
     return activeItemDefinitionId ? allDataTypesById.get(activeItemDefinitionId) : undefined;
   }, [activeItemDefinitionId, allDataTypesById]);
 
   const filteredTree = useMemo(
-    () =>
-      dataTypesTree.filter(({ itemDefinition: dataType }) =>
-        dataType["@_name"].toLowerCase().includes(filter.toLowerCase())
-      ),
+    () => dataTypesTree.filter(({ feelName: dataType }) => dataType.toLowerCase().includes(filter.toLowerCase())),
     [filter, dataTypesTree]
   );
 
@@ -135,6 +170,9 @@ export function DataTypes() {
   );
 
   const pasteTopLevelItemDefinition = useCallback(() => {
+    if (isReadOnly) {
+      return;
+    }
     navigator.clipboard.readText().then((text) => {
       const clipboard = getClipboard<DmnEditorDataTypesClipboard>(text, DMN_EDITOR_DATA_TYPES_CLIPBOARD_MIME_TYPE);
       if (!clipboard) {
@@ -147,75 +185,106 @@ export function DataTypes() {
           type: "DMN15__tDefinitions",
           attr: "itemDefinition",
         })
-        .randomize();
+        .randomize({ skipAlreadyAttributedIds: false });
 
       for (const itemDefinition of clipboard.itemDefinitions) {
         addTopLevelItemDefinition(itemDefinition);
       }
     });
-  }, [addTopLevelItemDefinition]);
+  }, [addTopLevelItemDefinition, isReadOnly]);
 
   const [isAddDataTypeDropdownOpen, setAddDataTypeDropdownOpen] = useState(false);
+
+  // Using this object because DropdownToggleAction's props doesn't accept a 'title'.
+  const extraPropsForDropdownToggleAction = { title: "New Data Type" };
+
+  const addDataTypesDropdownItems = useMemo(() => {
+    const dropdownItems = [
+      <DropdownItem
+        key={"paste"}
+        onClick={() => pasteTopLevelItemDefinition()}
+        style={{ minWidth: "240px" }}
+        icon={<PasteIcon />}
+      >
+        Paste
+      </DropdownItem>,
+    ];
+    if (isImportDataTypesFromJavaClassesSupported && javaCodeCompletionService) {
+      dropdownItems.unshift(
+        <ImportJavaClassesI18nDictionariesProvider key={"import-java-classes"}>
+          <ImportJavaClassesDropdownItem
+            javaCodeCompletionService={javaCodeCompletionService}
+            onClick={handleImportJavaClassButtonClick}
+          />
+        </ImportJavaClassesI18nDictionariesProvider>
+      );
+    }
+    return dropdownItems;
+  }, [
+    isImportDataTypesFromJavaClassesSupported,
+    javaCodeCompletionService,
+    handleImportJavaClassButtonClick,
+    pasteTopLevelItemDefinition,
+  ]);
 
   return (
     <>
       {(dataTypesTree.length <= 0 && (
         <DataTypesEmptyState
-          onAdd={() => addTopLevelItemDefinition({ typeRef: { __$$text: DmnBuiltInDataType.Undefined } })}
+          onAdd={() => addTopLevelItemDefinition({ typeRef: undefined })}
           onPaste={pasteTopLevelItemDefinition}
         />
       )) || (
         <Drawer isExpanded={true} isInline={true} position={"left"} className={"kie-dmn-editor--data-types-container"}>
           <DrawerContent
             panelContent={
-              <DrawerPanelContent isResizable={true} minSize={"300px"} defaultSize={"400px"}>
+              <DrawerPanelContent
+                isResizable={true}
+                minSize={"300px"}
+                defaultSize={"400px"}
+                data-testid={"kie-tools--dmn-editor--data-types-list"}
+              >
                 <Flex
                   justifyContent={{ default: "justifyContentSpaceBetween" }}
                   alignItems={{ default: "alignItemsCenter" }}
                   className={"kie-dmn-editor--data-types-filter kie-dmn-editor--sticky-top-glass-header"}
                 >
                   <InputGroup>
-                    <SearchInput
-                      placeholder="Filter..."
-                      value={filter}
-                      onChange={(_event, value) => setFilter(value)}
-                      onClear={() => setFilter("")}
-                    />
+                    <InputGroupItem isFill>
+                      <SearchInput
+                        placeholder="Filter..."
+                        value={filter}
+                        onChange={(_event, value) => setFilter(value)}
+                        onClear={() => setFilter("")}
+                      />
+                    </InputGroupItem>
 
-                    <Dropdown
-                      onSelect={() => setAddDataTypeDropdownOpen(false)}
-                      menuAppendTo={document.body}
-                      toggle={
-                        <DropdownToggle
-                          id="add-data-type-toggle"
-                          splitButtonItems={[
-                            <DropdownToggleAction
-                              key="add-data-type-action"
-                              aria-label="Add Data Type"
-                              onClick={() =>
-                                addTopLevelItemDefinition({ typeRef: { __$$text: DmnBuiltInDataType.Undefined } })
-                              }
-                            >
-                              <PlusCircleIcon />
-                            </DropdownToggleAction>,
-                          ]}
-                          splitButtonVariant="action"
-                          onToggle={setAddDataTypeDropdownOpen}
-                        />
-                      }
-                      position={DropdownPosition.right}
-                      isOpen={isAddDataTypeDropdownOpen}
-                      dropdownItems={[
-                        <DropdownItem
-                          key={"paste"}
-                          onClick={() => pasteTopLevelItemDefinition()}
-                          style={{ minWidth: "240px" }}
-                          icon={<PasteIcon />}
-                        >
-                          Paste
-                        </DropdownItem>,
-                      ]}
-                    />
+                    {!isReadOnly && (
+                      <Dropdown
+                        onSelect={() => setAddDataTypeDropdownOpen(false)}
+                        menuAppendTo={document.body}
+                        toggle={
+                          <DropdownToggle
+                            id="add-data-type-toggle"
+                            splitButtonItems={[
+                              <DropdownToggleAction
+                                {...extraPropsForDropdownToggleAction}
+                                key="add-data-type-action"
+                                aria-label="Add Data Type"
+                                onClick={() => addTopLevelItemDefinition({ typeRef: undefined })}
+                              >
+                                <PlusCircleIcon />
+                              </DropdownToggleAction>,
+                            ]}
+                            splitButtonVariant="action"
+                            onToggle={(_event, val) => setAddDataTypeDropdownOpen(val)}
+                          />
+                        }
+                        position={DropdownPosition.right}
+                        isOpen={isAddDataTypeDropdownOpen}
+                        dropdownItems={addDataTypesDropdownItems}
+                      />
+                    )}
                   </InputGroup>
                 </Flex>
                 <div className={`kie-dmn-editor--data-types-nav`}>
@@ -244,12 +313,12 @@ export function DataTypes() {
                         {(namespace === thisDmnsNamespace && (
                           <DataTypeName
                             relativeToNamespace={thisDmnsNamespace}
-                            isReadonly={namespace !== thisDmnsNamespace}
+                            isReadOnly={isReadOnly || namespace !== thisDmnsNamespace}
                             itemDefinition={itemDefinition}
                             isActive={isActive}
                             editMode={"double-click"}
                             enableAutoFocusing={false} // Let the auto-focusing mechanism go for the title component
-                            allUniqueNames={allTopLevelItemDefinitionUniqueNames}
+                            onGetAllUniqueNames={() => allTopLevelItemDefinitionUniqueNames}
                           />
                         )) || (
                           <>
@@ -280,10 +349,28 @@ export function DataTypes() {
             <DrawerContentBody>
               {activeDataType && (
                 <DataTypePanel
-                  isReadonly={activeDataType.namespace !== thisDmnsNamespace}
+                  isReadOnly={isReadOnly || activeDataType.namespace !== thisDmnsNamespace}
                   dataType={activeDataType}
                   allDataTypesById={allDataTypesById}
                   editItemDefinition={editItemDefinition}
+                />
+              )}
+              {isOpenImportJavaClassesWizard && javaCodeCompletionService && (
+                <ImportJavaClassesI18nDictionariesProvider>
+                  <ImportJavaClassesWizard
+                    javaCodeCompletionService={javaCodeCompletionService}
+                    isOpen={isOpenImportJavaClassesWizard}
+                    onSave={handleImportJavaClasses}
+                    onClose={handleImportJavaClassButtonClick}
+                  />
+                </ImportJavaClassesI18nDictionariesProvider>
+              )}
+              {isConflictsOccured && conflictsClasses?.length > 0 && (
+                <ImportJavaClassNameConflictsModal
+                  isOpen={isConflictsOccured}
+                  handleConfirm={handleConflictAction}
+                  conflictedJavaClasses={conflictsClasses}
+                  onClose={handleCloseConflictsModal}
                 />
               )}
             </DrawerContentBody>

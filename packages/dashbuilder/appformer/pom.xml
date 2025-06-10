@@ -22,7 +22,6 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd"
 >
-
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.dashbuilder</groupId>
@@ -30,7 +29,6 @@
     <version>${revision}</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
-
 
   <groupId>org.uberfire</groupId>
   <artifactId>uberfire-parent</artifactId>
@@ -82,20 +80,21 @@
     <netty-transport-native-epoll-classifier>linux-x86_64</netty-transport-native-epoll-classifier>
     <netty-transport-native-kqueue-classifier>osx-x86_64</netty-transport-native-kqueue-classifier>
 
-    <version.bundle.plugin
-    >3.3.0</version.bundle.plugin><!-- 3.2.0 sometimes 
-      fails with NPE during parallel build -->
+    <!-- 3.2.0 sometimes fails with NPE during parallel build -->
+    <version.bundle.plugin>3.3.0</version.bundle.plugin>
+
     <!-- Make OSGi happy -->
     <osgi.snapshot.qualifier>${maven.build.timestamp}</osgi.snapshot.qualifier>
+
     <jboss.releases.repo.url
     >https://repository.jboss.org/nexus/service/local/staging/deploy/maven2/</jboss.releases.repo.url>
     <jboss.snapshots.repo.url
     >https://repository.jboss.org/nexus/content/repositories/snapshots/</jboss.snapshots.repo.url>
 
-    <version.org.infinispan.protostream>4.3.5.Final</version.org.infinispan.protostream>
+    <version.org.infinispan.protostream>4.6.2.Final</version.org.infinispan.protostream>
 
     <!-- Newer version in kie-parent causes ServiceLoader error -->
-    <version.ch.qos.logback>1.3.12</version.ch.qos.logback>
+    <version.ch.qos.logback>1.5.16</version.ch.qos.logback>
     <version.jnuit.docker.rule>0.3</version.jnuit.docker.rule>
     <version.com.spotify.docker>5.0.2</version.com.spotify.docker>
     <version.org.uberfire.latestFinal.release>1.4.0.Final</version.org.uberfire.latestFinal.release>
@@ -108,7 +107,7 @@
     <!-- database testing -->
     <version.org.mariadb.jdbc>1.3.6</version.org.mariadb.jdbc>
     <version.org.mysql-driver>8.0.28</version.org.mysql-driver>
-    <version.org.postgres-driver>42.4.3</version.org.postgres-driver>
+    <version.org.postgres-driver>42.7.2</version.org.postgres-driver>
 
     <version.org.arquillian.cube>1.15.3</version.org.arquillian.cube>
 
@@ -119,45 +118,6 @@
       with dashbuilder-validator module -->
     <version.javax.validation>1.0.0.GA</version.javax.validation>
   </properties>
-
-  <repositories>
-    <repository>
-      <id>jboss-public-repository-group</id>
-      <name>JBoss Public Repository Group</name>
-      <url>https://repository.jboss.org/nexus/content/groups/public/</url>
-      <releases>
-        <enabled>true</enabled>
-        <updatePolicy>never</updatePolicy>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-        <updatePolicy>daily</updatePolicy>
-      </snapshots>
-    </repository>
-  </repositories>
-  <pluginRepositories>
-    <pluginRepository>
-      <id>jboss-public-repository-group</id>
-      <name>JBoss Public Repository Group</name>
-      <url>https://repository.jboss.org/nexus/content/groups/public/</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </pluginRepository>
-  </pluginRepositories>
-
-  <scm>
-    <connection>scm:git:git@github.com:uberfire/uberfire.git</connection>
-    <developerConnection>scm:git:git@github.com:uberfire/uberfire.git</developerConnection>
-    <url>https://github.com/uberfire/uberfire</url>
-  </scm>
-  <issueManagement>
-    <system>jira</system>
-    <url>https://issues.jboss.org/browse/UF</url>
-  </issueManagement>
 
   <build>
     <pluginManagement>
@@ -345,7 +305,7 @@
           <version>1.3</version>
         </plugin>
 
-        <!--This plugin's configuration is used to store Eclipse m2e settings 
+        <!-- This plugin's configuration is used to store Eclipse m2e settings 
           only. It has no influence on the Maven build itself. -->
         <plugin>
           <groupId>org.eclipse.m2e</groupId>
@@ -401,7 +361,6 @@
           </configuration>
         </plugin>
       </plugins>
-
     </pluginManagement>
 
     <plugins>
@@ -439,7 +398,7 @@
         </configuration>
       </plugin>
 
-      <!--Fix translations from Zanata -->
+      <!-- Fix translations from Zanata -->
       <plugin>
         <groupId>com.google.code.maven-replacer-plugin</groupId>
         <artifactId>replacer</artifactId>
@@ -800,7 +759,6 @@
         <scope>test</scope>
       </dependency>
 
-
       <!-- INDEXING -->
       <dependency>
         <groupId>io.netty</groupId>
@@ -1033,7 +991,6 @@
         <scope>test</scope>
       </dependency>
 
-
       <!-- ARQUILLIAN -->
 
       <dependency>
@@ -1079,7 +1036,6 @@
         <artifactId>assertj-core</artifactId>
         <version>${version.org.assertj}</version>
       </dependency>
-
     </dependencies>
   </dependencyManagement>
 
@@ -1112,11 +1068,8 @@
         </exclusion>
       </exclusions>
     </dependency>
-
-
   </dependencies>
 
   <!-- DistributionManagement is inherited from org.jboss:jboss-parent -->
   <!-- <distributionManagement/> -->
-
 </project>

@@ -36,7 +36,8 @@ var parentPath string
 var TempTestsPath string
 var KnExecutable string
 
-var TestPrintCmdOutput = flag.Bool("logs", false, "Print command output during tests")
+var TestPrintCmdOutput = flag.Bool("logs", true, "Print command output during tests")
+
 
 func TestMain(m *testing.M) {
 
@@ -54,8 +55,11 @@ func TestMain(m *testing.M) {
 
 	checkAndBuildExecutable()
 
+	InstallOperator()
 	// Run tests
 	exitCode := m.Run()
+
+	UninstallOperator()
 
 	// Cleanup after tests
 	cleanUpTemp(workingPath, tempDirName)

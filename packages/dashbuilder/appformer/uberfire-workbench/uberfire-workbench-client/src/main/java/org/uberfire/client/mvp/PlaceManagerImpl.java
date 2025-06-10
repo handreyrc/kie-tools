@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -73,7 +74,6 @@ import org.uberfire.workbench.model.Position;
 import org.uberfire.workbench.model.impl.PartDefinitionImpl;
 
 import static java.util.Collections.unmodifiableCollection;
-import static org.kie.soup.commons.validation.PortablePreconditions.checkNotNull;
 import static org.uberfire.plugin.PluginUtil.ensureIterable;
 import static org.uberfire.plugin.PluginUtil.toInteger;
 
@@ -283,7 +283,7 @@ public class PlaceManagerImpl implements PlaceManager {
     /**
      * Resolves the given place request into an Activity instance, if one can be found. If not, this method substitutes
      * special "not found" or "too many" place requests when the resolution doesn't work.
-     * <p/>
+     * </p>
      * The behaviour of this method is affected by the boolean-valued
      * {@code org.uberfire.client.mvp.PlaceManagerImpl.ignoreUnkownPlaces} property in {@link UberfirePreferences}.
      * @param place A non-null place request that could have originated from within application code, from within the
@@ -584,6 +584,10 @@ public class PlaceManagerImpl implements PlaceManager {
 
         perspectiveCloseChain.put(perspectiveIdentifier,
                 closeChain);
+    }
+
+    private static <T> T checkNotNull(String objName, T obj) {
+        return Objects.requireNonNull(obj, "Parameter named '" + objName + "' should be not null!");
     }
 
     /**

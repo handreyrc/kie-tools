@@ -23,7 +23,7 @@ import {
   EnvelopeContentType,
   EnvelopeMapping,
 } from "@kie-tools-core/editor/dist/api";
-import { WorkspaceEdit } from "@kie-tools-core/workspace/dist/api";
+import { ResourceContent, ResourcesList, WorkspaceEdit } from "@kie-tools-core/workspace/dist/api";
 import * as React from "react";
 import { EmbeddedEditorFile } from "@kie-tools-core/editor/dist/channel";
 import { EmbeddedEditor, EmbeddedEditorRef } from "@kie-tools-core/editor/dist/embedded";
@@ -37,6 +37,7 @@ describe("EmbeddedEditor::ONLINE", () => {
     fileExtension: "dmn",
     getFileContents: () => Promise.resolve(""),
     isReadOnly: false,
+    normalizedPosixPathRelativeToTheWorkspaceRoot: "test.dmn",
   };
 
   const editorEnvelopeLocator = new EditorEnvelopeLocator("localhost:8888", [
@@ -89,10 +90,10 @@ describe("EmbeddedEditor::ONLINE", () => {
       "kogitoEditor_contentChanged"
     );
 
-    editorRef.current?.setContent("path", "content");
+    editorRef.current?.setContent("test-path-relative-to-the-workspace-root", "content");
 
-    expect(spyOnContentChangedNotification).toBeCalledWith(
-      { content: "content", path: "path" },
+    expect(spyOnContentChangedNotification).toHaveBeenCalledWith(
+      { content: "content", normalizedPosixPathRelativeToTheWorkspaceRoot: "test-path-relative-to-the-workspace-root" },
       { showLoadingOverlay: false }
     );
   });
@@ -114,7 +115,7 @@ describe("EmbeddedEditor::ONLINE", () => {
     );
     editorRef.current?.getContent();
 
-    expect(spyRequest_contentResponse).toBeCalled();
+    expect(spyRequest_contentResponse).toHaveBeenCalled();
   });
 
   test("EmbeddedEditor::requestPreview", () => {
@@ -134,7 +135,7 @@ describe("EmbeddedEditor::ONLINE", () => {
     );
     editorRef.current?.getPreview();
 
-    expect(spyRequest_previewResponse).toBeCalled();
+    expect(spyRequest_previewResponse).toHaveBeenCalled();
   });
 
   test("EmbeddedEditor::onSetContentError", async () => {
@@ -158,7 +159,7 @@ describe("EmbeddedEditor::ONLINE", () => {
       data: [],
     });
 
-    expect(onSetContentError).toBeCalled();
+    expect(onSetContentError).toHaveBeenCalled();
     expect(container.firstChild).toMatchSnapshot();
   });
 
@@ -183,7 +184,7 @@ describe("EmbeddedEditor::ONLINE", () => {
       data: [],
     });
 
-    expect(onReady).toBeCalled();
+    expect(onReady).toHaveBeenCalled();
     expect(container.firstChild).toMatchSnapshot();
   });
 
@@ -206,10 +207,10 @@ describe("EmbeddedEditor::ONLINE", () => {
       requestId: "1",
       purpose: EnvelopeBusMessagePurpose.REQUEST,
       type: "kogitoWorkspace_resourceContentRequest",
-      data: [{ path: "" }],
+      data: [{ normalizedPosixPathRelativeToTheWorkspaceRoot: "" } as ResourceContent],
     });
 
-    expect(onResourceContentRequest).toBeCalled();
+    expect(onResourceContentRequest).toHaveBeenCalled();
     expect(container.firstChild).toMatchSnapshot();
   });
 
@@ -232,10 +233,10 @@ describe("EmbeddedEditor::ONLINE", () => {
       requestId: "1",
       purpose: EnvelopeBusMessagePurpose.REQUEST,
       type: "kogitoWorkspace_resourceListRequest",
-      data: [{ pattern: "", paths: [] }],
+      data: [{ pattern: "", normalizedPosixPathsRelativeToTheWorkspaceRoot: [] } as ResourcesList],
     });
 
-    expect(onResourceListRequest).toBeCalled();
+    expect(onResourceListRequest).toHaveBeenCalled();
     expect(container.firstChild).toMatchSnapshot();
   });
 
@@ -261,7 +262,7 @@ describe("EmbeddedEditor::ONLINE", () => {
     });
 
     expect(editorRef.current?.getStateControl().getCommandStack()).toEqual([{ id: "1" }]);
-    expect(onNewEdit).toBeCalled();
+    expect(onNewEdit).toHaveBeenCalled();
     expect(container.firstChild).toMatchSnapshot();
   });
 });

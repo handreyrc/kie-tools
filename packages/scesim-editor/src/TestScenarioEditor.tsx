@@ -20,65 +20,68 @@
 import "@patternfly/react-core/dist/styles/base.css";
 
 import * as React from "react";
-import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef } from "react";
 
 import { I18nDictionariesProvider } from "@kie-tools-core/i18n/dist/react-components";
 
 import { testScenarioEditorDictionaries, TestScenarioEditorI18nContext, testScenarioEditorI18nDefaults } from "./i18n";
 
-import { getMarshaller, SceSimModel } from "@kie-tools/scesim-marshaller";
-import {
-  SceSim__FactMappingType,
-  SceSim__ScenarioSimulationModelType,
-} from "@kie-tools/scesim-marshaller/dist/schemas/scesim-1_8/ts-gen/types";
+import { DmnLatestModel } from "@kie-tools/dmn-marshaller";
+import { Normalized } from "@kie-tools/dmn-marshaller/dist/normalization/normalize";
+
+import { SceSimModel } from "@kie-tools/scesim-marshaller";
+import { SceSim__FactMappingType } from "@kie-tools/scesim-marshaller/dist/schemas/scesim-1_8/ts-gen/types";
 
 import { Alert } from "@patternfly/react-core/dist/js/components/Alert";
 import { Bullseye } from "@patternfly/react-core/dist/js/layouts/Bullseye";
-import { Button } from "@patternfly/react-core/dist/js/components/Button";
-import { Checkbox } from "@patternfly/react-core/dist/js/components/Checkbox";
 import { Drawer, DrawerContent, DrawerContentBody } from "@patternfly/react-core/dist/js/components/Drawer";
-import { EmptyState, EmptyStateBody, EmptyStateIcon } from "@patternfly/react-core/dist/js/components/EmptyState";
-import { Form, FormGroup } from "@patternfly/react-core/dist/js/components/Form";
-import { FormSelect, FormSelectOption } from "@patternfly/react-core/dist/js/components/FormSelect";
+import {
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateIcon,
+  EmptyStateHeader,
+} from "@patternfly/react-core/dist/js/components/EmptyState";
+import { Flex } from "@patternfly/react-core/dist/js/layouts/Flex";
 import { Icon } from "@patternfly/react-core/dist/js/components/Icon";
 import { Spinner } from "@patternfly/react-core/dist/js/components/Spinner";
 import { Tabs, Tab, TabTitleIcon, TabTitleText } from "@patternfly/react-core/dist/js/components/Tabs";
-import { TextInput } from "@patternfly/react-core/dist/js/components/TextInput";
-import { Title } from "@patternfly/react-core/dist/js/components/Title";
 import { Tooltip } from "@patternfly/react-core/dist/js/components/Tooltip";
 
-import AddIcon from "@patternfly/react-icons/dist/esm/icons/add-circle-o-icon";
-import CubesIcon from "@patternfly/react-icons/dist/esm/icons/cubes-icon";
-import ErrorIcon from "@patternfly/react-icons/dist/esm/icons/error-circle-o-icon";
 import TableIcon from "@patternfly/react-icons/dist/esm/icons/table-icon";
 import HelpIcon from "@patternfly/react-icons/dist/esm/icons/help-icon";
 
-import ErrorBoundary from "./reactExt/ErrorBoundary";
+import { ErrorBoundary, ErrorBoundaryPropsWithFallback } from "react-error-boundary";
+
+import { Commands, CommandsContextProvider, useCommands } from "./commands/CommandsContextProvider";
+import TestScenarioCreationPanel from "./creation/TestScenarioCreationPanel";
 import TestScenarioDrawerPanel from "./drawer/TestScenarioDrawerPanel";
 import TestScenarioSideBarMenu from "./sidebar/TestScenarioSideBarMenu";
 import TestScenarioTable from "./table/TestScenarioTable";
 import { useTestScenarioEditorI18n } from "./i18n";
 
-import { EMPTY_ONE_EIGHT } from "./resources/EmptyScesimFile";
-
 import "./TestScenarioEditor.css";
+import { ComputedStateCache } from "./store/ComputedStateCache";
+import { Computed, createTestScenarioEditorStore, TestScenarioEditorTab } from "./store/TestScenarioEditorStore";
+import {
+  StoreApiType,
+  TestScenarioEditorStoreApiContext,
+  useTestScenarioEditorStore,
+  useTestScenarioEditorStoreApi,
+} from "./store/TestScenarioStoreContext";
+import { TestScenarioEditorErrorFallback } from "./TestScenarioEditorErrorFallback";
+import { TestScenarioEditorContextProvider, useTestScenarioEditor } from "./TestScenarioEditorContext";
+import {
+  TestScenarioEditorExternalModelsContextProvider,
+  useExternalModels,
+} from "./externalModels/TestScenarioEditorDependenciesContext";
+import { useEffectAfterFirstRender } from "./hook/useEffectAfterFirstRender";
+import { INITIAL_COMPUTED_CACHE } from "./store/computed/initial";
 
 /* Constants */
 
 const CURRENT_SUPPORTED_VERSION = "1.8";
 
 /* Enums */
-
-export enum TestScenarioEditorDock {
-  CHEATSHEET,
-  DATA_OBJECT,
-  SETTINGS,
-}
-
-enum TestScenarioEditorTab {
-  EDITOR,
-  BACKGROUND,
-}
 
 enum TestScenarioFileStatus {
   EMPTY,
@@ -88,295 +91,169 @@ enum TestScenarioFileStatus {
   VALID,
 }
 
-export enum TestScenarioType {
-  DMN,
-  RULE,
-}
+export type OnRequestExternalModelsAvailableToInclude = () => Promise<string[]>;
 
-/* Types */
+export type OnRequestToJumpToPath = (normalizedPosixPathRelativeToTheOpenFile: string) => void;
 
-export type TestScenarioAlert = {
-  enabled: boolean;
-  message?: string;
-  variant: "success" | "danger" | "warning" | "info" | "default";
+export type OnRequestToResolvePath = (normalizedPosixPathRelativeToTheOpenFile: string) => string;
+
+export type OnSceSimModelChange = (model: SceSimModel) => void;
+
+export type OnRequestExternalModelByPath = (
+  normalizedPosixPathRelativeToTheOpenFile: string
+) => Promise<ExternalDmn | null>;
+export type ExternalDmnsIndex = Map<string, ExternalDmn | undefined>;
+
+export type ExternalDmn = {
+  model: Normalized<DmnLatestModel>;
+
+  normalizedPosixPathRelativeToTheOpenFile: string;
+
+  svg: string;
 };
 
-export type TestScenarioDataObject = {
-  id: string;
-  name: string;
-  customBadgeContent?: string;
-  children?: TestScenarioDataObject[];
+export type TestScenarioEditorProps = {
+  /**
+   * When the SceSim represented by `model` ("This SceSim") is DMN-type Test Scenario this prop needs to map their contents by namespace.
+   * The SceSim model won't be correctly rendered if an included model is not found on this object.
+   */
+  externalModelsByNamespace?: ExternalDmnsIndex;
+  /**
+   * A link that will take users to an issue tracker so they can report problems they find on the Test Scenario Editor.
+   * This is shown on the ErrorBoundary fallback component, when an uncaught error happens.
+   */
+  issueTrackerHref?: string;
+  /**
+   * The Test Scenario itself.
+   */
+  model: SceSimModel;
+  /**
+   * Called when a change occurs on `model`, so the controlled flow of the component can be done.
+   */
+  onModelChange?: OnSceSimModelChange;
+  /**
+   * Notifies the caller when the Test Scenario Editor performs a new edit after the debounce time.
+   */
+  onModelDebounceStateChanged?: (changed: boolean) => void;
+  /**
+   * Called when the contents of a specific available DMN model is necessary.
+   */
+  onRequestExternalModelByPath?: OnRequestExternalModelByPath;
+  /**
+   * Called when the list of paths of available DMN models
+   */
+  onRequestExternalModelsAvailableToInclude?: OnRequestExternalModelsAvailableToInclude;
+  /**
+   * When users want to jump to another file, this method is called, allowing the controller of this component decide what to do.
+   * Links are only rendered if this is provided. Otherwise, paths will be rendered as text.
+   */
+  onRequestToJumpToPath?: OnRequestToJumpToPath;
+  /**
+   * All paths inside the Test Scenario Editor are relative. To be able to resolve them and display them as absolute paths, this function is called.
+   * If undefined, the relative paths will be displayed.
+   */
+  onRequestToResolvePath?: OnRequestToResolvePath;
+  /**
+   * The file path of the current opened Test Scenario scesim file
+   */
+  openFileNormalizedPosixPathRelativeToTheWorkspaceRoot: string | undefined;
 };
 
 export type TestScenarioEditorRef = {
-  /* TODO Convert these to Promises */
-  getContent(): string;
-  setContent(path: string, content: string): void;
+  reset: (mode: SceSimModel) => void;
+  getCommands: () => Commands;
+  getDiagramSvg: () => Promise<string | undefined>;
 };
 
-export type TestScenarioSettings = {
-  assetType: string;
-  dmnFilePath?: string;
-  dmnName?: string;
-  dmnNamespace?: string;
-  isStatelessSessionRule?: boolean;
-  isTestSkipped: boolean;
-  kieSessionRule?: string;
-  ruleFlowGroup?: string;
+export type TestScenarioSelectedColumnMetaData = {
+  factMapping: SceSim__FactMappingType;
+  index: number;
+  isBackground: boolean;
 };
 
-/* Sub-Components */
-
-function TestScenarioCreationPanel({
-  onCreateScesimButtonClicked,
-}: {
-  onCreateScesimButtonClicked: (
-    assetType: string,
-    isStatelessSessionRule: boolean,
-    isTestSkipped: boolean,
-    kieSessionRule: string,
-    ruleFlowGroup: string
-  ) => void;
-}) {
-  const assetsOption = [
-    { value: "", label: "Select a type", disabled: true },
-    { value: TestScenarioType[TestScenarioType.DMN], label: "Decision (DMN)", disabled: false },
-    { value: TestScenarioType[TestScenarioType.RULE], label: "Rule (DRL)", disabled: false },
-  ];
-
-  const [assetType, setAssetType] = React.useState("");
-  const [kieSessionRule, setKieSessionRule] = React.useState("");
-  const [ruleFlowGroup, setRuleFlowGroup] = React.useState("");
-  const [isTestSkipped, setTestSkipped] = React.useState(false);
-  const [isStatelessSessionRule, setStatelessSessionRule] = React.useState(false);
-
-  return (
-    <EmptyState>
-      <EmptyStateIcon icon={CubesIcon} />
-      <Title headingLevel={"h6"} size={"md"}>
-        Create a new Test Scenario
-      </Title>
-      <Form isHorizontal className="kie-scesim-editor--creation-form">
-        <FormGroup label="Asset type" isRequired>
-          <FormSelect
-            value={assetType}
-            id="asset-type-select"
-            name="asset-type-select"
-            onChange={(value: string) => setAssetType(value)}
-          >
-            {assetsOption.map((option, index) => (
-              <FormSelectOption isDisabled={option.disabled} key={index} value={option.value} label={option.label} />
-            ))}
-          </FormSelect>
-        </FormGroup>
-        {assetType === TestScenarioType[TestScenarioType.DMN] && (
-          <FormGroup label="Select DMN" isRequired>
-            <FormSelect id="dmn-select" name="dmn-select" value={"select one"} isDisabled>
-              <FormSelectOption isDisabled={true} key={0} value={"select one"} label={"Select a DMN file"} />
-            </FormSelect>
-          </FormGroup>
-        )}
-        {assetType === TestScenarioType[TestScenarioType.RULE] && (
-          <>
-            <FormGroup label={"KIE Session"}>
-              <TextInput
-                placeholder={"<Optional>"}
-                onChange={(value) => setKieSessionRule(value)}
-                type="text"
-                value={kieSessionRule}
-              />
-            </FormGroup>
-            <FormGroup label={"Group"}>
-              <TextInput
-                placeholder={"<Optional>"}
-                onChange={(value) => setRuleFlowGroup(value)}
-                type="text"
-                value={ruleFlowGroup}
-              />
-            </FormGroup>
-            <FormGroup>
-              <Checkbox
-                id="stateless-session-checkbox"
-                isChecked={isStatelessSessionRule}
-                label="Stateless Session"
-                onChange={(value) => {
-                  setStatelessSessionRule(value);
-                }}
-              />
-            </FormGroup>
-          </>
-        )}
-        <FormGroup>
-          <Checkbox
-            id="test-skipped-checkbox"
-            isChecked={isTestSkipped}
-            label="Skip this file during the test"
-            onChange={(value: boolean) => {
-              setTestSkipped(value);
-            }}
-          />
-        </FormGroup>
-      </Form>
-      <Button
-        variant="primary"
-        icon={<AddIcon />}
-        isDisabled={assetType == ""}
-        onClick={() =>
-          onCreateScesimButtonClicked(assetType, isStatelessSessionRule, isTestSkipped, kieSessionRule, ruleFlowGroup)
-        }
-      >
-        Create
-      </Button>
-    </EmptyState>
-  );
-}
-
-function TestScenarioMainPanel({
-  fileName,
-  scesimModel,
-  updateSettingField,
-  updateTestScenarioModel,
-}: {
-  fileName: string;
-  scesimModel: { ScenarioSimulationModel: SceSim__ScenarioSimulationModelType };
-  updateSettingField: (field: string, value: string) => void;
-  updateTestScenarioModel: React.Dispatch<React.SetStateAction<SceSimModel>>;
-}) {
+function TestScenarioMainPanel() {
   const { i18n } = useTestScenarioEditorI18n();
-
-  const [alert, setAlert] = useState<TestScenarioAlert>({ enabled: false, variant: "info" });
-  const [tab, setTab] = useState(TestScenarioEditorTab.EDITOR);
+  const { commandsRef } = useCommands();
+  const { externalModelsByNamespace } = useExternalModels();
+  const testScenarioEditorStoreApi = useTestScenarioEditorStoreApi();
+  const navigation = useTestScenarioEditorStore((state) => state.navigation);
+  const scesimModel = useTestScenarioEditorStore((state) => state.scesim.model);
+  const testScenarioDmnNamespace = scesimModel.ScenarioSimulationModel.settings.dmnNamespace?.__$$text;
+  const testScenarioDmnFilePath = scesimModel.ScenarioSimulationModel.settings.dmnFilePath?.__$$text;
+  const testScenarioType = scesimModel.ScenarioSimulationModel.settings.type?.__$$text.toUpperCase();
 
   const scenarioTableScrollableElementRef = useRef<HTMLDivElement | null>(null);
   const backgroundTableScrollableElementRef = useRef<HTMLDivElement | null>(null);
 
-  const onTabChanged = useCallback((_event, tab) => {
-    setTab(tab);
-  }, []);
+  /* RULE-based Test Scenario are still not supported. The Notification will always be active in such a case
+     In DMN-based Test Scenario, the notification will be active if: 
+     - The DMN model with the target reference is missing at all
+     - The DMN model with the target reference is found, but in a different location */
+  const isMissingDataObjectsNotificationEnabled = useMemo(() => {
+    const isReferencedDmnFileMissing =
+      externalModelsByNamespace &&
+      externalModelsByNamespace.has(testScenarioDmnNamespace!) &&
+      (!externalModelsByNamespace.get(testScenarioDmnNamespace!) ||
+        externalModelsByNamespace.get(testScenarioDmnNamespace!)?.normalizedPosixPathRelativeToTheOpenFile !==
+          testScenarioDmnFilePath);
 
-  const [dockPanel, setDockPanel] = useState({ isOpen: true, selected: TestScenarioEditorDock.DATA_OBJECT });
+    return testScenarioType === "RULE" || isReferencedDmnFileMissing;
+  }, [externalModelsByNamespace, testScenarioDmnFilePath, testScenarioDmnNamespace, testScenarioType]);
 
-  const closeDockPanel = useCallback(() => {
-    setDockPanel((prev) => {
-      return { ...prev, isOpen: false };
-    });
-  }, []);
+  const onTabChanged = useCallback(
+    (_event, tab) => {
+      testScenarioEditorStoreApi.setState((state) => {
+        state.navigation.tab = tab;
+      });
+    },
+    [testScenarioEditorStoreApi]
+  );
 
-  const openDockPanel = useCallback((selected: TestScenarioEditorDock) => {
-    setDockPanel({ isOpen: true, selected: selected });
-  }, []);
+  const showDockPanel = useCallback(
+    (show: boolean) => {
+      testScenarioEditorStoreApi.setState((state) => {
+        state.navigation.dock.isOpen = show;
+      });
+    },
+    [testScenarioEditorStoreApi]
+  );
 
-  /** This is TEMPORARY */
-  const dataObjectsFromScesim = useMemo(() => {
-    /* To create the Data Object arrays we need an external source, in details: */
-    /* DMN Data: Retrieving DMN type from linked DMN file */
-    /* Java classes: Retrieving Java classes info from the user projects */
-    /* At this time, none of the above are supported */
-    /* Therefore, it tries to retrieve these info from the SCESIM file, if are present */
-
-    /* Retriving Data Object from the scesim file.       
-       That makes sense for previously created scesim files */
-
-    const factsMappings: SceSim__FactMappingType[] =
-      scesimModel!.ScenarioSimulationModel["simulation"]!["scesimModelDescriptor"]!["factMappings"]!["FactMapping"] ??
-      [];
-
-    const dataObjects: TestScenarioDataObject[] = [];
-
-    /* The first two FactMapping are related to the "Number" and "Description" columns. 
-       If those columns only are present, no Data Objects can be detected in the scesim file */
-    for (let i = 2; i < factsMappings.length; i++) {
-      if (factsMappings[i].className!.__$$text === "java.lang.Void") {
-        continue;
-      }
-      const dataObject = dataObjects.find((value) => value.id === factsMappings[i]["factAlias"].__$$text);
-      if (dataObject) {
-        if (!dataObject.children?.some((value) => value.id === factsMappings[i]["expressionAlias"]?.__$$text)) {
-          dataObject.children!.push({
-            id: factsMappings[i]["expressionAlias"]!.__$$text,
-            name: factsMappings[i]["expressionAlias"]!.__$$text,
-            customBadgeContent: factsMappings[i]["className"].__$$text,
-          });
-        }
-      } else {
-        dataObjects.push({
-          id: factsMappings[i]["factAlias"].__$$text,
-          name: factsMappings[i]["factAlias"].__$$text,
-          customBadgeContent: factsMappings[i]["factIdentifier"]!["className"]!.__$$text,
-          children: [
-            {
-              id: factsMappings[i]["expressionAlias"]!.__$$text,
-              name: factsMappings[i]["expressionAlias"]!.__$$text,
-              customBadgeContent: factsMappings[i]["className"].__$$text,
-            },
-          ],
-        });
-      }
-    }
-
-    return dataObjects;
-  }, [scesimModel]);
-
-  /** It determines the Alert State */
+  // Show Properties panel
   useEffect(() => {
-    const assetType = scesimModel.ScenarioSimulationModel["settings"]!["type"]!.__$$text;
-
-    let alertEnabled = false;
-    let alertMessage = "";
-    let alertVariant: "default" | "danger" | "warning" | "info" | "success" = "danger";
-
-    if (dataObjectsFromScesim.length > 0) {
-      alertMessage =
-        assetType === TestScenarioType[TestScenarioType.DMN]
-          ? i18n.alerts.dmnDataRetrievedFromScesim
-          : i18n.alerts.ruleDataRetrievedFromScesim;
-      alertEnabled = true;
-    } else {
-      alertMessage =
-        assetType === TestScenarioType[TestScenarioType.DMN]
-          ? i18n.alerts.dmnDataNotAvailable
-          : i18n.alerts.ruleDataNotAvailable;
-      alertVariant = assetType === TestScenarioType[TestScenarioType.DMN] ? "warning" : "danger";
-      alertEnabled = true;
+    if (!commandsRef.current) {
+      return;
     }
 
-    setAlert({ enabled: alertEnabled, message: alertMessage, variant: alertVariant });
-  }, [dataObjectsFromScesim, i18n, scesimModel.ScenarioSimulationModel]);
+    commandsRef.current.toggleTestScenarioDock = async () => {
+      console.debug("Test Scenario Editor: COMMANDS: Toggle dock panel...");
+      testScenarioEditorStoreApi.setState((state) => {
+        state.navigation.dock.isOpen = !state.navigation.dock.isOpen;
+      });
+    };
+  }, [testScenarioEditorStoreApi, commandsRef]);
 
   return (
     <>
       <div className="kie-scesim-editor--content">
-        <Drawer isExpanded={dockPanel.isOpen} isInline={true} position={"right"}>
-          <DrawerContent
-            panelContent={
-              <TestScenarioDrawerPanel
-                dataObjects={dataObjectsFromScesim}
-                fileName={fileName}
-                onDrawerClose={closeDockPanel}
-                onUpdateSettingField={updateSettingField}
-                selectedDock={dockPanel.selected}
-                testScenarioSettings={{
-                  assetType: scesimModel.ScenarioSimulationModel.settings!.type!.__$$text,
-                  dmnName: scesimModel.ScenarioSimulationModel.settings!.dmnName?.__$$text,
-                  dmnNamespace: scesimModel.ScenarioSimulationModel.settings!.dmnNamespace?.__$$text,
-                  isStatelessSessionRule: scesimModel.ScenarioSimulationModel.settings!.stateless?.__$$text ?? false,
-                  isTestSkipped: scesimModel.ScenarioSimulationModel.settings!.skipFromBuild?.__$$text ?? false,
-                  kieSessionRule: scesimModel.ScenarioSimulationModel.settings!.dmoSession?.__$$text,
-                  ruleFlowGroup: scesimModel.ScenarioSimulationModel.settings!.ruleFlowGroup?.__$$text,
-                }}
-              />
-            }
-          >
+        <Drawer isExpanded={navigation.dock.isOpen} isInline={true} position={"right"}>
+          <DrawerContent panelContent={<TestScenarioDrawerPanel onDrawerClose={() => showDockPanel(false)} />}>
             <DrawerContentBody>
-              {alert.enabled && (
+              {isMissingDataObjectsNotificationEnabled && (
                 <div className="kie-scesim-editor--content-alert">
-                  <Alert variant={alert.variant} title={alert.message} />
+                  <Alert
+                    variant={"danger"}
+                    title={
+                      testScenarioType === "DMN"
+                        ? i18n.alerts.dmnDataRetrievedFromScesim
+                        : i18n.alerts.ruleDataRetrievedFromScesim
+                    }
+                  />
                 </div>
               )}
               <div className="kie-scesim-editor--content-tabs">
-                <Tabs isFilled={true} activeKey={tab} onSelect={onTabChanged} role="region">
+                <Tabs isFilled={true} activeKey={navigation.tab} onSelect={onTabChanged} role="region">
                   <Tab
-                    eventKey={TestScenarioEditorTab.EDITOR}
+                    eventKey={TestScenarioEditorTab.SIMULATION}
                     title={
                       <>
                         <TabTitleIcon>
@@ -396,10 +273,8 @@ function TestScenarioMainPanel({
                       ref={scenarioTableScrollableElementRef}
                     >
                       <TestScenarioTable
-                        assetType={scesimModel.ScenarioSimulationModel.settings.type!.__$$text}
                         tableData={scesimModel.ScenarioSimulationModel.simulation}
                         scrollableParentRef={scenarioTableScrollableElementRef}
-                        updateTestScenarioModel={updateTestScenarioModel}
                       />
                     </div>
                   </Tab>
@@ -424,10 +299,8 @@ function TestScenarioMainPanel({
                       ref={backgroundTableScrollableElementRef}
                     >
                       <TestScenarioTable
-                        assetType={scesimModel.ScenarioSimulationModel.settings.type!.__$$text}
                         tableData={scesimModel.ScenarioSimulationModel.background}
                         scrollableParentRef={backgroundTableScrollableElementRef}
-                        updateTestScenarioModel={updateTestScenarioModel}
                       />
                     </div>
                   </Tab>
@@ -437,7 +310,7 @@ function TestScenarioMainPanel({
           </DrawerContent>
         </Drawer>
       </div>
-      <TestScenarioSideBarMenu selectedSideBarMenuItem={dockPanel} onSideBarButtonClicked={openDockPanel} />
+      <TestScenarioSideBarMenu />
     </>
   );
 }
@@ -450,39 +323,100 @@ function TestScenarioParserErrorPanel({
   parserErrorMessage: string;
 }) {
   return (
-    <EmptyState>
-      <EmptyStateIcon icon={ErrorIcon} />
-      <Title headingLevel="h4" size="lg">
-        {parserErrorTitle}
-      </Title>
-      <EmptyStateBody>{parserErrorMessage}</EmptyStateBody>
-    </EmptyState>
+    <Flex justifyContent={{ default: "justifyContentCenter" }} style={{ marginTop: "100px" }}>
+      <EmptyState style={{ maxWidth: "1280px" }}>
+        <EmptyStateHeader
+          titleText={<>{parserErrorTitle}</>}
+          icon={<EmptyStateIcon icon={() => <div style={{ fontSize: "3em" }}>😕</div>} />}
+          headingLevel={"h4"}
+        />
+        <br />
+        <EmptyStateBody>Error details: {parserErrorMessage}</EmptyStateBody>
+      </EmptyState>
+    </Flex>
   );
 }
 
-const TestScenarioEditorInternal = ({ forwardRef }: { forwardRef?: React.Ref<TestScenarioEditorRef> }) => {
-  /** Test Scenario File, Model and Marshaller Management  */
+export const TestScenarioEditorInternal = ({
+  forwardRef,
+  model,
+  onModelChange,
+  onModelDebounceStateChanged,
+}: TestScenarioEditorProps & { forwardRef?: React.Ref<TestScenarioEditorRef> }) => {
+  console.debug("[TestScenarioEditorInternal] Component creation ...");
 
-  const [scesimFile, setScesimFile] = useState({ content: "", path: "" });
+  const scesim = useTestScenarioEditorStore((s) => s.scesim);
+  const testScenarioEditorStoreApi = useTestScenarioEditorStoreApi();
+  const { testScenarioEditorModelBeforeEditingRef, testScenarioEditorRootElementRef } = useTestScenarioEditor();
+  const { commandsRef } = useCommands();
 
-  const marshaller = useMemo(() => getMarshaller(scesimFile.content.trim()), [scesimFile]);
+  /** Implementing Editor APIs */
 
-  const scesimLoaded: { ScenarioSimulationModel: SceSim__ScenarioSimulationModelType } = useMemo(
-    () => marshaller.parser.parse(),
-    [marshaller.parser]
+  // Allow imperativelly controlling the Editor.
+  useImperativeHandle(
+    forwardRef,
+    () => ({
+      reset: () => {
+        console.debug("[TestScenarioEditorInternal: Reset called!");
+        const state = testScenarioEditorStoreApi.getState();
+        state.dispatch(state).navigation.reset();
+      },
+      getCommands: () => commandsRef.current,
+      getDiagramSvg: async () => undefined,
+    }),
+    [commandsRef, testScenarioEditorStoreApi]
   );
 
-  const [scesimModel, setScesimModel] = useState(scesimLoaded);
+  // Make sure the Test Scenario Editor reacts to props changing.
+  useEffectAfterFirstRender(() => {
+    testScenarioEditorStoreApi.setState((state) => {
+      // Avoid unecessary state updates
+      if (model === state.scesim.model) {
+        console.debug("[TestScenarioEditorInternal]: useEffectAfterFirstRender called, but the models are the same!");
+        return;
+      }
+
+      console.debug("[TestScenarioEditorInternal]: Model updated!");
+
+      state.scesim.model = model;
+      testScenarioEditorModelBeforeEditingRef.current = model;
+    });
+  }, [testScenarioEditorStoreApi, model]);
+
+  // Only notify changes when dragging/resizing operations are not happening.
+  useEffectAfterFirstRender(() => {
+    onModelDebounceStateChanged?.(false);
+
+    const timeout = setTimeout(() => {
+      // Ignore changes made outside... If the controller of the component
+      // changed its props, it knows it already, we don't need to call "onModelChange" again.
+      if (model === scesim.model) {
+        return;
+      }
+
+      onModelDebounceStateChanged?.(true);
+      console.debug("[TestScenarioEditorInternal: Debounce State changed!", scesim.model);
+      onModelChange?.(scesim.model);
+    }, 500);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [onModelChange, scesim.model]);
 
   const scesimFileStatus = useMemo(() => {
-    if (scesimModel.ScenarioSimulationModel) {
-      const parserErrorField = "parsererror" as keyof typeof scesimModel.ScenarioSimulationModel;
-      if (scesimModel.ScenarioSimulationModel[parserErrorField]) {
+    if (scesim) {
+      const parserErrorField = "parsererror" as keyof typeof scesim.model.ScenarioSimulationModel;
+      if (
+        !scesim.model ||
+        !scesim.model.ScenarioSimulationModel ||
+        scesim.model.ScenarioSimulationModel[parserErrorField]
+      ) {
         return TestScenarioFileStatus.ERROR;
       }
-      if (scesimModel.ScenarioSimulationModel["@_version"] != CURRENT_SUPPORTED_VERSION) {
+      if (scesim.model.ScenarioSimulationModel["@_version"] != CURRENT_SUPPORTED_VERSION) {
         return TestScenarioFileStatus.UNSUPPORTED;
-      } else if (scesimModel.ScenarioSimulationModel["settings"]?.["type"]) {
+      } else if (scesim.model.ScenarioSimulationModel.settings?.type) {
         return TestScenarioFileStatus.VALID;
       } else {
         return TestScenarioFileStatus.NEW;
@@ -490,83 +424,16 @@ const TestScenarioEditorInternal = ({ forwardRef }: { forwardRef?: React.Ref<Tes
     } else {
       return TestScenarioFileStatus.EMPTY;
     }
-  }, [scesimModel]);
+  }, [scesim]);
 
-  useEffect(() => {
-    console.debug("SCESIM Model updated");
-    console.debug(scesimLoaded);
-    setScesimModel(scesimLoaded);
-  }, [scesimLoaded]);
-
-  /** Implementing Editor APIs */
-
-  useImperativeHandle(
-    forwardRef,
-    () => ({
-      getContent: () => marshaller.builder.build(scesimModel),
-      setContent: (path, content) => {
-        console.debug("SCESIM setContent called");
-        console.debug("=== FILE CONTENT ===");
-        console.debug(content ? content : "EMPTY FILE");
-        console.debug("=== END FILE CONTENT ===");
-
-        setScesimFile({ content: content || EMPTY_ONE_EIGHT, path: path });
-      },
-    }),
-    [marshaller.builder, scesimModel]
-  );
-
-  /** scesim model update functions */
-
-  const setInitialSettings = useCallback(
-    (
-      assetType: string,
-      isStatelessSessionRule: boolean,
-      isTestSkipped: boolean,
-      kieSessionRule: string,
-      ruleFlowGroup: string
-    ) =>
-      setScesimModel((prevState) => ({
-        ScenarioSimulationModel: {
-          ...prevState.ScenarioSimulationModel,
-          settings: {
-            ...prevState.ScenarioSimulationModel.settings,
-            dmnFilePath:
-              assetType === TestScenarioType[TestScenarioType.DMN] ? { __$$text: "./MockedDMNName.dmn" } : undefined,
-            dmoSession:
-              assetType === TestScenarioType[TestScenarioType.RULE] && kieSessionRule
-                ? { __$$text: kieSessionRule }
-                : undefined,
-            ruleFlowGroup:
-              assetType === TestScenarioType[TestScenarioType.RULE] && ruleFlowGroup
-                ? { __$$text: ruleFlowGroup }
-                : undefined,
-            skipFromBuild: { __$$text: isTestSkipped },
-            stateless:
-              assetType === TestScenarioType[TestScenarioType.RULE] ? { __$$text: isStatelessSessionRule } : undefined,
-            type: { __$$text: assetType },
-          },
-        },
-      })),
-    [setScesimModel]
-  );
-
-  const updateSettingsField = useCallback(
-    (fieldName: string, value: string) =>
-      setScesimModel((prevState) => ({
-        ScenarioSimulationModel: {
-          ...prevState.ScenarioSimulationModel,
-          ["settings"]: {
-            ...prevState.ScenarioSimulationModel["settings"],
-            [fieldName]: { __$$text: value },
-          },
-        },
-      })),
-    [setScesimModel]
-  );
+  console.debug("[TestScenarioEditorInternal] File Status: ", TestScenarioFileStatus[scesimFileStatus]);
 
   return (
-    <>
+    <div
+      ref={testScenarioEditorRootElementRef}
+      className="kie-scesim-editor--root"
+      data-testid="kie-scesim-editor--container"
+    >
       {(() => {
         switch (scesimFileStatus) {
           case TestScenarioFileStatus.EMPTY:
@@ -586,13 +453,13 @@ const TestScenarioEditorInternal = ({ forwardRef }: { forwardRef?: React.Ref<Tes
               />
             );
           case TestScenarioFileStatus.NEW:
-            return <TestScenarioCreationPanel onCreateScesimButtonClicked={setInitialSettings} />;
+            return <TestScenarioCreationPanel />;
           case TestScenarioFileStatus.UNSUPPORTED:
             return (
               <TestScenarioParserErrorPanel
                 parserErrorTitle={
                   "This file holds a Test Scenario asset version (" +
-                  scesimModel.ScenarioSimulationModel["@_version"] +
+                  scesim.model.ScenarioSimulationModel["@_version"] +
                   ") not supported"
                 }
                 parserErrorMessage={
@@ -604,43 +471,50 @@ const TestScenarioEditorInternal = ({ forwardRef }: { forwardRef?: React.Ref<Tes
               />
             );
           case TestScenarioFileStatus.VALID:
-            return (
-              <TestScenarioMainPanel
-                fileName={scesimFile.path}
-                scesimModel={scesimModel}
-                updateTestScenarioModel={setScesimModel}
-                updateSettingField={updateSettingsField}
-              />
-            );
+            return <TestScenarioMainPanel />;
         }
       })()}
-    </>
+    </div>
   );
 };
 
-export const TestScenarioEditor = React.forwardRef((props: {}, ref: React.Ref<TestScenarioEditorRef>) => {
-  const [scesimFileParsingError, setScesimFileParsingError] = useState<Error | null>(null);
+export const TestScenarioEditor = React.forwardRef(
+  (props: TestScenarioEditorProps, ref: React.Ref<TestScenarioEditorRef>) => {
+    console.debug("[TestScenarioEditor] Component creation ... ", props.model);
 
-  return (
-    <I18nDictionariesProvider
-      defaults={testScenarioEditorI18nDefaults}
-      dictionaries={testScenarioEditorDictionaries}
-      initialLocale={navigator.language}
-      ctx={TestScenarioEditorI18nContext}
-    >
-      <ErrorBoundary
-        error={
-          <TestScenarioParserErrorPanel
-            parserErrorTitle={"File parsing error"}
-            parserErrorMessage={
-              "Impossibile to correctly parse the provided scesim file. Cause: " + scesimFileParsingError?.message
-            }
-          />
-        }
-        setError={setScesimFileParsingError}
+    const store = useMemo(
+      () => createTestScenarioEditorStore(props.model, new ComputedStateCache<Computed>(INITIAL_COMPUTED_CACHE)),
+      // Purposefully empty. This memoizes the initial value of the store
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      []
+    );
+    const storeRef = React.useRef<StoreApiType>(store);
+
+    const resetState: ErrorBoundaryPropsWithFallback["onReset"] = useCallback(({ args }) => {
+      storeRef.current?.setState((state) => {
+        state.scesim.model = args[0];
+      });
+    }, []);
+
+    return (
+      <I18nDictionariesProvider
+        defaults={testScenarioEditorI18nDefaults}
+        dictionaries={testScenarioEditorDictionaries}
+        initialLocale={navigator.language}
+        ctx={TestScenarioEditorI18nContext}
       >
-        <TestScenarioEditorInternal forwardRef={ref} {...props} />
-      </ErrorBoundary>
-    </I18nDictionariesProvider>
-  );
-});
+        <TestScenarioEditorContextProvider {...props}>
+          <ErrorBoundary FallbackComponent={TestScenarioEditorErrorFallback} onReset={resetState}>
+            <TestScenarioEditorExternalModelsContextProvider {...props}>
+              <TestScenarioEditorStoreApiContext.Provider value={storeRef.current}>
+                <CommandsContextProvider>
+                  <TestScenarioEditorInternal forwardRef={ref} {...props} />
+                </CommandsContextProvider>
+              </TestScenarioEditorStoreApiContext.Provider>
+            </TestScenarioEditorExternalModelsContextProvider>
+          </ErrorBoundary>
+        </TestScenarioEditorContextProvider>
+      </I18nDictionariesProvider>
+    );
+  }
+);

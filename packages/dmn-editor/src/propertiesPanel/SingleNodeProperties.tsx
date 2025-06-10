@@ -30,8 +30,7 @@ import { DecisionServiceProperties } from "./DecisionServiceProperties";
 import { KnowledgeSourceProperties } from "./KnowledgeSourceProperties";
 import { TextAnnotationProperties } from "./TextAnnotationProperties";
 import { useMemo } from "react";
-import { useDmnEditorStoreApi } from "../store/Store";
-import { useDmnEditorDerivedStore } from "../store/DerivedStore";
+import { useDmnEditorStore, useDmnEditorStoreApi } from "../store/StoreContext";
 import { NODE_TYPES } from "../diagram/nodes/NodeTypes";
 import {
   DMN15__tBusinessKnowledgeModel,
@@ -42,6 +41,7 @@ import {
   DMN15__tKnowledgeSource,
   DMN15__tTextAnnotation,
 } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/ts-gen/types";
+import { Normalized } from "@kie-tools/dmn-marshaller/dist/normalization/normalize";
 import { getNodeTypeFromDmnObject } from "../diagram/maths/DmnMaths";
 import { NodeIcon } from "../icons/Icons";
 import { GroupProperties } from "./GroupProperties";
@@ -49,22 +49,31 @@ import { Button, ButtonVariant } from "@patternfly/react-core/dist/js/components
 import { TimesIcon } from "@patternfly/react-icons/dist/js/icons/times-icon";
 import { PropertiesPanelHeader } from "./PropertiesPanelHeader";
 import { UnknownProperties } from "./UnknownProperties";
+import { useExternalModels } from "../includedModels/DmnEditorDependenciesContext";
 import "./SingleNodeProperties.css";
 
 export function SingleNodeProperties({ nodeId }: { nodeId: string }) {
   const dmnEditorStoreApi = useDmnEditorStoreApi();
-  const { nodesById } = useDmnEditorDerivedStore();
+  const { externalModelsByNamespace } = useExternalModels();
+  const node = useDmnEditorStore((s) => s.computed(s).getDiagramData(externalModelsByNamespace).nodesById.get(nodeId));
   const [isSectionExpanded, setSectionExpanded] = useState<boolean>(true);
+  const isAlternativeInputDataShape = useDmnEditorStore((s) => s.computed(s).isAlternativeInputDataShape());
+  const nodeIds = useMemo(() => (node?.id ? [node.id] : []), [node?.id]);
 
-  const node = useMemo(() => {
-    return nodesById.get(nodeId);
-  }, [nodeId, nodesById]);
+  const Icon = useMemo(() => {
+    if (node?.data?.dmnObject === undefined) {
+      throw new Error("Icon can't be defined without a DMN object");
+    }
+    const nodeType = getNodeTypeFromDmnObject(node.data.dmnObject);
+    if (nodeType === undefined) {
+      throw new Error("Can't determine node icon with undefined node type");
+    }
+    return NodeIcon({ nodeType, isAlternativeInputDataShape });
+  }, [isAlternativeInputDataShape, node?.data.dmnObject]);
 
   if (!node) {
     return <>Node not found: {nodeId}</>;
   }
-
-  const Icon = NodeIcon(getNodeTypeFromDmnObject(node!.data!.dmnObject!));
 
   return (
     <Form>
@@ -101,6 +110,7 @@ export function SingleNodeProperties({ nodeId }: { nodeId: string }) {
             })()}
             action={
               <Button
+                title={"Close"}
                 variant={ButtonVariant.plain}
                 onClick={() => {
                   dmnEditorStoreApi.setState((state) => {
@@ -124,7 +134,7 @@ export function SingleNodeProperties({ nodeId }: { nodeId: string }) {
                   case NODE_TYPES.inputData:
                     return (
                       <InputDataProperties
-                        inputData={node.data!.dmnObject as DMN15__tInputData}
+                        inputData={node.data!.dmnObject as Normalized<DMN15__tInputData>}
                         namespace={node.data.dmnObjectNamespace}
                         index={node.data.index}
                       />
@@ -132,7 +142,7 @@ export function SingleNodeProperties({ nodeId }: { nodeId: string }) {
                   case NODE_TYPES.decision:
                     return (
                       <DecisionProperties
-                        decision={node.data!.dmnObject as DMN15__tDecision}
+                        decision={node.data!.dmnObject as Normalized<DMN15__tDecision>}
                         namespace={node.data.dmnObjectNamespace}
                         index={node.data.index}
                       />
@@ -140,7 +150,7 @@ export function SingleNodeProperties({ nodeId }: { nodeId: string }) {
                   case NODE_TYPES.bkm:
                     return (
                       <BkmProperties
-                        bkm={node.data!.dmnObject as DMN15__tBusinessKnowledgeModel}
+                        bkm={node.data!.dmnObject as Normalized<DMN15__tBusinessKnowledgeModel>}
                         namespace={node.data.dmnObjectNamespace}
                         index={node.data.index}
                       />
@@ -148,7 +158,7 @@ export function SingleNodeProperties({ nodeId }: { nodeId: string }) {
                   case NODE_TYPES.decisionService:
                     return (
                       <DecisionServiceProperties
-                        decisionService={node.data!.dmnObject as DMN15__tDecisionService}
+                        decisionService={node.data!.dmnObject as Normalized<DMN15__tDecisionService>}
                         namespace={node.data.dmnObjectNamespace}
                         index={node.data.index}
                       />
@@ -156,7 +166,7 @@ export function SingleNodeProperties({ nodeId }: { nodeId: string }) {
                   case NODE_TYPES.knowledgeSource:
                     return (
                       <KnowledgeSourceProperties
-                        knowledgeSource={node.data!.dmnObject as DMN15__tKnowledgeSource}
+                        knowledgeSource={node.data!.dmnObject as Normalized<DMN15__tKnowledgeSource>}
                         namespace={node.data.dmnObjectNamespace}
                         index={node.data.index}
                       />
@@ -164,12 +174,17 @@ export function SingleNodeProperties({ nodeId }: { nodeId: string }) {
                   case NODE_TYPES.textAnnotation:
                     return (
                       <TextAnnotationProperties
-                        textAnnotation={node.data!.dmnObject as DMN15__tTextAnnotation}
+                        textAnnotation={node.data!.dmnObject as Normalized<DMN15__tTextAnnotation>}
                         index={node.data.index}
                       />
                     );
                   case NODE_TYPES.group:
-                    return <GroupProperties group={node.data!.dmnObject as DMN15__tGroup} index={node.data.index} />;
+                    return (
+                      <GroupProperties
+                        group={node.data!.dmnObject as Normalized<DMN15__tGroup>}
+                        index={node.data.index}
+                      />
+                    );
                   case NODE_TYPES.unknown:
                     return <UnknownProperties shape={node.data.shape} dmnElementRefQName={node.data.dmnObjectQName} />;
                   default:
@@ -180,10 +195,10 @@ export function SingleNodeProperties({ nodeId }: { nodeId: string }) {
           </>
         )}
 
-        <FontOptions startExpanded={false} nodeIds={[node.id]} />
+        <FontOptions startExpanded={false} nodeIds={nodeIds} />
         <ShapeOptions
           startExpanded={false}
-          nodeIds={[node.id]}
+          nodeIds={nodeIds}
           isDimensioningEnabled={true}
           isPositioningEnabled={true}
         />

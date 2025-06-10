@@ -17,33 +17,26 @@
  * under the License.
  */
 
-import {
-  DMN15__tDefinitions,
-  DMNDI15__DMNEdge,
-  DMNDI15__DMNShape,
-} from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/ts-gen/types";
 import * as React from "react";
+import { useRef } from "react";
 import * as RF from "reactflow";
-import { Unpacked } from "../../tsExt/tsExt";
-import { PotentialWaypoint, Waypoints } from "./Waypoints";
-import { useKieEdgePath } from "./useKieEdgePath";
-import { useIsHovered } from "../useIsHovered";
-import { usePotentialWaypointControls } from "./usePotentialWaypointControls";
-import { useAlwaysVisibleEdgeUpdatersAtNodeBorders } from "./useAlwaysVisibleEdgeUpdatersAtNodeBorders";
+import { DMNDI15__DMNEdge, DMNDI15__DMNShape } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/ts-gen/types";
+import { Normalized } from "@kie-tools/dmn-marshaller/dist/normalization/normalize";
+import { DrgEdge } from "../graph/graph";
 import { DEFAULT_INTRACTION_WIDTH } from "../maths/DmnMaths";
+import { propsHaveSameValuesDeep } from "../memoization/memoization";
+import { useIsHovered } from "../useIsHovered";
+import { PotentialWaypoint, Waypoints } from "./Waypoints";
+import { useAlwaysVisibleEdgeUpdatersAtNodeBorders } from "./useAlwaysVisibleEdgeUpdatersAtNodeBorders";
+import { useKieEdgePath } from "./useKieEdgePath";
+import { usePotentialWaypointControls } from "./usePotentialWaypointControls";
+import { useSettings } from "../../settings/DmnEditorSettingsContext";
 
 export type DmnDiagramEdgeData = {
-  dmnEdge: (DMNDI15__DMNEdge & { index: number }) | undefined;
-  dmnObject: {
-    id: string;
-    type:
-      | Unpacked<DMN15__tDefinitions["artifact"]>["__$$element"]
-      | Unpacked<DMN15__tDefinitions["drgElement"]>["__$$element"];
-    requirementType: "informationRequirement" | "knowledgeRequirement" | "authorityRequirement" | "association";
-    index: number;
-  };
-  dmnShapeSource: DMNDI15__DMNShape | undefined;
-  dmnShapeTarget: DMNDI15__DMNShape | undefined;
+  dmnEdge: (Normalized<DMNDI15__DMNEdge> & { index: number }) | undefined;
+  dmnObject: DrgEdge["dmnObject"];
+  dmnShapeSource: Normalized<DMNDI15__DMNShape> | undefined;
+  dmnShapeTarget: Normalized<DMNDI15__DMNShape> | undefined;
 };
 
 export const InformationRequirementPath = React.memo(
@@ -136,10 +129,14 @@ const interactionStrokeProps: Partial<React.SVGAttributes<SVGPathElement>> = {
 };
 
 export const InformationRequirementEdge = React.memo((props: RF.EdgeProps<DmnDiagramEdgeData>) => {
+  const renderCount = useRef<number>(0);
+  renderCount.current++;
+
   const { path, points: waypoints } = useKieEdgePath(props.source, props.target, props.data);
 
   const interactionPathRef = React.useRef<SVGPathElement>(null);
   const isHovered = useIsHovered(interactionPathRef);
+  const settings = useSettings();
 
   const { onMouseMove, onDoubleClick, potentialWaypoint, isDraggingWaypoint } = usePotentialWaypointControls(
     waypoints,
@@ -152,9 +149,7 @@ export const InformationRequirementEdge = React.memo((props: RF.EdgeProps<DmnDia
   const isConnecting = !!RF.useStore((s) => s.connectionNodeId);
   const className = useEdgeClassName(isConnecting, isDraggingWaypoint);
 
-  const sourceNode = RF.useStore((s) => s.nodeInternals.get(props.source)!);
-  const targetNode = RF.useStore((s) => s.nodeInternals.get(props.target)!);
-  useAlwaysVisibleEdgeUpdatersAtNodeBorders(interactionPathRef, sourceNode, targetNode, waypoints);
+  useAlwaysVisibleEdgeUpdatersAtNodeBorders(interactionPathRef, props.source, props.target, waypoints);
 
   return (
     <>
@@ -166,9 +161,12 @@ export const InformationRequirementEdge = React.memo((props: RF.EdgeProps<DmnDia
         strokeWidth={props.interactionWidth ?? DEFAULT_INTRACTION_WIDTH}
         onMouseMove={onMouseMove}
         onDoubleClick={onDoubleClick}
+        data-edgetype={"information-requirement"}
+        visibility={settings.isReadOnly ? "hidden" : undefined}
       />
       <InformationRequirementPath d={path} className={`kie-dmn-editor--edge ${className}`} />
-      {props.selected && !isConnecting && props.data?.dmnEdge && (
+
+      {!settings.isReadOnly && props.selected && !isConnecting && props.data?.dmnEdge && (
         <Waypoints
           edgeId={props.id}
           edgeIndex={props.data.dmnEdge.index}
@@ -176,16 +174,20 @@ export const InformationRequirementEdge = React.memo((props: RF.EdgeProps<DmnDia
           onDragStop={onMouseMove}
         />
       )}
-      {isHovered && potentialWaypoint && <PotentialWaypoint point={potentialWaypoint.point} />}
+      {!settings.isReadOnly && isHovered && potentialWaypoint && <PotentialWaypoint point={potentialWaypoint.point} />}
     </>
   );
-});
+}, propsHaveSameValuesDeep);
 
 export const KnowledgeRequirementEdge = React.memo((props: RF.EdgeProps<DmnDiagramEdgeData>) => {
+  const renderCount = useRef<number>(0);
+  renderCount.current++;
+
   const { path, points: waypoints } = useKieEdgePath(props.source, props.target, props.data);
 
   const interactionPathRef = React.useRef<SVGPathElement>(null);
   const isHovered = useIsHovered(interactionPathRef);
+  const settings = useSettings();
 
   const { onMouseMove, onDoubleClick, potentialWaypoint, isDraggingWaypoint } = usePotentialWaypointControls(
     waypoints,
@@ -198,9 +200,7 @@ export const KnowledgeRequirementEdge = React.memo((props: RF.EdgeProps<DmnDiagr
   const isConnecting = !!RF.useStore((s) => s.connectionNodeId);
   const className = useEdgeClassName(isConnecting, isDraggingWaypoint);
 
-  const sourceNode = RF.useStore((s) => s.nodeInternals.get(props.source)!);
-  const targetNode = RF.useStore((s) => s.nodeInternals.get(props.target)!);
-  useAlwaysVisibleEdgeUpdatersAtNodeBorders(interactionPathRef, sourceNode, targetNode, waypoints);
+  useAlwaysVisibleEdgeUpdatersAtNodeBorders(interactionPathRef, props.source, props.target, waypoints);
 
   return (
     <>
@@ -212,9 +212,12 @@ export const KnowledgeRequirementEdge = React.memo((props: RF.EdgeProps<DmnDiagr
         strokeWidth={props.interactionWidth ?? DEFAULT_INTRACTION_WIDTH}
         onMouseMove={onMouseMove}
         onDoubleClick={onDoubleClick}
+        data-edgetype={"knowledge-requirement"}
+        visibility={settings.isReadOnly ? "hidden" : undefined}
       />
       <KnowledgeRequirementPath d={path} className={`kie-dmn-editor--edge ${className}`} />
-      {props.selected && !isConnecting && props.data?.dmnEdge && (
+
+      {!settings.isReadOnly && props.selected && !isConnecting && props.data?.dmnEdge && (
         <Waypoints
           edgeId={props.id}
           edgeIndex={props.data.dmnEdge.index}
@@ -222,16 +225,20 @@ export const KnowledgeRequirementEdge = React.memo((props: RF.EdgeProps<DmnDiagr
           onDragStop={onMouseMove}
         />
       )}
-      {isHovered && potentialWaypoint && <PotentialWaypoint point={potentialWaypoint.point} />}
+      {!settings.isReadOnly && isHovered && potentialWaypoint && <PotentialWaypoint point={potentialWaypoint.point} />}
     </>
   );
-});
+}, propsHaveSameValuesDeep);
 
 export const AuthorityRequirementEdge = React.memo((props: RF.EdgeProps<DmnDiagramEdgeData>) => {
+  const renderCount = useRef<number>(0);
+  renderCount.current++;
+
   const { path, points: waypoints } = useKieEdgePath(props.source, props.target, props.data);
 
   const interactionPathRef = React.useRef<SVGPathElement>(null);
   const isHovered = useIsHovered(interactionPathRef);
+  const settings = useSettings();
 
   const { onMouseMove, onDoubleClick, potentialWaypoint, isDraggingWaypoint } = usePotentialWaypointControls(
     waypoints,
@@ -244,9 +251,7 @@ export const AuthorityRequirementEdge = React.memo((props: RF.EdgeProps<DmnDiagr
   const isConnecting = !!RF.useStore((s) => s.connectionNodeId);
   const className = useEdgeClassName(isConnecting, isDraggingWaypoint);
 
-  const sourceNode = RF.useStore((s) => s.nodeInternals.get(props.source)!);
-  const targetNode = RF.useStore((s) => s.nodeInternals.get(props.target)!);
-  useAlwaysVisibleEdgeUpdatersAtNodeBorders(interactionPathRef, sourceNode, targetNode, waypoints);
+  useAlwaysVisibleEdgeUpdatersAtNodeBorders(interactionPathRef, props.source, props.target, waypoints);
 
   return (
     <>
@@ -259,13 +264,16 @@ export const AuthorityRequirementEdge = React.memo((props: RF.EdgeProps<DmnDiagr
         strokeWidth={props.interactionWidth ?? DEFAULT_INTRACTION_WIDTH}
         onMouseMove={onMouseMove}
         onDoubleClick={onDoubleClick}
+        data-edgetype={"authority-requirement"}
+        visibility={settings.isReadOnly ? "hidden" : undefined}
       />
       <AuthorityRequirementPath
         d={path}
         className={`kie-dmn-editor--edge ${className}`}
         centerToConnectionPoint={false}
       />
-      {props.selected && !isConnecting && props.data?.dmnEdge && (
+
+      {!settings.isReadOnly && props.selected && !isConnecting && props.data?.dmnEdge && (
         <Waypoints
           edgeId={props.id}
           edgeIndex={props.data.dmnEdge.index}
@@ -273,16 +281,20 @@ export const AuthorityRequirementEdge = React.memo((props: RF.EdgeProps<DmnDiagr
           onDragStop={onMouseMove}
         />
       )}
-      {isHovered && potentialWaypoint && <PotentialWaypoint point={potentialWaypoint.point} />}
+      {!settings.isReadOnly && isHovered && potentialWaypoint && <PotentialWaypoint point={potentialWaypoint.point} />}
     </>
   );
-});
+}, propsHaveSameValuesDeep);
 
 export const AssociationEdge = React.memo((props: RF.EdgeProps<DmnDiagramEdgeData>) => {
+  const renderCount = useRef<number>(0);
+  renderCount.current++;
+
   const { path, points: waypoints } = useKieEdgePath(props.source, props.target, props.data);
 
   const interactionPathRef = React.useRef<SVGPathElement>(null);
   const isHovered = useIsHovered(interactionPathRef);
+  const settings = useSettings();
 
   const { onMouseMove, onDoubleClick, potentialWaypoint, isDraggingWaypoint } = usePotentialWaypointControls(
     waypoints,
@@ -295,9 +307,7 @@ export const AssociationEdge = React.memo((props: RF.EdgeProps<DmnDiagramEdgeDat
   const isConnecting = !!RF.useStore((s) => s.connectionNodeId);
   const className = useEdgeClassName(isConnecting, isDraggingWaypoint);
 
-  const sourceNode = RF.useStore((s) => s.nodeInternals.get(props.source)!);
-  const targetNode = RF.useStore((s) => s.nodeInternals.get(props.target)!);
-  useAlwaysVisibleEdgeUpdatersAtNodeBorders(interactionPathRef, sourceNode, targetNode, waypoints);
+  useAlwaysVisibleEdgeUpdatersAtNodeBorders(interactionPathRef, props.source, props.target, waypoints);
 
   return (
     <>
@@ -309,9 +319,12 @@ export const AssociationEdge = React.memo((props: RF.EdgeProps<DmnDiagramEdgeDat
         strokeWidth={props.interactionWidth ?? DEFAULT_INTRACTION_WIDTH}
         onMouseMove={onMouseMove}
         onDoubleClick={onDoubleClick}
+        data-edgetype={"association"}
+        visibility={settings.isReadOnly ? "hidden" : undefined}
       />
       <AssociationPath d={path} className={`kie-dmn-editor--edge ${className}`} />
-      {props.selected && !isConnecting && props.data?.dmnEdge && (
+
+      {!settings.isReadOnly && props.selected && !isConnecting && props.data?.dmnEdge && (
         <Waypoints
           edgeId={props.id}
           edgeIndex={props.data.dmnEdge.index}
@@ -319,7 +332,7 @@ export const AssociationEdge = React.memo((props: RF.EdgeProps<DmnDiagramEdgeDat
           onDragStop={onMouseMove}
         />
       )}
-      {isHovered && potentialWaypoint && <PotentialWaypoint point={potentialWaypoint.point} />}
+      {!settings.isReadOnly && isHovered && potentialWaypoint && <PotentialWaypoint point={potentialWaypoint.point} />}
     </>
   );
-});
+}, propsHaveSameValuesDeep);

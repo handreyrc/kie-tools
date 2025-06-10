@@ -19,6 +19,45 @@
 
 package metadata
 
+// Dependency represents a Maven dependency.
+type Dependency struct {
+	GroupId    string
+	ArtifactId string
+	Version    string
+	Type       string
+	Scope      string
+}
+
+var KogitoBomDependency = Dependency{
+	GroupId:    "org.kie.kogito",
+	ArtifactId: "kogito-bom",
+	Version:    KogitoVersion,
+	Type:       "pom",
+	Scope:      "import",
+}
+
+// KogitoDependencies defines the set of dependencies to be added to the pom.xml
+// of created and converted Quarkus projects.
+var KogitoDependencies = []Dependency{
+	{GroupId: "org.kie", ArtifactId: "kie-addons-quarkus-knative-eventing"},
+	{GroupId: "org.kie", ArtifactId: "kie-addons-quarkus-process-management"},
+	{GroupId: "org.kie", ArtifactId: "kie-addons-quarkus-source-files"},
+	{GroupId: "org.kie", ArtifactId: "kogito-addons-quarkus-data-index-inmemory"},
+	{GroupId: "org.kie", ArtifactId: "kogito-addons-quarkus-jobs-service-embedded"},
+	{GroupId: "org.apache.kie.sonataflow", ArtifactId: "sonataflow-quarkus"},
+	{GroupId: "org.apache.kie.sonataflow", ArtifactId: "sonataflow-quarkus-devui", Version: "${kie.tooling.version}"},
+}
+
+// requared crds for sonataflow
+var SonataflowCRDs = []string{"sonataflows.sonataflow.org", "sonataflowbuilds.sonataflow.org", "sonataflowplatforms.sonataflow.org"}
+var KnativeCoreServingCRDs = []string{"images.caching.internal.knative.dev", "certificates.networking.internal.knative.dev", "configurations.serving.knative.dev", "clusterdomainclaims.networking.internal.knative.dev", "domainmappings.serving.knative.dev", "ingresses.networking.internal.knative.dev", "metrics.autoscaling.internal.knative.dev", "podautoscalers.autoscaling.internal.knative.dev", "revisions.serving.knative.dev", "routes.serving.knative.dev", "services.serving.knative.dev", "serverlessservices.networking.internal.knative.dev"}
+
+// OLM CatalogSources
+var OLMCatalogSourcesMap = map[string]string{"operatorhubio-catalog": "olm", "community-operators": "openshift-marketplace"}
+
+var SonataFlowOperatorName = "sonataflow-operator"
+
+
 const (
 	QuarkusMavenPlugin                          = "quarkus-maven-plugin"
 	QuarkusKubernetesExtension                  = "quarkus-kubernetes"
@@ -26,10 +65,10 @@ const (
 	QuarkusContainerImageJib                    = "quarkus-container-image-jib"
 	SmallryeHealth                              = "smallrye-health"
 	QuarkusContainerImageDocker                 = "quarkus-container-image-docker"
-	KogitoQuarkusServerlessWorkflowExtension    = "kogito-quarkus-serverless-workflow"
-	KogitoAddonsQuarkusKnativeEventingExtension = "kogito-addons-quarkus-knative-eventing"
-	KogitoQuarkusServerlessWorkflowDevUi        = "kogito-quarkus-serverless-workflow-devui"
-	KogitoAddonsQuarkusSourceFiles              = "kogito-addons-quarkus-source-files"
+	KogitoQuarkusServerlessWorkflowExtension    = "sonataflow-quarkus"
+	KogitoAddonsQuarkusKnativeEventingExtension = "kie-addons-quarkus-knative-eventing"
+	KogitoQuarkusServerlessWorkflowDevUi        = "sonataflow-quarkus-devui"
+	KogitoAddonsQuarkusSourceFiles              = "kie-addons-quarkus-source-files"
 	KogitoDataIndexInMemory                     = "kogito-addons-quarkus-data-index-inmemory"
 
 	JavaVersion       = 11
@@ -50,12 +89,13 @@ const (
 	YMLSWExtension        = "sw.yml"
 	JSONSWExtension       = "sw.json"
 	ApplicationProperties = "application.properties"
-
+	ApplicationSecretProperties = "secret.properties"
 	ManifestServiceFilesKind = "SonataFlow"
 
 	DockerInternalPort = "8080/tcp"
 	// VolumeBindPath The :z is to let docker know that the volume content can be shared between containers(SELinux)
-	VolumeBindPath = "/home/kogito/serverless-workflow-project/src/main/resources:z"
+	VolumeBindPathSELinux = "/home/kogito/serverless-workflow-project/src/main/resources:z"
+	VolumeBindPath        = "/home/kogito/serverless-workflow-project/src/main/resources"
 
 	DashboardsDefaultDirName = "dashboards"
 )

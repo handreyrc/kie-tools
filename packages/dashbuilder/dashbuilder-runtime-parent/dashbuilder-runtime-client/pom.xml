@@ -22,7 +22,6 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd"
 >
-
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.dashbuilder</groupId>
@@ -73,11 +72,6 @@
     </dependency>
 
     <!-- Dashbuilder -->
-    <dependency>
-      <groupId>org.kie.soup</groupId>
-      <artifactId>kie-soup-commons</artifactId>
-      <scope>provided</scope>
-    </dependency>
 
     <dependency>
       <groupId>org.dashbuilder</groupId>
@@ -90,7 +84,6 @@
       <artifactId>dashbuilder-dataset-client</artifactId>
       <scope>provided</scope>
     </dependency>
-
 
     <dependency>
       <groupId>org.dashbuilder</groupId>
@@ -282,10 +275,19 @@
           <artifactId>commons-logging</artifactId>
         </exclusion>
         <exclusion>
+          <groupId>commons-codec</groupId>
+          <artifactId>commons-codec</artifactId>
+        </exclusion>
+        <exclusion>
           <groupId>org.mortbay.jasper</groupId>
           <artifactId>apache-el</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
     </dependency>
 
     <dependency>
@@ -335,7 +337,7 @@
       <artifactId>errai-cdi-shared</artifactId>
       <scope>provided</scope>
     </dependency>
-    
+
     <!-- JS Libraries -->
     <dependency>
       <groupId>org.webjars.npm</groupId>
@@ -407,7 +409,14 @@
             -Ddashbuilder.kieserver.serverTemplate.sample-server.password=kieserver1!
             -Ddashbuilder.kieserver.defaultServerTemplate=default
             -Ddashbuilder.kieserver.serverTemplate.sample-server.replace_query=true
-            -Ddashbuilder.dev=true</extraJvmArgs>
+            -Ddashbuilder.dev=true
+            --add-opens java.base/java.lang=ALL-UNNAMED
+            --add-opens java.base/java.lang.reflect=ALL-UNNAMED
+            --add-opens java.base/java.time=ALL-UNNAMED
+            --add-opens java.base/java.time.format=ALL-UNNAMED
+            --add-opens java.base/java.text=ALL-UNNAMED
+            --add-opens java.base/java.util=ALL-UNNAMED
+          </extraJvmArgs>
           <style>OBFUSCATED</style>
           <noServer>false</noServer>
           <!-- <server>org.jboss.errai.cdi.server.gwt.EmbeddedWildFlyLauncher</server> -->
@@ -443,15 +452,12 @@
             <compileSourcesArtifact>org.uberfire:uberfire-widgets-commons</compileSourcesArtifact>
             <compileSourcesArtifact>org.uberfire:uberfire-widgets-table</compileSourcesArtifact>
 
-            <compileSourcesArtifact>org.kie.soup:kie-soup-commons</compileSourcesArtifact>
-
             <!-- UberFire -->
             <compileSourcesArtifact>org.uberfire:uberfire-commons</compileSourcesArtifact>
             <compileSourcesArtifact>org.uberfire:uberfire-api</compileSourcesArtifact>
             <compileSourcesArtifact>org.uberfire:uberfire-client-api</compileSourcesArtifact>
             <compileSourcesArtifact>org.uberfire:uberfire-workbench-client</compileSourcesArtifact>
             <compileSourcesArtifact>org.uberfire:uberfire-workbench-client-views-patternfly</compileSourcesArtifact>
-
           </compileSourcesArtifacts>
           <compileReport>true</compileReport>
         </configuration>
@@ -561,7 +567,7 @@
               <goal>copy-resources</goal>
             </goals>
             <configuration>
-	      <outputDirectory>${project.build.outputDirectory}/org/dashbuilder/client/resources/js</outputDirectory>
+              <outputDirectory>${project.build.outputDirectory}/org/dashbuilder/client/resources/js</outputDirectory>
               <resources>
                 <resource>
                   <directory
@@ -580,10 +586,10 @@
               <goal>copy-resources</goal>
             </goals>
             <configuration>
-	      <outputDirectory>${project.build.outputDirectory}/org/dashbuilder/client/resources/js</outputDirectory>
+              <outputDirectory>${project.build.outputDirectory}/org/dashbuilder/client/resources/js</outputDirectory>
               <resources>
                 <resource>
-		  <directory
+                  <directory
                   >${project.build.directory}/js-yaml/META-INF/resources/webjars/js-yaml/${version.org.webjars.npm.js-yaml}/dist</directory>
                   <includes>
                     <include>js-yaml.min.js</include>
@@ -595,7 +601,6 @@
         </executions>
       </plugin>
     </plugins>
-
   </build>
 
   <profiles>
@@ -608,7 +613,8 @@
       </activation>
       <build>
         <plugins>
-          <plugin><!-- Keep in sync with soa profile -->
+          <plugin>
+            <!-- Keep in sync with soa profile -->
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>gwt-maven-plugin</artifactId>
             <configuration>
@@ -623,7 +629,7 @@
             <artifactId>maven-war-plugin</artifactId>
             <configuration>
               <packagingExcludes>WEB-INF/,META-INF/</packagingExcludes>
-            </configuration>         
+            </configuration>
           </plugin>
         </plugins>
       </build>
@@ -696,7 +702,5 @@
         </plugins>
       </build>
     </profile>
-
   </profiles>
-
 </project>

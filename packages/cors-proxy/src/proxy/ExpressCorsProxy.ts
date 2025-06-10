@@ -20,15 +20,16 @@
 import * as https from "https";
 import fetch from "node-fetch";
 import { Request, Response } from "express";
+import { HttpsProxyAgent } from "https-proxy-agent";
 import { GIT_CORS_CONFIG, isGitOperation } from "./git";
 import { CorsProxyHeaderKeys, CorsConfig, CorsProxy } from "@kie-tools/cors-proxy-api/dist";
 
-const HTTPS_PROTOCOL = "https:";
 const BANNED_PROXY_HEADERS = [
   "origin",
   "host",
   CorsProxyHeaderKeys.TARGET_URL,
   CorsProxyHeaderKeys.INSECURELY_DISABLE_TLS_CERTIFICATE_VALIDATION,
+  CorsProxyHeaderKeys.DISABLE_ENCODING,
 ];
 
 export class ExpressCorsProxy implements CorsProxy<Request, Response> {
@@ -38,6 +39,7 @@ export class ExpressCorsProxy implements CorsProxy<Request, Response> {
     private readonly args: {
       origin: string;
       verbose: boolean;
+      hostsToUseHttp: string[];
     }
   ) {
     this.logger = new Logger(args.verbose);
@@ -70,6 +72,10 @@ export class ExpressCorsProxy implements CorsProxy<Request, Response> {
 
       // TO DO: Figure out why this gzip encoding is broken with insecure tls certificates!
       if (req.headers[CorsProxyHeaderKeys.INSECURELY_DISABLE_TLS_CERTIFICATE_VALIDATION] === "true") {
+        outHeaders["accept-encoding"] = "identity";
+      }
+      // Force uncompressed response if encoding is disabled via header
+      if (req.headers[CorsProxyHeaderKeys.DISABLE_ENCODING] === "true") {
         outHeaders["accept-encoding"] = "identity";
       }
 
@@ -135,16 +141,17 @@ export class ExpressCorsProxy implements CorsProxy<Request, Response> {
 
   private resolveRequestInfo(request: Request): ProxyRequestInfo {
     const targetUrl: string = (request.headers[CorsProxyHeaderKeys.TARGET_URL] as string) ?? request.url;
-
     if (!targetUrl || targetUrl == "/") {
-      throw new Error("Couldn't resolve the target url...");
+      throw new Error("Couldn't resolve the target URL...");
     }
 
-    const proxyUrl = targetUrl.startsWith("/") ? `https:/${targetUrl}` : undefined;
+    const proxyUrl = new URL(`protocol://${targetUrl.substring(1)}`);
+    const protocol = this.args.hostsToUseHttp.includes(proxyUrl.host) ? "http" : "https";
+    const proxyUrlString = targetUrl.startsWith("/") ? `${protocol}:/${targetUrl}` : undefined;
 
     return new ProxyRequestInfo({
       targetUrl,
-      proxyUrl,
+      proxyUrl: proxyUrlString,
       corsConfig: this.resolveCorsConfig(targetUrl, request),
       insecurelyDisableTLSCertificateValidation:
         request.headers[CorsProxyHeaderKeys.INSECURELY_DISABLE_TLS_CERTIFICATE_VALIDATION] === "true",
@@ -152,11 +159,23 @@ export class ExpressCorsProxy implements CorsProxy<Request, Response> {
   }
 
   private getProxyAgent(info: ProxyRequestInfo): https.Agent | undefined {
-    if (info.insecurelyDisableTLSCertificateValidation && info.proxyUrl.protocol === HTTPS_PROTOCOL) {
-      return new https.Agent({
-        rejectUnauthorized: false,
-      });
+    const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+
+    const agentOptions =
+      info.insecurelyDisableTLSCertificateValidation && info.proxyUrl.protocol === "https:"
+        ? { rejectUnauthorized: false }
+        : undefined;
+
+    if (proxyUrl) {
+      this.logger.log(`Using custom proxy for requests: ${proxyUrl}`);
+
+      return new HttpsProxyAgent(proxyUrl, agentOptions);
     }
+
+    if (agentOptions) {
+      return new https.Agent(agentOptions);
+    }
+
     return undefined;
   }
 

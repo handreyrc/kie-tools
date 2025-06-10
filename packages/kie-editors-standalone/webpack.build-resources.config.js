@@ -18,12 +18,13 @@
  */
 
 const { merge } = require("webpack-merge");
+const { ProvidePlugin } = require("webpack");
 const common = require("@kie-tools-core/webpack-base/webpack.common.config");
 const CopyPlugin = require("copy-webpack-plugin");
 const patternflyBase = require("@kie-tools-core/patternfly-base");
 
-module.exports = (env) => [
-  merge(common(env), {
+module.exports = (webpackEnv) => [
+  merge(common(webpackEnv), {
     entry: {
       "preprocessor/preprocessor": "./src/preprocessor/preprocessor.ts",
     },
@@ -34,7 +35,7 @@ module.exports = (env) => [
       __filename: true, //Uses current working dir
     },
   }),
-  merge(common(env), {
+  merge(common(webpackEnv), {
     output: {
       publicPath: "",
     },
@@ -45,5 +46,11 @@ module.exports = (env) => [
     module: {
       rules: [...patternflyBase.webpackModuleRules],
     },
+    plugins: [
+      new ProvidePlugin({
+        process: require.resolve("process/browser.js"),
+        Buffer: ["buffer", "Buffer"],
+      }),
+    ],
   }),
 ];

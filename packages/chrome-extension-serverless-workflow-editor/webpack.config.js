@@ -23,16 +23,15 @@ const packageJson = require("./package.json");
 const patternflyBase = require("@kie-tools-core/patternfly-base");
 const { merge } = require("webpack-merge");
 const common = require("@kie-tools-core/webpack-base/webpack.common.config");
-const { EnvironmentPlugin } = require("webpack");
+const { EnvironmentPlugin, ProvidePlugin } = require("webpack");
 const path = require("path");
 const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
 const swEditorAssets = require("@kie-tools/serverless-workflow-diagram-editor-assets");
 const { env } = require("./env");
-const buildEnv = env;
 
 function getRouterArgs() {
-  const targetOrigin = buildEnv.swfChromeExtension.routerTargetOrigin;
-  const relativePath = buildEnv.swfChromeExtension.routerRelativePath;
+  const targetOrigin = env.swfChromeExtension.routerTargetOrigin;
+  const relativePath = env.swfChromeExtension.routerRelativePath;
 
   console.info(`SWF Chrome Extension :: Router target origin: ${targetOrigin}`);
   console.info(`SWF Chrome Extension :: Router relative path: ${relativePath}`);
@@ -41,18 +40,18 @@ function getRouterArgs() {
 }
 
 function getManifestFile() {
-  const manifestFile = buildEnv.swfChromeExtension.manifestFile;
+  const manifestFile = env.swfChromeExtension.manifestFile;
 
   console.info(`SWF Chrome Extension :: Manifest file: ${manifestFile}`);
 
   return manifestFile;
 }
 
-module.exports = async (env) => {
-  const [router_targetOrigin, router_relativePath] = getRouterArgs(env);
-  const manifestFile = getManifestFile(env);
+module.exports = async (webpackEnv) => {
+  const [router_targetOrigin, router_relativePath] = getRouterArgs(webpackEnv);
+  const manifestFile = getManifestFile(webpackEnv);
 
-  return merge(common(env), {
+  return merge(common(webpackEnv), {
     entry: {
       "content_scripts/github": "./src/github-content-script.ts",
       background: "./src/background.ts",
@@ -64,12 +63,16 @@ module.exports = async (env) => {
       static: [{ directory: path.join(__dirname, "./dist") }],
       compress: true,
       https: true,
-      port: buildEnv.swfChromeExtension.dev.port,
+      port: env.swfChromeExtension.dev.port,
       client: {
         overlay: false,
       },
     },
     plugins: [
+      new ProvidePlugin({
+        process: require.resolve("process/browser.js"),
+        Buffer: ["buffer", "Buffer"],
+      }),
       new EnvironmentPlugin({
         WEBPACK_REPLACE__targetOrigin: router_targetOrigin,
         WEBPACK_REPLACE__relativePath: router_relativePath,

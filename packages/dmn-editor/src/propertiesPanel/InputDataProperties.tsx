@@ -19,69 +19,77 @@
 
 import * as React from "react";
 import { DMN15__tInputData } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/ts-gen/types";
+import { Normalized } from "@kie-tools/dmn-marshaller/dist/normalization/normalize";
 import { ClipboardCopy } from "@patternfly/react-core/dist/js/components/ClipboardCopy";
 import { FormGroup } from "@patternfly/react-core/dist/js/components/Form";
 import { TextArea } from "@patternfly/react-core/dist/js/components/TextArea";
 import { DocumentationLinksFormGroup } from "./DocumentationLinksFormGroup";
 import { TypeRefSelector } from "../dataTypes/TypeRefSelector";
-import { useDmnEditorStore, useDmnEditorStoreApi } from "../store/Store";
-import { renameDrgElement } from "../mutations/renameNode";
+import { useDmnEditorStore, useDmnEditorStoreApi } from "../store/StoreContext";
 import { InlineFeelNameInput } from "../feel/InlineFeelNameInput";
-import { useDmnEditorDerivedStore } from "../store/DerivedStore";
 import { useDmnEditor } from "../DmnEditorContext";
 import { useResolvedTypeRef } from "../dataTypes/useResolvedTypeRef";
+import { useCallback, useMemo } from "react";
+import { generateUuid } from "@kie-tools/boxed-expression-component/dist/api";
+import { useSettings } from "../settings/DmnEditorSettingsContext";
+import { useRefactor } from "../refactor/RefactorConfirmationDialog";
 
 export function InputDataProperties({
   inputData,
   namespace,
   index,
 }: {
-  inputData: DMN15__tInputData;
+  inputData: Normalized<DMN15__tInputData>;
   namespace: string | undefined;
   index: number;
 }) {
   const { setState } = useDmnEditorStoreApi();
-
+  const settings = useSettings();
   const thisDmnsNamespace = useDmnEditorStore((s) => s.dmn.model.definitions["@_namespace"]);
-  const isReadonly = !!namespace && namespace !== thisDmnsNamespace;
-
-  const { allFeelVariableUniqueNames } = useDmnEditorDerivedStore();
+  const isReadOnly = settings.isReadOnly || (!!namespace && namespace !== thisDmnsNamespace);
 
   const { dmnEditorRootElementRef } = useDmnEditor();
 
   const resolvedTypeRef = useResolvedTypeRef(inputData.variable?.["@_typeRef"], namespace);
 
+  const identifierId = useMemo(() => inputData["@_id"], [inputData]);
+  const oldName = useMemo(() => inputData["@_label"] ?? inputData["@_name"], [inputData]);
+
+  const { setNewIdentifierNameCandidate, refactorConfirmationDialog, newName } = useRefactor({
+    index,
+    identifierId,
+    oldName,
+  });
+
+  const currentName = useMemo(() => {
+    return newName === "" ? oldName : newName;
+  }, [newName, oldName]);
+
   return (
     <>
+      {refactorConfirmationDialog}
       <FormGroup label="Name">
         <InlineFeelNameInput
           enableAutoFocusing={false}
           isPlain={false}
           id={inputData["@_id"]!}
-          name={inputData["@_name"]}
-          isReadonly={isReadonly}
+          name={currentName}
+          isReadOnly={isReadOnly}
           shouldCommitOnBlur={true}
-          className={"pf-c-form-control"}
-          onRenamed={(newName) => {
-            setState((state) => {
-              renameDrgElement({
-                definitions: state.dmn.model.definitions,
-                index,
-                newName,
-              });
-            });
-          }}
-          allUniqueNames={allFeelVariableUniqueNames}
+          className={"pf-v5-c-form-control"}
+          onRenamed={setNewIdentifierNameCandidate}
+          allUniqueNames={useCallback((s) => s.computed(s).getAllFeelVariableUniqueNames(), [])}
         />
       </FormGroup>
       <FormGroup label="Data type">
         <TypeRefSelector
           heightRef={dmnEditorRootElementRef}
           typeRef={resolvedTypeRef}
+          isDisabled={isReadOnly}
           onChange={(newTypeRef) => {
             setState((state) => {
-              const drgElement = state.dmn.model.definitions.drgElement![index] as DMN15__tInputData;
-              drgElement.variable ??= { "@_name": inputData["@_name"] };
+              const drgElement = state.dmn.model.definitions.drgElement![index] as Normalized<DMN15__tInputData>;
+              drgElement.variable ??= { "@_id": generateUuid(), "@_name": inputData["@_name"] };
               drgElement.variable["@_typeRef"] = newTypeRef;
             });
           }}
@@ -91,11 +99,11 @@ export function InputDataProperties({
         <TextArea
           aria-label={"Description"}
           type={"text"}
-          isDisabled={isReadonly}
+          isDisabled={isReadOnly}
           value={inputData.description?.__$$text}
-          onChange={(newDescription) => {
+          onChange={(_event, newDescription) => {
             setState((state) => {
-              (state.dmn.model.definitions.drgElement![index] as DMN15__tInputData).description = {
+              (state.dmn.model.definitions.drgElement![index] as Normalized<DMN15__tInputData>).description = {
                 __$$text: newDescription,
               };
             });
@@ -113,11 +121,11 @@ export function InputDataProperties({
       </FormGroup>
 
       <DocumentationLinksFormGroup
-        isReadonly={isReadonly}
+        isReadOnly={isReadOnly}
         values={inputData.extensionElements?.["kie:attachment"]}
         onChange={(newExtensionElements) => {
           setState((state) => {
-            (state.dmn.model.definitions.drgElement![index] as DMN15__tInputData).extensionElements = {
+            (state.dmn.model.definitions.drgElement![index] as Normalized<DMN15__tInputData>).extensionElements = {
               "kie:attachment": newExtensionElements,
             };
           });

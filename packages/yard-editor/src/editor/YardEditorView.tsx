@@ -20,7 +20,7 @@ import { Editor, EditorInitArgs, EditorTheme, KogitoEditorEnvelopeContextType } 
 import { Notification } from "@kie-tools-core/notifications/dist/api";
 import * as React from "react";
 import { YardEditor } from "./YardEditor";
-import { YardEditorApi, YardEditorChannelApi } from "../api";
+import { YardEditorApi, YardEditorChannelApi, YardEditorEnvelopeApi } from "../api";
 import { Position } from "monaco-editor";
 import { validationPromise } from "@kie-tools/yard-validator/dist/";
 
@@ -33,15 +33,15 @@ export class YardEditorView implements Editor {
   private path: string;
 
   constructor(
-    private readonly envelopeContext: KogitoEditorEnvelopeContextType<YardEditorChannelApi>,
+    private readonly envelopeContext: KogitoEditorEnvelopeContextType<YardEditorEnvelopeApi, YardEditorChannelApi>,
     initArgs: EditorInitArgs
   ) {
     this.editorRef = React.createRef<YardEditorApi>();
     this.initArgs = initArgs;
   }
-  public setContent(path: string, content: string): Promise<void> {
-    this.path = path;
-    return this.editorRef.current!.setContent(path, content);
+  public setContent(normalizedPosixPathRelativeToTheWorkspaceRoot: string, content: string): Promise<void> {
+    this.path = normalizedPosixPathRelativeToTheWorkspaceRoot;
+    return this.editorRef.current!.setContent(normalizedPosixPathRelativeToTheWorkspaceRoot, content);
   }
 
   public getContent(): Promise<string> {

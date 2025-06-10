@@ -145,30 +145,33 @@ export function UnitablesBeeTable({
   );
 
   const cellComponentByColumnAccessor: BeeTableProps<ROWTYPE>["cellComponentByColumnAccessor"] = React.useMemo(() => {
-    return columns.reduce((acc, column) => {
-      if (column.insideProperties) {
-        for (const insideProperty of column.insideProperties) {
-          acc[getColumnAccessor(insideProperty)] = (props) => (
+    return columns.reduce(
+      (acc, column) => {
+        if (column.insideProperties) {
+          for (const insideProperty of column.insideProperties) {
+            acc[getColumnAccessor(insideProperty)] = (props) => (
+              <UnitablesBeeTableCell
+                {...props}
+                joinedName={insideProperty.joinedName}
+                rowCount={rows.length}
+                columnCount={columnsCount}
+              />
+            );
+          }
+        } else {
+          acc[getColumnAccessor(column)] = (props) => (
             <UnitablesBeeTableCell
               {...props}
-              joinedName={insideProperty.joinedName}
+              joinedName={column.joinedName}
               rowCount={rows.length}
               columnCount={columnsCount}
             />
           );
         }
-      } else {
-        acc[getColumnAccessor(column)] = (props) => (
-          <UnitablesBeeTableCell
-            {...props}
-            joinedName={column.joinedName}
-            rowCount={rows.length}
-            columnCount={columnsCount}
-          />
-        );
-      }
-      return acc;
-    }, {} as NonNullable<BeeTableProps<ROWTYPE>["cellComponentByColumnAccessor"]>);
+        return acc;
+      },
+      {} as NonNullable<BeeTableProps<ROWTYPE>["cellComponentByColumnAccessor"]>
+    );
   }, [columns, rows.length, columnsCount]);
 
   const setColumnWidth = useCallback(
@@ -369,7 +372,7 @@ function UnitablesBeeTableCell({
     previousFieldInput.current = fieldInput;
   }, [fieldInput]);
 
-  // FIXME: Decouple from DMN --> https://github.com/kiegroup/kie-issues/issues/166
+  // FIXME: Decouple from DMN --> https://github.com/apache/incubator-kie-issues/issues/166
   const setValue = useCallback(
     (newValue?: string) => {
       isBeeTableChange.current = true;
@@ -413,7 +416,7 @@ function UnitablesBeeTableCell({
       } else if (field.type === "boolean") {
         onFieldChange(newValueWithoutSymbols === "true");
       } else if (field.type === "array") {
-        // FIXME: Support lists --> https://github.com/kiegroup/kie-issues/issues/167
+        // FIXME: Support lists --> https://github.com/apache/incubator-kie-issues/issues/167
       } else if (field.type === "object" && typeof newValue !== "object") {
         // objects are flattened in a single row - this case shouldn't happen;
       } else {

@@ -37,6 +37,7 @@ describe("EmbeddedViewer::ONLINE", () => {
     fileExtension: "dmn",
     getFileContents: () => Promise.resolve(""),
     isReadOnly: false,
+    normalizedPosixPathRelativeToTheWorkspaceRoot: "test.dmn",
   };
 
   const editorEnvelopeLocator = new EditorEnvelopeLocator("localhost:8888", [
@@ -93,7 +94,7 @@ describe("EmbeddedViewer::ONLINE", () => {
       data: [{ path: "" }],
     });
 
-    expect(onResourceContentRequest).toBeCalled();
+    expect(onResourceContentRequest).toHaveBeenCalled();
     expect(container.firstChild).toMatchSnapshot();
   });
 
@@ -118,7 +119,7 @@ describe("EmbeddedViewer::ONLINE", () => {
       data: [{ pattern: "", paths: [] }],
     });
 
-    expect(onResourceListRequest).toBeCalled();
+    expect(onResourceListRequest).toHaveBeenCalled();
     expect(container.firstChild).toMatchSnapshot();
   });
 });

@@ -22,28 +22,51 @@ import {
   DMN15__tGroup,
   DMN15__tTextAnnotation,
 } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/ts-gen/types";
+import { Normalized } from "@kie-tools/dmn-marshaller/dist/normalization/normalize";
+import { generateUuid } from "@kie-tools/boxed-expression-component/dist/api";
+import { IdentifiersRefactor } from "@kie-tools/dmn-language-service";
+import { DmnLatestModel } from "@kie-tools/dmn-marshaller";
 
 export function renameDrgElement({
   definitions,
   newName,
   index,
+  externalDmnModelsByNamespaceMap,
+  shouldRenameReferencedExpressions,
 }: {
-  definitions: DMN15__tDefinitions;
+  definitions: Normalized<DMN15__tDefinitions>;
   newName: string;
   index: number;
+  externalDmnModelsByNamespaceMap: Map<string, Normalized<DmnLatestModel>>;
+  shouldRenameReferencedExpressions: boolean;
 }) {
   const trimmedNewName = newName.trim();
 
   const drgElement = definitions.drgElement![index];
 
+  const identifiersRefactor = new IdentifiersRefactor({
+    writeableDmnDefinitions: definitions,
+    _readonly_externalDmnModelsByNamespaceMap: externalDmnModelsByNamespaceMap,
+  });
+
   drgElement["@_name"] = trimmedNewName;
 
   if (drgElement.__$$element !== "knowledgeSource") {
-    drgElement.variable ??= { "@_name": trimmedNewName };
+    drgElement.variable ??= { "@_id": generateUuid(), "@_name": trimmedNewName };
     drgElement.variable!["@_name"] = trimmedNewName;
   }
 
-  // FIXME: Daniel --> Here we need to update all FEEL expression that were using this node's name as a variable.
+  if (drgElement.__$$element === "decision" && drgElement.expression) {
+    drgElement.expression["@_label"] = trimmedNewName;
+  }
+
+  if (drgElement.__$$element === "businessKnowledgeModel" && drgElement.encapsulatedLogic) {
+    drgElement.encapsulatedLogic["@_label"] = trimmedNewName;
+  }
+
+  if (shouldRenameReferencedExpressions) {
+    identifiersRefactor.rename({ identifierUuid: drgElement["@_id"], newName: trimmedNewName });
+  }
 }
 
 export function renameGroupNode({
@@ -51,11 +74,11 @@ export function renameGroupNode({
   newName,
   index,
 }: {
-  definitions: DMN15__tDefinitions;
+  definitions: Normalized<DMN15__tDefinitions>;
   newName: string;
   index: number;
 }) {
-  (definitions.artifact![index] as DMN15__tGroup)["@_name"] = newName;
+  (definitions.artifact![index] as Normalized<DMN15__tGroup>)["@_name"] = newName;
 }
 
 export function updateTextAnnotation({
@@ -63,9 +86,9 @@ export function updateTextAnnotation({
   newText,
   index,
 }: {
-  definitions: DMN15__tDefinitions;
+  definitions: Normalized<DMN15__tDefinitions>;
   newText: string;
   index: number;
 }) {
-  (definitions.artifact![index] as DMN15__tTextAnnotation).text = { __$$text: newText };
+  (definitions.artifact![index] as Normalized<DMN15__tTextAnnotation>).text = { __$$text: newText };
 }

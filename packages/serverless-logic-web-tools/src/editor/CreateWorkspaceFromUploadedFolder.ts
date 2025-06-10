@@ -78,8 +78,8 @@ export async function CreateWorkspaceFromUploadedFolder(args: { files: File[]; w
     uploadedRootDirs.size !== 1
       ? undefined
       : [...uploadedRootDirs][0] === localFiles[0].path
-      ? undefined
-      : [...uploadedRootDirs][0];
+        ? undefined
+        : [...uploadedRootDirs][0];
 
   const { workspace, suggestedFirstFile } = await args.workspaces.createWorkspaceFromLocal({
     localFiles,
@@ -92,7 +92,6 @@ export async function CreateWorkspaceFromUploadedFolder(args: { files: File[]; w
 
   return {
     workspaceId: workspace.workspaceId,
-    fileRelativePath: suggestedFirstFile.relativePathWithoutExtension,
-    extension: suggestedFirstFile.extension,
+    fileRelativePath: suggestedFirstFile.relativePath,
   };
 }

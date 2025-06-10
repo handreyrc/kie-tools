@@ -44,7 +44,7 @@ export class Route<
   T extends {
     pathParams?: any;
     queryParams?: any;
-  }
+  },
 > {
   constructor(private readonly pathDelegate: (pathParams: { [k in T["pathParams"]]: string }) => string) {}
 
@@ -131,11 +131,8 @@ export const routes = {
   sampleShowcase: new Route<{ queryParams: QueryParams.SAMPLE_ID }>(() => `/sample`),
 
   workspaceWithFilePath: new Route<{
-    pathParams: PathParams.WORKSPACE_ID | PathParams.FILE_RELATIVE_PATH | PathParams.EXTENSION;
-  }>(
-    ({ workspaceId, fileRelativePath, extension }) =>
-      `/${workspaceId}/file/${fileRelativePath}${extension ? "." + extension : ""}`
-  ),
+    pathParams: PathParams.WORKSPACE_ID | PathParams.FILE_RELATIVE_PATH;
+  }>(({ workspaceId, fileRelativePath }) => `/${workspaceId}/file/${fileRelativePath}`),
 
   workspaceWithFiles: new Route<{
     pathParams: PathParams.WORKSPACE_ID;
@@ -148,14 +145,17 @@ export const routes = {
   runtimeToolsWorkflowDetails: new Route<{
     queryParams: QueryParams.FILTERS | QueryParams.SORT_BY;
     pathParams: PathParams.WORKFLOW_ID;
-  }>(({ workflowId }) => `/runtime-tools/workflow-details/${workflowId}`),
+  }>(({ workflowId }) => `/runtime-tools/workflow-instances/${workflowId}`),
   runtimeToolsWorkflowForm: new Route<{
     pathParams: PathParams.WORKFLOW_NAME;
   }>(({ workflowName }) => `/runtime-tools/workflow-definition/${workflowName}`),
-  runtimeToolsTriggerCloudEvent: new Route<{}>(() => `/runtime-tools/trigger-cloud-event`),
-  runtimeToolsTriggerCloudEventForWorkflow: new Route<{
+  runtimeToolsTriggerCloudEventForWorkflowInstance: new Route<{
+    queryParams: QueryParams.URL;
     pathParams: PathParams.WORKFLOW_ID;
-  }>(({ workflowId }) => `/runtime-tools/trigger-cloud-event/${workflowId}`),
+  }>(({ workflowId }) => `/runtime-tools/workflow-instances/${workflowId}/trigger-cloud-event`),
+  runtimeToolsTriggerCloudEventForWorkflowDefinition: new Route<{
+    pathParams: PathParams.WORKFLOW_NAME;
+  }>(({ workflowName }) => `/runtime-tools/workflow-definition/${workflowName}/trigger-cloud-event`),
 
   settings: {
     home: new Route<{}>(() => SETTINGS_ROUTE),
@@ -165,6 +165,7 @@ export const routes = {
     service_registry: new Route<{}>(() => `${SETTINGS_ROUTE}/service-registry`),
     storage: new Route<{}>(() => `${SETTINGS_ROUTE}/storage`),
     runtime_tools: new Route<{}>(() => `${SETTINGS_ROUTE}/runtime-tools`),
+    redirect: new Route<{}>(() => `${SETTINGS_ROUTE}/*`),
   },
 
   static: {
@@ -175,4 +176,6 @@ export const routes = {
       kieHorizontalLogoReverse: new Route<{}>(() => `images/kie_horizontal_rgb_fullcolor_reverse.svg`),
     },
   },
+
+  noMatch: new Route<{}>(() => `*`),
 };

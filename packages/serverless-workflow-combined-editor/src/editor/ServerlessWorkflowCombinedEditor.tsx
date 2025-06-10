@@ -64,10 +64,15 @@ import {
   useState,
 } from "react";
 import { Position } from "monaco-editor";
-import { ServerlessWorkflowCombinedEditorChannelApi, SwfPreviewOptions } from "../api";
+import {
+  ServerlessWorkflowCombinedEditorChannelApi,
+  ServerlessWorkflowCombinedEditorEnvelopeApi,
+  SwfPreviewOptions,
+} from "../api";
 import { useSwfDiagramEditorChannelApi } from "./hooks/useSwfDiagramEditorChannelApi";
 import { UseSwfTextEditorChannelApiArgs, useSwfTextEditorChannelApi } from "./hooks/useSwfTextEditorChannelApi";
 import { colorNodes } from "./helpers/ColorNodes";
+import "./styles.scss";
 
 interface Props {
   locale: string;
@@ -79,7 +84,7 @@ interface Props {
 }
 
 export type ServerlessWorkflowCombinedEditorRef = {
-  setContent(path: string, content: string): Promise<void>;
+  setContent(normalizedPosixPathRelativeToTheWorkspaceRoot: string, content: string): Promise<void>;
   colorNodes(nodeNames: string[], color: string, colorConnectedEnds: boolean): void;
   moveCursorToPosition(position: Position): void;
 };
@@ -105,7 +110,10 @@ const RefForwardingServerlessWorkflowCombinedEditor: ForwardRefRenderFunction<
   const [file, setFile] = useState<File | undefined>(undefined);
   const [embeddedTextEditorFile, setEmbeddedTextEditorFile] = useState<EmbeddedEditorFile>();
   const [embeddedDiagramEditorFile, setEmbeddedDiagramEditorFile] = useState<EmbeddedEditorFile>();
-  const editorEnvelopeCtx = useKogitoEditorEnvelopeContext<ServerlessWorkflowCombinedEditorChannelApi>();
+  const editorEnvelopeCtx = useKogitoEditorEnvelopeContext<
+    ServerlessWorkflowCombinedEditorEnvelopeApi,
+    ServerlessWorkflowCombinedEditorChannelApi
+  >();
   const [diagramEditorEnvelopeContent] = useSharedValue<string>(
     editorEnvelopeCtx.channelApi.shared.kogitoSwfGetDiagramEditorEnvelopeContent
   );
@@ -115,6 +123,8 @@ const RefForwardingServerlessWorkflowCombinedEditor: ForwardRefRenderFunction<
 
   const { editor: textEditor, editorRef: textEditorRef } = useEditorRef();
   const { editor: diagramEditor, editorRef: diagramEditorRef } = useEditorRef();
+
+  const [theme] = useSharedValue(editorEnvelopeCtx.channelApi?.shared.kogitoEditor_theme);
 
   const [previewOptions] = useSharedValue<SwfPreviewOptions>(
     editorEnvelopeCtx.channelApi?.shared.kogitoSwfPreviewOptions_get
@@ -131,6 +141,18 @@ const RefForwardingServerlessWorkflowCombinedEditor: ForwardRefRenderFunction<
   const isStandalone = useMemo(() => props.channelType === ChannelType.STANDALONE, [props.channelType]);
 
   const targetOrigin = useMemo(() => (isVscode ? "vscode" : window.location.origin), [isVscode]);
+
+  const applyEditorTheme = useCallback(
+    (theme: EditorTheme) => Promise.all([textEditor?.setTheme(theme), diagramEditor?.setTheme(theme)]),
+    [textEditor, diagramEditor]
+  );
+
+  useEffect(() => {
+    if (theme === undefined) {
+      return;
+    }
+    applyEditorTheme(theme);
+  }, [theme, applyEditorTheme]);
 
   const isCombinedEditorReady = useMemo(() => {
     if (previewOptions?.editorMode === "diagram") {
@@ -199,61 +221,55 @@ const RefForwardingServerlessWorkflowCombinedEditor: ForwardRefRenderFunction<
     [textEditor]
   );
 
-  useImperativeHandle(
-    forwardedRef,
-    () => {
-      return {
-        setContent: async (path: string, content: string) => {
-          try {
-            const match = /\.sw\.(json|yml|yaml)$/.exec(path.toLowerCase());
-            const dotExtension = match ? match[0] : extname(path);
-            const extension = dotExtension.slice(1);
-            const fileName = basename(path);
-            const getFileContentsFn = async () => content;
+  useImperativeHandle(forwardedRef, () => {
+    return {
+      setContent: async (normalizedPosixPathRelativeToTheWorkspaceRoot: string, content: string) => {
+        try {
+          const match = /\.sw\.(json|yml|yaml)$/.exec(normalizedPosixPathRelativeToTheWorkspaceRoot.toLowerCase());
+          const dotExtension = match ? match[0] : extname(normalizedPosixPathRelativeToTheWorkspaceRoot);
+          const extension = dotExtension.slice(1);
+          const fileName = basename(normalizedPosixPathRelativeToTheWorkspaceRoot);
+          const getFileContentsFn = async () => content;
 
-            setFile({ content, path });
-            setEmbeddedTextEditorFile({
-              path: path,
-              getFileContents: getFileContentsFn,
-              isReadOnly: props.isReadOnly,
-              fileExtension: extension,
-              fileName: fileName,
-            });
+          setFile({ content, path: normalizedPosixPathRelativeToTheWorkspaceRoot });
+          setEmbeddedTextEditorFile({
+            normalizedPosixPathRelativeToTheWorkspaceRoot,
+            getFileContents: getFileContentsFn,
+            isReadOnly: props.isReadOnly,
+            fileExtension: extension,
+            fileName: fileName,
+          });
 
-            setEmbeddedDiagramEditorFile({
-              path: path,
-              getFileContents: getFileContentsFn,
-              isReadOnly: true,
-              fileExtension: extension,
-              fileName: fileName,
-            });
-          } catch (e) {
-            console.error(e);
-            throw e;
-          }
-        },
-        getContent: async () => file?.content ?? "",
-        getPreview: async () => diagramEditor?.getPreview() ?? "",
-        undo: async () => {
-          await Promise.all([textEditor?.undo(), diagramEditor?.undo()]);
-        },
-        redo: async () => {
-          await Promise.all([textEditor?.redo(), diagramEditor?.redo()]);
-        },
-        validate: async (): Promise<Notification[]> => textEditor?.validate() ?? [],
-        setTheme: async (theme: EditorTheme) => {
-          await Promise.all([textEditor?.setTheme(theme), diagramEditor?.setTheme(theme)]);
-        },
-        colorNodes: (nodeNames: string[], color: string, colorConnectedEnds: boolean) => {
-          colorNodes(nodeNames, color, colorConnectedEnds);
-        },
-        moveCursorToPosition: (position: Position) => {
-          textEditorEnvelopeApi?.notifications.kogitoSwfTextEditor__moveCursorToPosition.send(position);
-        },
-      };
-    },
-    [diagramEditor, file, props.isReadOnly, textEditor, textEditorEnvelopeApi]
-  );
+          setEmbeddedDiagramEditorFile({
+            normalizedPosixPathRelativeToTheWorkspaceRoot,
+            getFileContents: getFileContentsFn,
+            isReadOnly: true,
+            fileExtension: extension,
+            fileName: fileName,
+          });
+        } catch (e) {
+          console.error(e);
+          throw e;
+        }
+      },
+      getContent: async () => file?.content ?? "",
+      getPreview: async () => diagramEditor?.getPreview() ?? "",
+      undo: async () => {
+        await Promise.all([textEditor?.undo(), diagramEditor?.undo()]);
+      },
+      redo: async () => {
+        await Promise.all([textEditor?.redo(), diagramEditor?.redo()]);
+      },
+      validate: async (): Promise<Notification[]> => textEditor?.validate() ?? [],
+      setTheme: async (theme: EditorTheme) => applyEditorTheme(theme),
+      colorNodes: (nodeNames: string[], color: string, colorConnectedEnds: boolean) => {
+        colorNodes(nodeNames, color, colorConnectedEnds);
+      },
+      moveCursorToPosition: (position: Position) => {
+        textEditorEnvelopeApi?.notifications.kogitoSwfTextEditor__moveCursorToPosition.send(position);
+      },
+    };
+  }, [diagramEditor, file, props.isReadOnly, textEditor, textEditorEnvelopeApi, applyEditorTheme]);
 
   useStateControlSubscription(
     textEditor,
@@ -449,15 +465,17 @@ const RefForwardingServerlessWorkflowCombinedEditor: ForwardRefRenderFunction<
     }
   }, [editorEnvelopeCtx, isCombinedEditorReady]);
 
+  const themeStyle = getThemeStyle(theme!);
+
   return (
-    <div style={{ height: "100%" }}>
-      <LoadingScreen loading={!isCombinedEditorReady} />
+    <div style={{ height: "100%", background: themeStyle.backgroundColor }}>
+      <LoadingScreen loading={!isCombinedEditorReady} styleTag={themeStyle.loadScreen} />
       {previewOptions?.editorMode === "diagram" ? (
         renderDiagramEditor()
       ) : previewOptions?.editorMode === "text" ? (
         renderTextEditor()
       ) : (
-        <Drawer isExpanded={true} isInline={true}>
+        <Drawer isExpanded={true} isInline={true} className={themeStyle.drawer}>
           <DrawerContent
             panelContent={
               <DrawerPanelContent isResizable={true} defaultSize={previewOptions?.defaultWidth ?? "50%"}>
@@ -472,5 +490,30 @@ const RefForwardingServerlessWorkflowCombinedEditor: ForwardRefRenderFunction<
     </div>
   );
 };
+
+interface ThemeStyleTag {
+  drawer: string;
+  loadScreen: string;
+  backgroundColor: string;
+}
+
+function getThemeStyle(theme: EditorTheme): ThemeStyleTag {
+  switch (theme) {
+    case EditorTheme.DARK: {
+      return {
+        drawer: "dark",
+        loadScreen: "vscode-dark",
+        backgroundColor: "black",
+      };
+    }
+    default: {
+      return {
+        drawer: "",
+        loadScreen: "",
+        backgroundColor: "",
+      };
+    }
+  }
+}
 
 export const ServerlessWorkflowCombinedEditor = forwardRef(RefForwardingServerlessWorkflowCombinedEditor);

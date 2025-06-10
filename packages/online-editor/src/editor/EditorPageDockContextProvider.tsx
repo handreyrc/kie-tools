@@ -35,6 +35,8 @@ import { DmnLanguageService } from "@kie-tools/dmn-language-service";
 import { DmnRunnerTable } from "../dmnRunner/DmnRunnerTable";
 import { ErrorBoundary } from "../reactExt/ErrorBoundary";
 import { DmnRunnerErrorBoundary } from "../dmnRunner/DmnRunnerErrorBoundary";
+import { EnvelopeServer } from "@kie-tools-core/envelope-bus/dist/channel";
+import { KogitoEditorChannelApi, KogitoEditorEnvelopeApi } from "@kie-tools-core/editor/dist/api";
 
 interface EditorPageDockContextType {
   panel: PanelId;
@@ -42,7 +44,11 @@ interface EditorPageDockContextType {
   disabledReason: string;
   onTogglePanel: (panelId: PanelId) => void;
   onOpenPanel: (panelId: PanelId) => void;
-  setNotifications: (tabName: string, path: string, notifications: Notification[]) => void;
+  setNotifications: (
+    tabName: string,
+    normalizedPosixPathRelativeToTheWorkspaceRoot: string,
+    notifications: Notification[]
+  ) => void;
   addToggleItem: (panelId: PanelId, newItem: JSX.Element) => void;
   removeToggleItem: (panelId: PanelId) => void;
   toggleGroupItems: Map<PanelId, JSX.Element>;
@@ -51,6 +57,7 @@ interface EditorPageDockContextType {
   error: boolean;
   setHasError: React.Dispatch<React.SetStateAction<boolean>>;
   errorBoundaryRef: React.MutableRefObject<ErrorBoundary | null>;
+  envelopeServer: EnvelopeServer<KogitoEditorChannelApi, KogitoEditorEnvelopeApi> | undefined;
 }
 
 export const EditorPageDockContext = React.createContext<EditorPageDockContextType>({} as any);
@@ -70,6 +77,7 @@ interface Props {
   workspaces: WorkspacesContextType;
   dmnLanguageService?: DmnLanguageService;
   isEditorReady: boolean;
+  envelopeServer: EnvelopeServer<KogitoEditorChannelApi, KogitoEditorEnvelopeApi> | undefined;
   editorValidate?: () => Promise<Notification[]>;
 }
 
@@ -79,6 +87,7 @@ export function EditorPageDockContextProvider({
   workspaces,
   workspaceFile,
   isEditorReady,
+  envelopeServer,
   editorValidate,
 }: React.PropsWithChildren<Props>) {
   const { i18n } = useOnlineI18n();
@@ -99,14 +108,14 @@ export function EditorPageDockContextProvider({
 
   const notificationsPanelTabNames = useMemo(() => {
     if (workspaceFile.extension.toLowerCase() === "dmn") {
-      return [i18n.terms.validation, i18n.terms.execution];
+      return [i18n.terms.validation, i18n.terms.evaluation];
     }
     return [i18n.terms.validation];
-  }, [workspaceFile.extension, i18n.terms.validation, i18n.terms.execution]);
+  }, [workspaceFile.extension, i18n.terms.validation, i18n.terms.evaluation]);
 
   useEffect(() => {
-    if (!notificationsPanelTabNames.includes(i18n.terms.execution)) {
-      notificationsToggle?.deleteNotificationsFromTab(i18n.terms.execution);
+    if (!notificationsPanelTabNames.includes(i18n.terms.evaluation)) {
+      notificationsToggle?.deleteNotificationsFromTab(i18n.terms.evaluation);
     }
     if (notificationsPanel && notificationsToggle) {
       const notifications = notificationsToggle.getNotifications();
@@ -117,9 +126,14 @@ export function EditorPageDockContextProvider({
   }, [i18n, notificationsPanel, notificationsPanelTabNames, notificationsToggle]);
 
   const setNotifications = useCallback(
-    (tabName: string, path: string, notifications: Notification[]) => {
-      notificationsToggle?.setNewNotifications(tabName, { path, notifications });
-      notificationsPanel?.getTab(tabName)?.kogitoNotifications_setNotifications(path, notifications);
+    (tabName: string, normalizedPosixPathRelativeToTheWorkspaceRoot: string, notifications: Notification[]) => {
+      notificationsToggle?.setNewNotifications(tabName, {
+        path: normalizedPosixPathRelativeToTheWorkspaceRoot,
+        notifications,
+      });
+      notificationsPanel
+        ?.getTab(tabName)
+        ?.kogitoNotifications_setNotifications(normalizedPosixPathRelativeToTheWorkspaceRoot, notifications);
     },
     [notificationsPanel, notificationsToggle]
   );
@@ -234,9 +248,9 @@ export function EditorPageDockContextProvider({
         toggleGroupItems,
         panelContent,
         notificationsPanel,
+        envelopeServer,
         error,
         errorBoundaryRef,
-
         addToggleItem,
         removeToggleItem,
         onTogglePanel,

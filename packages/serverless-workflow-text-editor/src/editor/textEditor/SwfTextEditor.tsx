@@ -26,7 +26,7 @@ import { initAugmentationCommands } from "./augmentation/commands";
 import { ChannelType, EditorTheme, useKogitoEditorEnvelopeContext } from "@kie-tools-core/editor/dist/api";
 import { useSharedValue } from "@kie-tools-core/envelope-bus/dist/hooks";
 import { getFileLanguage } from "@kie-tools/serverless-workflow-language-service/dist/api";
-import { ServerlessWorkflowTextEditorChannelApi } from "../../api";
+import { ServerlessWorkflowTextEditorChannelApi, ServerlessWorkflowTextEditorEnvelopeApi } from "../../api";
 import { editor } from "monaco-editor";
 
 interface Props {
@@ -43,7 +43,10 @@ const RefForwardingSwfTextEditor: React.ForwardRefRenderFunction<SwfTextEditorAp
   forwardedRef
 ) => {
   const container = useRef<HTMLDivElement>(null);
-  const editorEnvelopeCtx = useKogitoEditorEnvelopeContext<ServerlessWorkflowTextEditorChannelApi>();
+  const editorEnvelopeCtx = useKogitoEditorEnvelopeContext<
+    ServerlessWorkflowTextEditorEnvelopeApi,
+    ServerlessWorkflowTextEditorChannelApi
+  >();
   const [theme] = useSharedValue(editorEnvelopeCtx.channelApi?.shared.kogitoEditor_theme);
   const [services] = useSharedValue(editorEnvelopeCtx.channelApi?.shared.kogitoSwfServiceCatalog_services);
   const [serviceRegistriesSettings] = useSharedValue(
@@ -96,6 +99,8 @@ const RefForwardingSwfTextEditor: React.ForwardRefRenderFunction<SwfTextEditorAp
       return;
     }
 
+    setBackgroundColor(theme!, container.current!);
+
     const instance = controller.show(container.current, theme ?? EditorTheme.LIGHT);
     const commands = initAugmentationCommands(instance, editorEnvelopeCtx.channelApi);
 
@@ -115,11 +120,25 @@ const RefForwardingSwfTextEditor: React.ForwardRefRenderFunction<SwfTextEditorAp
     theme,
     editorEnvelopeCtx.channelApi,
     editorEnvelopeCtx.operatingSystem,
+    isReadOnly,
   ]);
 
   useImperativeHandle(forwardedRef, () => controller, [controller]);
 
   return <div style={{ height: "100%" }} ref={container} />;
 };
+
+function setBackgroundColor(theme: EditorTheme, element: HTMLDivElement) {
+  switch (theme) {
+    case EditorTheme.DARK: {
+      element.style.background = "#000";
+      break;
+    }
+    default: {
+      element.style.background = "#fff";
+      break;
+    }
+  }
+}
 
 export const SwfTextEditor = React.forwardRef(RefForwardingSwfTextEditor);

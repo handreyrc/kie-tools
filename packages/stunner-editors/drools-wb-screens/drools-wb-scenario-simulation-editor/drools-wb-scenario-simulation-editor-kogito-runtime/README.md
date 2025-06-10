@@ -1,3 +1,20 @@
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one
+   or more contributor license agreements.  See the NOTICE file
+   distributed with this work for additional information
+   regarding copyright ownership.  The ASF licenses this file
+   to you under the Apache License, Version 2.0 (the
+   "License"); you may not use this file except in compliance
+   with the License.  You may obtain a copy of the License at
+     http://www.apache.org/licenses/LICENSE-2.0
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
 # Kogito Runtime Webapp
 
 This webapp is meant as runtime environment. It **does not provides** methods and functions (ex. file retrieval) that should be provided by running environment (ex. vs code).
@@ -22,8 +39,8 @@ Some minimal tests may be done in the following way:
 ## VSCODE Integration
 
 1. clone https://github.com/apache/incubator-kie-tools
-2. Launch pnpm init on kie-tools directory
-3. Launch pnpm build:prod (pnpm build:fast to skip tests)
+2. Launch pnpm bootstrap on incubator-kie-tools directory
+3. Launch pnpm -r build:dev
 4. Launch VS Code (you can find it in a path similar to: `kie-tools/packages/kie-editors-dev-vscode-extension/.vscode-test/vscode-1.43.0/VSCode-linux-x64/bin/code` ) with `--enable-proposed-api kiegroup.kie-editors-dev-vscode-extension` parameter
 5. In VS Code, open kie-tools/packages/kie-editors-dev-vscode-extension/ folder
 6. Launch DEBUG MODE (F5)

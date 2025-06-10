@@ -20,9 +20,7 @@
 import * as vscode from "vscode";
 import { Uri, Webview } from "vscode";
 import * as __path from "path";
-import { NotificationsChannelApi } from "@kie-tools-core/notifications/dist/api";
-import { BackendProxy } from "@kie-tools-core/backend/dist/api";
-import { ResourceContentService, WorkspaceChannelApi } from "@kie-tools-core/workspace/dist/api";
+import { ResourceContentService } from "@kie-tools-core/workspace/dist/api";
 import {
   EditorEnvelopeLocator,
   EnvelopeContent,
@@ -33,8 +31,8 @@ import {
 import { EnvelopeBusMessageBroadcaster } from "./EnvelopeBusMessageBroadcaster";
 import { VsCodeKieEditorController, KogitoEditorDocument } from "./VsCodeKieEditorController";
 import { VsCodeKieEditorStore } from "./VsCodeKieEditorStore";
-import { VsCodeResourceContentServiceForDanglingFiles } from "./VsCodeResourceContentServiceForDanglingFiles";
-import { VsCodeResourceContentServiceForWorkspaces } from "./VsCodeResourceContentServiceForWorkspaces";
+import { VsCodeResourceContentServiceForDanglingFiles } from "./workspace/VsCodeResourceContentServiceForDanglingFiles";
+import { VsCodeResourceContentServiceForWorkspaces } from "./workspace/VsCodeResourceContentServiceForWorkspaces";
 import { I18n } from "@kie-tools-core/i18n/dist/core";
 import { VsCodeI18n } from "./i18n";
 import { JavaCodeCompletionApi } from "@kie-tools-core/vscode-java-code-completion/dist/api";
@@ -42,6 +40,9 @@ import {
   DefaultVsCodeEditorChannelApiProducer,
   VsCodeKieEditorChannelApiProducer,
 } from "./VsCodeKieEditorChannelApiProducer";
+import { getWorkspaceRoot } from "./workspace/workspaceRoot";
+import { VsCodeNotificationsChannelApiImpl } from "./notifications/VsCodeNotificationsChannelApiImpl";
+import { VsCodeWorkspaceChannelApiImpl } from "./workspace/VsCodeWorkspaceChannelApiImpl";
 
 export class VsCodeKieEditorControllerFactory {
   constructor(
@@ -49,9 +50,8 @@ export class VsCodeKieEditorControllerFactory {
     private readonly editorStore: VsCodeKieEditorStore,
     private readonly editorEnvelopeLocator: EditorEnvelopeLocator,
     private readonly messageBroadcaster: EnvelopeBusMessageBroadcaster,
-    private readonly workspaceApi: WorkspaceChannelApi,
-    private readonly backendProxy: BackendProxy,
-    private readonly notificationsApi: NotificationsChannelApi,
+    private readonly vscodeWorkspace: VsCodeWorkspaceChannelApiImpl,
+    private readonly vscodeNotifications: VsCodeNotificationsChannelApiImpl,
     private readonly javaCodeCompletionApi: JavaCodeCompletionApi,
     private readonly viewType: string,
     private readonly i18n: I18n<VsCodeI18n>,
@@ -66,10 +66,7 @@ export class VsCodeKieEditorControllerFactory {
     };
 
     const editorEnvelopeLocator = this.getEditorEnvelopeLocatorForWebview(webviewPanel.webview);
-    const resourceContentService = this.createResourceContentService(
-      document.document.uri.fsPath,
-      vscode.workspace.asRelativePath(document.document.uri, false).replace(/\//g, __path.sep)
-    );
+    const resourceContentService = this.createResourceContentService(document);
 
     const envelopeMapping = editorEnvelopeLocator.getEnvelopeMapping(document.document.uri.fsPath);
     if (!envelopeMapping) {
@@ -98,11 +95,17 @@ export class VsCodeKieEditorControllerFactory {
     editor.startListeningToDocumentChanges();
   }
 
-  public createResourceContentService(path: string, workspacePath: string): ResourceContentService {
-    if (this.isAssetInWorkspace(path)) {
-      return new VsCodeResourceContentServiceForWorkspaces(this.getParentFolder(workspacePath));
+  public createResourceContentService(document: KogitoEditorDocument): ResourceContentService {
+    const workspaceRoot = getWorkspaceRoot(document.document);
+    if (workspaceRoot.type === "workspace") {
+      return new VsCodeResourceContentServiceForWorkspaces({
+        workspaceRootAbsoluteFsPath: workspaceRoot.workspaceRootAbsoluteFsPath,
+        document: document.document,
+      });
+    } else if (workspaceRoot.type === "dangling") {
+      return new VsCodeResourceContentServiceForDanglingFiles({ openFileAbsoluteFsPath: document.document.uri.fsPath });
     } else {
-      return new VsCodeResourceContentServiceForDanglingFiles(this.getParentFolder(path));
+      throw new Error("Unknown workspaceRoot type: " + workspaceRoot.type);
     }
   }
 
@@ -113,9 +116,8 @@ export class VsCodeKieEditorControllerFactory {
     return this.channelApiProducer.get(
       editor,
       resourceContentService,
-      this.workspaceApi,
-      this.backendProxy,
-      this.notificationsApi,
+      this.vscodeWorkspace,
+      this.vscodeNotifications,
       this.javaCodeCompletionApi,
       this.viewType,
       this.i18n
@@ -150,17 +152,13 @@ export class VsCodeKieEditorControllerFactory {
     return "";
   }
 
-  private getWebviewPath(webview: Webview, relativePath: string) {
-    return webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, relativePath)).toString();
+  private getWebviewPath(webview: Webview, relativeUriPath: string) {
+    return webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, relativeUriPath)).toString();
   }
 
-  private isAssetInWorkspace(path: string): boolean {
-    return vscode.workspace.workspaceFolders?.map((f) => f.uri.fsPath).find((p) => path.startsWith(p)) !== undefined;
-  }
-
-  private getParentFolder(assetPath: string) {
-    if (assetPath.includes(__path.sep)) {
-      return assetPath.substring(0, assetPath.lastIndexOf(__path.sep) + 1);
+  private getParentFolder(absoluteFsPath: string) {
+    if (absoluteFsPath.includes(__path.sep)) {
+      return absoluteFsPath.substring(0, absoluteFsPath.lastIndexOf(__path.sep) + 1);
     }
     return "";
   }

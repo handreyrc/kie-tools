@@ -21,26 +21,19 @@ import * as path from "path";
 import CopyPlugin from "copy-webpack-plugin";
 import { merge } from "webpack-merge";
 import * as stunnerEditors from "@kie-tools/stunner-editors";
-import { EnvironmentPlugin } from "webpack";
-
 import HtmlWebpackPlugin from "html-webpack-plugin";
-import { ProvidePlugin } from "webpack";
+import { ProvidePlugin, EnvironmentPlugin } from "webpack";
 import { defaultEnvJson } from "./build/defaultEnvJson";
-
 import common from "@kie-tools-core/webpack-base/webpack.common.config";
 import patternflyBase from "@kie-tools-core/patternfly-base";
 import childProcess from "child_process";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import HtmlReplaceWebpackPlugin from "html-replace-webpack-plugin";
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
 import { env } from "./env";
 const buildEnv: any = env; // build-env is not typed
 
-export default async (env: any, argv: any) => {
+export default async (webpackEnv: any, webpackArgv: any) => {
   const buildInfo = getBuildInfo();
   const [
     extendedServices_linuxDownloadUrl,
@@ -48,24 +41,24 @@ export default async (env: any, argv: any) => {
     extendedServices_windowsDownloadUrl,
     extendedServices_compatibleVersion,
   ] = getExtendedServicesArgs();
-  const gtmResource = getGtmResource();
 
   let lastCommitHash = "";
   try {
     lastCommitHash = childProcess.execSync("git rev-parse --short HEAD").toString().trim();
     JSON.stringify(lastCommitHash);
   } catch (e) {
-    throw new Error(e);
+    lastCommitHash = "not-built-inside-git-root";
   }
 
   return [
-    merge(common(env), {
+    merge(common(webpackEnv), {
       entry: {
         "workspace/worker/sharedWorker": "./src/workspace/worker/sharedWorker.ts",
       },
       target: "webworker",
       plugins: [
         new ProvidePlugin({
+          process: require.resolve("process/browser.js"),
           Buffer: ["buffer", "Buffer"],
         }),
         new CopyPlugin({
@@ -79,7 +72,7 @@ export default async (env: any, argv: any) => {
       ],
     }),
     {
-      ...merge(common(env), {
+      ...merge(common(webpackEnv), {
         entry: {
           index: "./src/index.tsx",
           "bpmn-envelope": "./src/envelope/BpmnEditorEnvelopeApp.ts",
@@ -93,12 +86,6 @@ export default async (env: any, argv: any) => {
             inject: false,
             minify: false,
           }),
-          new HtmlReplaceWebpackPlugin([
-            {
-              pattern: /(<!-- gtm):([\w-/]+)(\s*-->)?/g,
-              replacement: (match: any, gtm: any, type: keyof typeof gtmResource) => gtmResource?.[type] ?? `${match}`,
-            },
-          ]),
           new EnvironmentPlugin({
             WEBPACK_REPLACE__commitHash: lastCommitHash,
             WEBPACK_REPLACE__buildInfo: buildInfo,
@@ -106,8 +93,8 @@ export default async (env: any, argv: any) => {
             WEBPACK_REPLACE__extendedServicesMacOsDownloadUrl: extendedServices_macOsDownloadUrl,
             WEBPACK_REPLACE__extendedServicesWindowsDownloadUrl: extendedServices_windowsDownloadUrl,
             WEBPACK_REPLACE__extendedServicesCompatibleVersion: extendedServices_compatibleVersion,
-            WEBPACK_REPLACE__quarkusPlatformVersion: buildEnv.quarkusPlatform.version,
-            WEBPACK_REPLACE__kogitoRuntimeVersion: buildEnv.kogitoRuntime.version,
+            WEBPACK_REPLACE__quarkusPlatformVersion: buildEnv.versions.quarkus,
+            WEBPACK_REPLACE__kogitoRuntimeVersion: buildEnv.versions.kogito,
           }),
           new CopyPlugin({
             patterns: [
@@ -139,13 +126,6 @@ export default async (env: any, argv: any) => {
                 from: path.join(path.dirname(require.resolve("@kie-tools/pmml-editor/package.json")), "/static/images"),
                 to: "./images",
               },
-              {
-                from: path.join(
-                  path.dirname(require.resolve("@kie-tools/dev-deployment-upload-service/package.json")),
-                  "/dist"
-                ),
-                to: "./dev-deployments/upload-service",
-              },
             ],
           }),
           new ProvidePlugin({
@@ -172,7 +152,7 @@ export default async (env: any, argv: any) => {
         ],
       }),
       devServer: {
-        https: buildEnv.onlineEditor.dev.https,
+        server: buildEnv.onlineEditor.dev.https ? "https" : "http",
         port: buildEnv.onlineEditor.dev.port,
         historyApiFallback: false,
         static: [{ directory: path.join(__dirname, "./dist") }, { directory: path.join(__dirname, "./static") }],
@@ -180,43 +160,11 @@ export default async (env: any, argv: any) => {
         client: {
           overlay: false,
         },
+        allowedHosts: "all",
       },
     },
   ];
 };
-
-function getGtmResource() {
-  const gtmId = buildEnv.onlineEditor.gtmId;
-  console.info(`Google Tag Manager :: ID: ${gtmId}`);
-
-  if (!gtmId) {
-    return undefined;
-  }
-
-  return {
-    id: gtmId,
-    header: `<!-- Google Tag Manager -->
-    <script>
-      (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-      new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-      j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-      'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-      })(window,document,'script','dataLayer','${gtmId}');
-    </script>
-    <!-- End Google Tag Manager -->`,
-    body: `<!-- Google Tag Manager (noscript) -->
-    <noscript>
-      <iframe
-        src="https://www.googletagmanager.com/ns.html?id=${gtmId}"
-        height="0"
-        width="0"
-        style="display:none;visibility:hidden"
-      >
-      </iframe>
-    </noscript>
-    <!-- End Google Tag Manager (noscript) -->`,
-  };
-}
 
 function getBuildInfo() {
   const buildInfo = buildEnv.onlineEditor.buildInfo;

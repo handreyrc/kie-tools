@@ -18,13 +18,14 @@
  */
 
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const { ProvidePlugin } = require("webpack");
 const patternflyBase = require("@kie-tools-core/patternfly-base");
 const dashbuilderClient = require("@kie-tools/dashbuilder-client");
 const { merge } = require("webpack-merge");
 const common = require("@kie-tools-core/webpack-base/webpack.common.config");
 
-const commonConfig = (env) =>
-  merge(common(env), {
+const commonConfig = (webpackEnv) =>
+  merge(common(webpackEnv), {
     output: {
       library: "DashbuilderEditor",
       libraryTarget: "umd",
@@ -36,22 +37,27 @@ const commonConfig = (env) =>
     },
   });
 
-module.exports = async (env) => [
-  merge(commonConfig(env), {
+module.exports = async (webpackEnv) => [
+  merge(commonConfig(webpackEnv), {
     target: "node",
     entry: {
       "extension/extension": "./src/extension/extension.ts",
     },
     plugins: [],
   }),
-  merge(commonConfig(env), {
+  merge(commonConfig(webpackEnv), {
     target: "webworker",
     entry: {
       "browser/extension": "./src/browser/extension.ts",
     },
-    plugins: [],
+    plugins: [
+      new ProvidePlugin({
+        process: require.resolve("process/browser.js"),
+        Buffer: ["buffer", "Buffer"],
+      }),
+    ],
   }),
-  merge(commonConfig(env), {
+  merge(commonConfig(webpackEnv), {
     target: "web",
     entry: {
       "webview/DashbuilderEditorEnvelopeApp": "./src/webview/DashbuilderEditorEnvelopeApp.ts",

@@ -17,27 +17,22 @@
  * under the License.
  */
 
-import * as _ from "lodash";
+import _ from "lodash";
 import * as React from "react";
 import { useCallback } from "react";
 import * as ReactTable from "react-table";
-import {
-  DmnBuiltInDataType,
-  BeeTableHeaderVisibility,
-  ExpressionDefinition,
-  InsertRowColumnsDirection,
-} from "../../api";
-import { useBoxedExpressionEditor } from "../../expressions/BoxedExpressionEditor/BoxedExpressionEditorContext";
+import { BeeTableHeaderVisibility, BoxedExpression, InsertRowColumnsDirection } from "../../api";
 import { BeeTableTh } from "./BeeTableTh";
 import { BeeTableThResizable } from "./BeeTableThResizable";
-import { InlineEditableTextInput } from "../../expressions/ExpressionDefinitionHeaderMenu";
 import { ResizerStopBehavior } from "../../resizing/ResizingWidthsContext";
 import { getCanvasFont, getTextWidth } from "../../resizing/WidthsToFitData";
 import { BeeTableThController } from "./BeeTableThController";
 import { assertUnreachable } from "../../expressions/ExpressionDefinitionRoot/ExpressionDefinitionLogicTypeSelector";
+import { InlineEditableTextInput } from "./InlineEditableTextInput";
+import { DEFAULT_EXPRESSION_VARIABLE_NAME } from "../../expressionVariable/ExpressionVariableMenu";
 
 export interface BeeTableColumnUpdate<R extends object> {
-  dataType: DmnBuiltInDataType;
+  typeRef: string | undefined;
   name: string;
   column: ReactTable.ColumnInstance<R>;
   columnIndex: number;
@@ -66,6 +61,10 @@ export interface BeeTableHeaderProps<R extends object> {
   tableColumns: ReactTable.Column<R>[];
   /** Function to be executed when columns are modified */
   onColumnUpdates?: (columnUpdates: BeeTableColumnUpdate<R>[]) => void;
+  /** Function to be executed when a column's header is clicked */
+  onHeaderClick?: (columnKey: string) => void;
+  /** Function to be executed when a key up event occurs in a column's header */
+  onHeaderKeyUp?: (columnKey: string) => void;
   /** Option to enable or disable header edits */
   isEditableHeader: boolean;
   /** */
@@ -82,7 +81,9 @@ export interface BeeTableHeaderProps<R extends object> {
 
   resizerStopBehavior: ResizerStopBehavior;
   lastColumnMinWidth?: number;
-  setEditing: React.Dispatch<React.SetStateAction<boolean>>;
+  setActiveCellEditing: (isEditing: boolean) => void;
+
+  isReadOnly: boolean;
 }
 
 export function BeeTableHeader<R extends object>({
@@ -94,14 +95,15 @@ export function BeeTableHeader<R extends object>({
   onColumnUpdates,
   isEditableHeader,
   onColumnAdded,
+  onHeaderClick,
+  onHeaderKeyUp,
   shouldRenderRowIndexColumn,
   shouldShowRowsInlineControls,
   resizerStopBehavior,
   lastColumnMinWidth,
-  setEditing,
+  setActiveCellEditing,
+  isReadOnly,
 }: BeeTableHeaderProps<R>) {
-  const { beeGwtService } = useBoxedExpressionEditor();
-
   const getColumnLabel: (groupType: string) => string | undefined = useCallback(
     (groupType) => {
       if (_.isObject(editColumnLabel) && _.has(editColumnLabel, groupType)) {
@@ -118,15 +120,15 @@ export function BeeTableHeader<R extends object>({
     (
       column: ReactTable.ColumnInstance<R>,
       columnIndex: number
-    ) => (args: Pick<ExpressionDefinition, "name" | "dataType">) => void
+    ) => (args: Pick<BoxedExpression, "@_label" | "@_typeRef">) => void
   >(
     (column, columnIndex) => {
-      return ({ name = "", dataType = DmnBuiltInDataType.Undefined }) => {
+      return ({ "@_label": name = DEFAULT_EXPRESSION_VARIABLE_NAME, "@_typeRef": typeRef = undefined }) => {
         onColumnUpdates?.([
           {
             // Subtract one because of the rowIndex column.
             columnIndex: columnIndex - 1,
-            dataType,
+            typeRef,
             name,
             column,
           },
@@ -155,7 +157,8 @@ export function BeeTableHeader<R extends object>({
           className={classNames}
           groupType={column.groupType}
           isLastLevelColumn={(column.columns?.length ?? 0) <= 0}
-          shouldShowColumnsInlineControls={shouldShowRowsInlineControls}
+          shouldShowColumnsInlineControls={!isReadOnly && shouldShowRowsInlineControls}
+          isReadOnly={isReadOnly}
         >
           <div className="header-cell" data-ouia-component-type="expression-column-header">
             {column.label}
@@ -163,7 +166,7 @@ export function BeeTableHeader<R extends object>({
         </BeeTableTh>
       );
     },
-    [getColumnKey, shouldShowRowsInlineControls]
+    [getColumnKey, isReadOnly, shouldShowRowsInlineControls]
   );
 
   const renderColumn = useCallback<
@@ -187,10 +190,13 @@ export function BeeTableHeader<R extends object>({
           {!visitedColumns.has(column) && (
             <BeeTableThResizable
               forwardRef={thRef}
+              onHeaderClick={onHeaderClick}
+              onHeaderKeyUp={onHeaderKeyUp}
               resizerStopBehavior={resizerStopBehavior}
               rowSpan={rowSpan}
               shouldRenderRowIndexColumn={shouldRenderRowIndexColumn}
               isEditableHeader={isEditableHeader}
+              isReadOnly={isReadOnly}
               shouldShowColumnsInlineControls={shouldShowRowsInlineControls}
               getColumnKey={getColumnKey}
               getColumnLabel={getColumnLabel}
@@ -199,8 +205,8 @@ export function BeeTableHeader<R extends object>({
               columnIndex={columnIndex}
               rowIndex={rowIndex}
               onColumnAdded={onColumnAdded}
-              onExpressionHeaderUpdated={({ name, dataType }) =>
-                onExpressionHeaderUpdated(column, columnIndex)({ name, dataType })
+              onExpressionHeaderUpdated={({ name, typeRef }) =>
+                onExpressionHeaderUpdated(column, columnIndex)({ "@_label": name, "@_typeRef": typeRef })
               }
               lastColumnMinWidth={
                 columnIndex === reactTableInstance.allColumns.length - 1 ? lastColumnMinWidth : undefined
@@ -213,11 +219,11 @@ export function BeeTableHeader<R extends object>({
                   );
                 } else {
                   const name = thRef.current!.querySelector(".expression-info-name")!;
-                  const dataType = thRef.current!.querySelector(".expression-info-data-type")!;
+                  const typeRef = thRef.current!.querySelector(".expression-info-data-type")!;
                   return Math.ceil(
                     Math.max(
                       getTextWidth(name.textContent ?? "", getCanvasFont(name)),
-                      getTextWidth(dataType.textContent ?? "", getCanvasFont(dataType))
+                      getTextWidth(typeRef.textContent ?? "", getCanvasFont(typeRef))
                     )
                   );
                 }
@@ -229,22 +235,39 @@ export function BeeTableHeader<R extends object>({
                 >
                   {column.headerCellElement ? (
                     column.headerCellElement
-                  ) : column.isInlineEditable ? (
+                  ) : column.isInlineEditable && !isReadOnly ? (
                     <InlineEditableTextInput
-                      setEditing={setEditing}
+                      setActiveCellEditing={setActiveCellEditing}
                       columnIndex={columnIndex}
                       rowIndex={rowIndex}
                       value={column.label}
                       onChange={(value) => {
-                        onExpressionHeaderUpdated(column, columnIndex)({ name: value, dataType: column.dataType });
+                        onExpressionHeaderUpdated(
+                          column,
+                          columnIndex
+                        )({ "@_label": value, "@_typeRef": column.dataType });
                       }}
+                      isReadOnly={isReadOnly}
                     />
                   ) : (
-                    <p className="expression-info-name pf-u-text-truncate name">{column.label}</p>
+                    <p
+                      data-testid={"kie-tools--bee--expression-info-name"}
+                      className="expression-info-name pf-v5-u-text-truncate name"
+                    >
+                      {column.label}
+                    </p>
                   )}
                   {column.dataType ? (
-                    <p className="expression-info-data-type pf-u-text-truncate data-type">({column.dataType})</p>
+                    <p
+                      data-testid={"kie-tools--bee--expression-info-data-type"}
+                      className="expression-info-data-type pf-v5-u-text-truncate data-type"
+                    >
+                      ({column.dataType})
+                    </p>
                   ) : null}
+                  {column.headerCellElementExtension !== undefined && (
+                    <div className="header-cell-element-extension">{column.headerCellElementExtension}</div>
+                  )}
                 </div>
               }
             />
@@ -260,14 +283,17 @@ export function BeeTableHeader<R extends object>({
       renderRowIndexColumn,
       getColumnKey,
       reactTableInstance,
+      onHeaderClick,
+      onHeaderKeyUp,
       resizerStopBehavior,
       isEditableHeader,
       shouldShowRowsInlineControls,
       getColumnLabel,
       onColumnAdded,
       lastColumnMinWidth,
-      setEditing,
+      setActiveCellEditing,
       onExpressionHeaderUpdated,
+      isReadOnly,
     ]
   );
 

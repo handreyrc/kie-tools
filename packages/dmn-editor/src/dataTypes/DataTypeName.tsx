@@ -18,35 +18,47 @@
  */
 
 import * as React from "react";
-import { useCallback } from "react";
-import { DMN15__tItemDefinition } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/ts-gen/types";
+import { useCallback, useMemo, useState } from "react";
+import {
+  DMN15__tDefinitions,
+  DMN15__tItemDefinition,
+} from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/ts-gen/types";
+import { Normalized } from "@kie-tools/dmn-marshaller/dist/normalization/normalize";
 import { Flex } from "@patternfly/react-core/dist/js/layouts/Flex";
 import { EditableNodeLabel, useEditableNodeLabel } from "../diagram/nodes/EditableNodeLabel";
 import { TypeRefLabel } from "./TypeRefLabel";
-import { useDmnEditorStoreApi } from "../store/Store";
+import { useDmnEditorStore, useDmnEditorStoreApi } from "../store/StoreContext";
 import { renameItemDefinition } from "../mutations/renameItemDefinition";
-import { useDmnEditorDerivedStore } from "../store/DerivedStore";
-import { UniqueNameIndex } from "../Dmn15Spec";
+import { UniqueNameIndex } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/Dmn15Spec";
 import { buildFeelQNameFromNamespace } from "../feel/buildFeelQName";
 import { InlineFeelNameInput, OnInlineFeelNameRenamed } from "../feel/InlineFeelNameInput";
+import { useExternalModels } from "../includedModels/DmnEditorDependenciesContext";
+import { State } from "../store/Store";
+import { DmnBuiltInDataType } from "@kie-tools/boxed-expression-component/dist/api";
+import {
+  isIdentifierReferencedInSomeExpression,
+  RefactorConfirmationDialog,
+} from "../refactor/RefactorConfirmationDialog";
+import { DataTypeIndex } from "./DataTypes";
+import { isStruct } from "./DataTypeSpec";
 
 export function DataTypeName({
-  isReadonly,
+  isReadOnly,
   itemDefinition,
   isActive,
   editMode,
   relativeToNamespace,
   shouldCommitOnBlur,
-  allUniqueNames,
+  onGetAllUniqueNames,
   enableAutoFocusing,
 }: {
-  isReadonly: boolean;
+  isReadOnly: boolean;
   editMode: "hover" | "double-click";
-  itemDefinition: DMN15__tItemDefinition;
+  itemDefinition: Normalized<DMN15__tItemDefinition>;
   isActive: boolean;
   relativeToNamespace: string;
   shouldCommitOnBlur?: boolean;
-  allUniqueNames: UniqueNameIndex;
+  onGetAllUniqueNames: (s: State) => UniqueNameIndex;
   enableAutoFocusing?: boolean;
 }) {
   const { isEditingLabel, setEditingLabel, triggerEditing, triggerEditingIfEnter } = useEditableNodeLabel(
@@ -54,9 +66,11 @@ export function DataTypeName({
   );
 
   const dmnEditorStoreApi = useDmnEditorStoreApi();
-  const { allDataTypesById, importsByNamespace } = useDmnEditorDerivedStore();
-
-  const dataType = allDataTypesById.get(itemDefinition["@_id"]!);
+  const { externalModelsByNamespace } = useExternalModels();
+  const dataType = useDmnEditorStore((s) =>
+    s.computed(s).getDataTypes(externalModelsByNamespace).allDataTypesById.get(itemDefinition["@_id"]!)
+  );
+  const importsByNamespace = useDmnEditorStore((s) => s.computed(s).importsByNamespace());
 
   const feelQNameToDisplay = buildFeelQNameFromNamespace({
     namedElement: itemDefinition,
@@ -65,37 +79,122 @@ export function DataTypeName({
     relativeToNamespace,
   });
 
-  const onRenamed = useCallback<OnInlineFeelNameRenamed>(
-    (newName) => {
-      if (isReadonly) {
-        return;
-      }
-
-      dmnEditorStoreApi.setState((state) => {
-        renameItemDefinition({
-          definitions: state.dmn.model.definitions,
-          newName,
-          itemDefinitionId: itemDefinition["@_id"]!,
-          allDataTypesById,
-        });
-      });
-    },
-    [allDataTypesById, dmnEditorStoreApi, isReadonly, itemDefinition]
+  const externalDmnModelsByNamespaceMap = useDmnEditorStore((s) =>
+    s.computed(s).getExternalDmnModelsByNamespaceMap(externalModelsByNamespace)
   );
 
   const _shouldCommitOnBlur = shouldCommitOnBlur ?? true; // Defaults to true
 
+  const [isRefactorModalOpen, setIsRefactorModalOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+  const identifierId = useMemo(() => itemDefinition["@_id"], [itemDefinition]);
+  const oldName = useMemo(() => itemDefinition["@_name"], [itemDefinition]);
+
+  const currentName = useMemo(() => {
+    if (editMode === "hover") {
+      return newName === "" ? feelQNameToDisplay.full : newName;
+    } else if (editMode === "double-click") {
+      return newName === "" ? itemDefinition["@_name"] : newName;
+    } else {
+      throw new Error(`Unknown edit mode in DataTypeName: ${editMode}`);
+    }
+  }, [editMode, feelQNameToDisplay.full, itemDefinition, newName]);
+
+  const applyRename = useCallback(
+    (args: {
+      definitions: Normalized<DMN15__tDefinitions>;
+      newName: string;
+      shouldRenameReferencedExpressions: boolean;
+      allDataTypesById: DataTypeIndex;
+    }) => {
+      renameItemDefinition({
+        ...args,
+        itemDefinitionId: itemDefinition["@_id"]!,
+        externalDmnModelsByNamespaceMap,
+      });
+    },
+    [externalDmnModelsByNamespaceMap, itemDefinition]
+  );
+
+  const onRenamed = useCallback<OnInlineFeelNameRenamed>(
+    (newName) => {
+      if (isReadOnly || newName === oldName) {
+        return;
+      }
+
+      dmnEditorStoreApi.setState((state) => {
+        if (
+          isIdentifierReferencedInSomeExpression({
+            identifierUuid: identifierId,
+            dmnDefinitions: state.dmn.model.definitions,
+            externalDmnModelsByNamespaceMap,
+          })
+        ) {
+          setNewName(newName);
+          setIsRefactorModalOpen(true);
+        } else {
+          applyRename({
+            definitions: state.dmn.model.definitions,
+            newName,
+            shouldRenameReferencedExpressions: false,
+            allDataTypesById: state.computed(state).getDataTypes(externalModelsByNamespace).allDataTypesById,
+          });
+        }
+      });
+    },
+    [
+      applyRename,
+      dmnEditorStoreApi,
+      externalDmnModelsByNamespaceMap,
+      externalModelsByNamespace,
+      identifierId,
+      isReadOnly,
+      oldName,
+    ]
+  );
+
+  const confirmRename = useCallback(
+    (shouldRenameReferencedExpressions: boolean) => {
+      setIsRefactorModalOpen(false);
+      dmnEditorStoreApi.setState((state) => {
+        applyRename({
+          definitions: state.dmn.model.definitions,
+          newName,
+          shouldRenameReferencedExpressions,
+          allDataTypesById: state.computed(state).getDataTypes(externalModelsByNamespace).allDataTypesById,
+        });
+      });
+    },
+    [applyRename, dmnEditorStoreApi, externalModelsByNamespace, newName]
+  );
+
   return (
     <>
+      <RefactorConfirmationDialog
+        onConfirmExpressionRefactor={() => {
+          confirmRename(true);
+        }}
+        onConfirmRenameOnly={() => {
+          confirmRename(false);
+        }}
+        isRefactorModalOpen={isRefactorModalOpen}
+        fromName={oldName}
+        toName={newName}
+        onCancel={() => {
+          setNewName("");
+          setIsRefactorModalOpen(false);
+        }}
+      />
       {editMode === "hover" && (
         <InlineFeelNameInput
           isPlain={true}
-          isReadonly={isReadonly}
+          isReadOnly={isReadOnly}
           id={itemDefinition["@_id"]!}
           shouldCommitOnBlur={_shouldCommitOnBlur}
-          name={feelQNameToDisplay.full}
+          name={currentName}
           onRenamed={onRenamed}
-          allUniqueNames={allUniqueNames}
+          allUniqueNames={onGetAllUniqueNames}
+          enableAutoFocusing={enableAutoFocusing}
         />
       )}
       {editMode === "double-click" && (
@@ -112,12 +211,13 @@ export function DataTypeName({
           {/* Using this component here is not ideal, as we're not dealing with Node names, but it works well enough */}
           <EditableNodeLabel
             truncate={true}
+            enableAutoFocusing={enableAutoFocusing}
             grow={true}
             isEditing={isEditingLabel}
             setEditing={setEditingLabel}
             onChange={onRenamed}
             shouldCommitOnBlur={shouldCommitOnBlur}
-            value={itemDefinition["@_name"]}
+            value={currentName}
             key={itemDefinition["@_id"]}
             position={"top-left"}
             namedElement={itemDefinition}
@@ -126,11 +226,11 @@ export function DataTypeName({
               localPart: itemDefinition["@_name"],
               prefix: feelQNameToDisplay.prefix,
             }}
-            allUniqueNames={allUniqueNames}
+            onGetAllUniqueNames={onGetAllUniqueNames}
           />
           {!isEditingLabel && (
             <TypeRefLabel
-              typeRef={itemDefinition.typeRef?.__$$text}
+              typeRef={isStruct(itemDefinition) ? "" : itemDefinition.typeRef?.__$$text ?? DmnBuiltInDataType.Undefined}
               isCollection={itemDefinition["@_isCollection"]}
               relativeToNamespace={relativeToNamespace}
             />

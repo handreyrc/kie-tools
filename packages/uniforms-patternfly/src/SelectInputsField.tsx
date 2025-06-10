@@ -19,16 +19,11 @@
 
 import * as React from "react";
 import { useCallback, useMemo, useState } from "react";
-import {
-  Select,
-  SelectOption,
-  SelectOptionObject,
-  SelectVariant,
-} from "@patternfly/react-core/dist/js/components/Select";
+import { Select, SelectOption, SelectOptionObject, SelectVariant } from "@patternfly/react-core/deprecated";
 import wrapField from "./wrapField";
 import { SelectInputProps } from "./SelectField";
 
-type SelectFieldValue = string | string[] | number | number[];
+type SelectFieldValue = string | string[];
 
 function isSelectOptionObject(
   toBeDetermined: string | number | SelectOptionObject
@@ -36,15 +31,14 @@ function isSelectOptionObject(
   return typeof toBeDetermined === "object" && !Array.isArray(toBeDetermined) && toBeDetermined !== null;
 }
 
-function isSelectOptionString(toBeDetermined: string[] | number[]): toBeDetermined is string[] {
-  return (toBeDetermined.length > 0 && typeof toBeDetermined[0] === "string") || toBeDetermined.length === 0;
-}
-
 function SelectInputsField(props: SelectInputProps) {
   const [expanded, setExpanded] = useState<boolean>(false);
   const [selected, setSelected] = useState<SelectFieldValue | undefined>(() => {
-    if (!props.value) {
+    if (props.value === undefined) {
       return [];
+    }
+    if (props.value === null) {
+      return "null";
     }
     if (Array.isArray(props.value)) {
       return [...props.value];
@@ -52,26 +46,24 @@ function SelectInputsField(props: SelectInputProps) {
     return props.value;
   });
 
-  const parseInput = useCallback(
+  // Parses the selection to a string or string[]
+  // This prevents a bug where the number 0 can't be selected
+  const parseSelection = useCallback(
     (selection: string | number | SelectOptionObject, fieldType: typeof Array): SelectFieldValue => {
+      if (selection === null) {
+        return `${selection}`;
+      }
       const parsedSelection = isSelectOptionObject(selection) ? selection.toString() : selection;
 
       if (fieldType !== Array) {
-        return parsedSelection !== "" ? parsedSelection : "";
+        return parsedSelection !== "" ? `${parsedSelection}` : "";
       }
 
       if (Array.isArray(selected)) {
-        if (isSelectOptionString(selected) && typeof parsedSelection === "string") {
-          if (selected.includes(parsedSelection)) {
-            return selected.filter((s) => s !== parsedSelection);
-          }
-          return [parsedSelection, ...selected];
-        } else if (!isSelectOptionString(selected) && typeof parsedSelection === "number") {
-          if (selected.includes(parsedSelection)) {
-            return selected.filter((s) => s !== parsedSelection);
-          }
-          return [parsedSelection, ...selected];
+        if (selected.includes(`${parsedSelection}`)) {
+          return selected.filter((s) => s !== `${parsedSelection}`);
         }
+        return [`${parsedSelection}`, ...selected];
       }
       return [];
     },
@@ -79,18 +71,32 @@ function SelectInputsField(props: SelectInputProps) {
   );
 
   const handleSelect = useCallback(
-    (event: React.MouseEvent | React.ChangeEvent, selection: string | SelectOptionObject) => {
+    (event: React.MouseEvent | React.ChangeEvent, selection: string | number | SelectOptionObject) => {
       if (selection === props.placeholder) {
         props.onChange(undefined);
         setSelected([]);
       } else {
-        const items = parseInput(selection, props.fieldType);
-        props.onChange(items);
-        setSelected(items);
+        if (selection === "null") {
+          props.onChange(null);
+          setSelected("null");
+        } else {
+          const selectedItems = parseSelection(selection, props.fieldType);
+          // If the selection is a number we should convert the selectedItems back to a number
+          const onChanged =
+            selection === null
+              ? null
+              : typeof selection === "number"
+                ? Array.isArray(selectedItems)
+                  ? selectedItems.map((item) => JSON.parse(item))
+                  : JSON.parse(selectedItems)
+                : selectedItems;
+          props.onChange(onChanged);
+          setSelected(selectedItems);
+        }
       }
       setExpanded(false);
     },
-    [parseInput, props]
+    [parseSelection, props]
   );
 
   const selectOptions = useMemo(() => {
@@ -103,7 +109,7 @@ function SelectInputsField(props: SelectInputProps) {
     props.allowedValues?.forEach((value) =>
       options.push(
         <SelectOption key={value} value={value}>
-          {props.transform ? props.transform(value) : value}
+          {props.transform ? props.transform(value) : `${value}`}
         </SelectOption>
       )
     );
@@ -121,9 +127,8 @@ function SelectInputsField(props: SelectInputProps) {
         placeholderText={props.placeholder}
         isOpen={expanded}
         selections={selected}
-        onToggle={(isExpanded) => setExpanded(isExpanded)}
+        onToggle={(_event, isExpanded) => setExpanded(isExpanded)}
         onSelect={handleSelect}
-        value={props.value || (props.fieldType === Array ? [] : undefined)}
         menuAppendTo={props.menuAppendTo}
         direction={props.direction}
       >
