@@ -41,41 +41,38 @@ beforeEach(async () => {
     );
     await gitHubRepoPage.addToken(buildEnv.swfChromeExtension.e2eTestingToken);
   }
-}, 50000);
+});
 
-test(
-  TEST_NAME,
-  async () => {
-    const workflowUrl: string =
-      "https://github.com/apache/incubator-kie-tools/blob/main/packages/chrome-extension-serverless-workflow-editor/e2e-tests/samples/chrome_sample.sw.yaml";
-    let swfPage: GitHubEditorPage = await tools.openPage(GitHubEditorPage, workflowUrl);
-    const fullScreenPage: FullScreenPage = await swfPage.fullScreen();
-    const fullScreenEditor: SwfEditor = await fullScreenPage.getSwfEditor();
-    await fullScreenEditor.enter();
+test(TEST_NAME, async () => {
+  jest.setTimeout(130000);
+  const workflowUrl: string =
+    "https://github.com/apache/incubator-kie-tools/blob/main/packages/chrome-extension-serverless-workflow-editor/e2e-tests/samples/chrome_sample.sw.yaml";
+  let swfPage: GitHubEditorPage = await tools.openPage(GitHubEditorPage, workflowUrl);
+  const fullScreenPage: FullScreenPage = await swfPage.fullScreen();
+  const fullScreenEditor: SwfEditor = await fullScreenPage.getSwfEditor();
+  await fullScreenEditor.enter();
 
-    expect(await fullScreenEditor.isTextEditorPresent()).toBe(true);
-    expect(await fullScreenEditor.isDiagramEditorPresent()).toBe(true);
+  expect(await fullScreenEditor.isTextEditorPresent()).toBe(true);
+  expect(await fullScreenEditor.isDiagramEditorPresent()).toBe(true);
 
-    expect(await fullScreenEditor.isTextEditorKeyboardShortcutsIconPresent()).toBe(true);
-    expect(await fullScreenEditor.isDiagramEditorKeyboardShortcutsIconPresent()).toBe(true);
+  expect(await fullScreenEditor.isTextEditorKeyboardShortcutsIconPresent()).toBe(true);
+  expect(await fullScreenEditor.isDiagramEditorKeyboardShortcutsIconPresent()).toBe(true);
 
-    const editorContent: string = await fullScreenEditor.getTextEditorContent();
-    expect(editorContent).toContain('id: "chrome_extension_sample_yaml"');
-    expect(editorContent).toContain('name: "Chrome Extension Sample YAML"');
-    expect(editorContent).toContain('description: "This YAML sample is created for testing purposes."');
+  const editorContent: string = await fullScreenEditor.getTextEditorContent();
+  expect(editorContent).toContain('id: "chrome_extension_sample_yaml"');
+  expect(editorContent).toContain('name: "Chrome Extension Sample YAML"');
+  expect(editorContent).toContain('description: "This YAML sample is created for testing purposes."');
 
-    await fullScreenEditor.leave();
+  await fullScreenEditor.leave();
 
-    expect(await fullScreenPage.getExitFullScreenUrl()).toBe(workflowUrl + "#");
+  expect(await fullScreenPage.getExitFullScreenUrl()).toBe(workflowUrl + "#");
 
-    await fullScreenPage.scrollToTop();
-    swfPage = await fullScreenPage.exitFullScreen();
-    expect(await swfPage.isEditorVisible()).toBe(true);
-    expect(await swfPage.isSourceVisible()).toBe(false);
-  },
-  120000
-);
+  await fullScreenPage.scrollToTop();
+  swfPage = await fullScreenPage.exitFullScreen();
+  expect(await swfPage.isEditorVisible()).toBe(true);
+  expect(await swfPage.isSourceVisible()).toBe(false);
+});
 
 afterEach(async () => {
   await tools.finishTest();
-}, 50000);
+});

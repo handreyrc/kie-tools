@@ -43,5 +43,5 @@ module.exports = {
     ...typescriptTransform,
   },
   testRegex: ["e2e-tests/tests/.*Test.ts"],
-  testTimeout: 120000,
+  testTimeout: 100000,
 };
