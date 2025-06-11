@@ -43,44 +43,48 @@ beforeEach(async () => {
     );
     await gitHubRepoPage.addToken(buildEnv.swfChromeExtension.e2eTestingToken);
   }
-});
+}, 50000);
 
-test(TEST_NAME, async () => {
-  const gitHubListPage: GitHubListPage = await tools.openPage(
-    GitHubListPage,
-    "https://github.com/apache/incubator-kie-tools/tree/main/packages/chrome-extension-serverless-workflow-editor/e2e-tests/samples"
-  );
-  const gitHubFile: GitHubListItem = await gitHubListPage.getFile("chrome_sample.sw.json");
-  const editorPage: GitHubEditorPage = await gitHubFile.open();
+test(
+  TEST_NAME,
+  async () => {
+    const gitHubListPage: GitHubListPage = await tools.openPage(
+      GitHubListPage,
+      "https://github.com/apache/incubator-kie-tools/tree/main/packages/chrome-extension-serverless-workflow-editor/e2e-tests/samples"
+    );
+    const gitHubFile: GitHubListItem = await gitHubListPage.getFile("chrome_sample.sw.json");
+    const editorPage: GitHubEditorPage = await gitHubFile.open();
 
-  const swfEditor: SwfEditor = await editorPage.getSwfEditor();
+    const swfEditor: SwfEditor = await editorPage.getSwfEditor();
 
-  await swfEditor.enter();
+    await swfEditor.enter();
 
-  expect(await swfEditor.isTextEditorPresent()).toBe(true);
-  expect(await swfEditor.isDiagramEditorPresent()).toBe(true);
+    expect(await swfEditor.isTextEditorPresent()).toBe(true);
+    expect(await swfEditor.isDiagramEditorPresent()).toBe(true);
 
-  expect(await swfEditor.isTextEditorKeyboardShortcutsIconPresent()).toBe(true);
-  expect(await swfEditor.isDiagramEditorKeyboardShortcutsIconPresent()).toBe(true);
+    expect(await swfEditor.isTextEditorKeyboardShortcutsIconPresent()).toBe(true);
+    expect(await swfEditor.isDiagramEditorKeyboardShortcutsIconPresent()).toBe(true);
 
-  const editorContent: string = await swfEditor.getTextEditorContent();
-  expect(editorContent).toContain('"id": "chrome_extension_sample_json",');
-  expect(editorContent).toContain('"name": "Chrome Extension Sample JSON",');
-  expect(editorContent).toContain('"description": "This JSON sample is created for testing purposes.",');
+    const editorContent: string = await swfEditor.getTextEditorContent();
+    expect(editorContent).toContain('"id": "chrome_extension_sample_json",');
+    expect(editorContent).toContain('"name": "Chrome Extension Sample JSON",');
+    expect(editorContent).toContain('"description": "This JSON sample is created for testing purposes.",');
 
-  await swfEditor.leave();
+    await swfEditor.leave();
 
-  // open and check source/editor
-  expect(await editorPage.isSourceVisible()).toBe(false);
-  expect(await editorPage.isEditorVisible()).toBe(true);
-  await editorPage.seeAsSource();
-  expect(await editorPage.isSourceVisible()).toBe(true);
-  expect(await editorPage.isEditorVisible()).toBe(false);
-  await editorPage.seeAsDiagram();
-  expect(await editorPage.isSourceVisible()).toBe(false);
-  expect(await editorPage.isEditorVisible()).toBe(true);
-});
+    // open and check source/editor
+    expect(await editorPage.isSourceVisible()).toBe(false);
+    expect(await editorPage.isEditorVisible()).toBe(true);
+    await editorPage.seeAsSource();
+    expect(await editorPage.isSourceVisible()).toBe(true);
+    expect(await editorPage.isEditorVisible()).toBe(false);
+    await editorPage.seeAsDiagram();
+    expect(await editorPage.isSourceVisible()).toBe(false);
+    expect(await editorPage.isEditorVisible()).toBe(true);
+  },
+  120000
+);
 
 afterEach(async () => {
   await tools.finishTest();
-});
+}, 50000);

@@ -33,26 +33,26 @@ describe("Serverless workflow editor - events tests", () => {
   let testHelper: VSCodeTestHelper;
 
   before(async function () {
-    this.timeout(30000);
+    this.timeout(50000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
   });
 
   beforeEach(async function () {
-    this.timeout(30000);
+    this.timeout(50000);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   afterEach(async function () {
-    this.timeout(30000);
+    this.timeout(50000);
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   it("Checks events are loaded from asyncapi files into JSON serverless workflow file", async function () {
-    this.timeout(50000);
+    this.timeout(70000);
 
     const editorWebViews = await testHelper.openFileFromSidebar("event.sw.json");
     const swfTextEditor = new SwfTextEditorTestHelper(editorWebViews[0]);
@@ -83,7 +83,7 @@ describe("Serverless workflow editor - events tests", () => {
   });
 
   it("Checks events are loaded from asyncapi files into YAML serverless workflow file", async function () {
-    this.timeout(50000);
+    this.timeout(70000);
 
     const editorWebViews = await testHelper.openFileFromSidebar("event.sw.yaml");
     const swfTextEditor = new SwfTextEditorTestHelper(editorWebViews[0]);

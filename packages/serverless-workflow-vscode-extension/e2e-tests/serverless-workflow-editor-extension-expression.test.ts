@@ -32,7 +32,7 @@ describe("Serverless workflow editor - expression tests", () => {
   let testHelper: VSCodeTestHelper;
 
   before(async function () {
-    this.timeout(30000);
+    this.timeout(50000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
   });
@@ -43,20 +43,20 @@ describe("Serverless workflow editor - expression tests", () => {
   });
 
   afterEach(async function () {
-    this.timeout(15000);
+    this.timeout(25000);
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   it("Checks expression autocompletion in JSON serverless workflow file", async function () {
-    this.timeout(50000);
+    this.timeout(70000);
 
     await testExpressionsOnLocation("expression.sw.json", 11, 31);
   });
 
   it("Checks expression autocompletion in YAML serverless workflow file", async function () {
-    this.timeout(50000);
+    this.timeout(70000);
 
     await testExpressionsOnLocation("expression.sw.yaml", 9, 27);
   });

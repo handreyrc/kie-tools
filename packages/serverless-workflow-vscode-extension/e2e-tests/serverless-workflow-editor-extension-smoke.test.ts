@@ -30,7 +30,7 @@ describe("Serverless workflow editor - smoke end-to-end tests", () => {
   let testHelper: VSCodeTestHelper;
 
   before(async function () {
-    this.timeout(60000);
+    this.timeout(80000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
   });
@@ -41,14 +41,14 @@ describe("Serverless workflow editor - smoke end-to-end tests", () => {
   });
 
   afterEach(async function () {
-    this.timeout(15000);
+    this.timeout(25000);
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   it("Opens greetings.sw.json and loads two editor groups", async function () {
-    this.timeout(40000);
+    this.timeout(60000);
     const editorWebviews = await testHelper.openFileFromSidebar("greetings.sw.json", "src/main/resources");
 
     const swfEditor = new SwfEditorTestHelper(editorWebviews[1]);

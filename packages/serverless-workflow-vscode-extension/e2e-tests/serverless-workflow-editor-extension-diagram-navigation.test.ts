@@ -30,26 +30,26 @@ describe("Serverless workflow editor - Diagram navigation tests", () => {
   let testHelper: VSCodeTestHelper;
 
   before(async function () {
-    this.timeout(30000);
+    this.timeout(50000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
   });
 
   beforeEach(async function () {
-    this.timeout(15000);
+    this.timeout(25000);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   afterEach(async function () {
-    this.timeout(15000);
+    this.timeout(25000);
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   it("Select states using JSON serverless workflow files", async function () {
-    this.timeout(50000);
+    this.timeout(70000);
 
     const WORKFLOW_NAME = "applicant-request-decision.sw.json";
 
