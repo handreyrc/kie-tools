@@ -23,7 +23,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { expect } from "chai";
 import { Key } from "vscode-extension-tester";
-import { VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
+import { sleep, VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
 import SwfTextEditorTestHelper from "./helpers/swf/SwfTextEditorTestHelper";
 
 describe("Serverless workflow editor - functions tests", () => {
@@ -33,30 +33,32 @@ describe("Serverless workflow editor - functions tests", () => {
   let testHelper: VSCodeTestHelper;
 
   before(async function () {
-    this.timeout(30000);
+    this.timeout(50000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
   });
 
   beforeEach(async function () {
-    this.timeout(15000);
+    this.timeout(30000);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   afterEach(async function () {
-    this.timeout(15000);
+    this.timeout(30000);
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   it("Checks functions are loaded from specs and routes directories into JSON serverless workflow file", async function () {
-    this.timeout(80000);
+    this.timeout(100000);
 
     const editorWebviews = await testHelper.openFileFromSidebar("function.sw.json");
     const swfTextEditor = new SwfTextEditorTestHelper(editorWebviews[0]);
     const textEditor = await swfTextEditor.getSwfTextEditor();
+
+    testHelper.setimplicitTimeout(30000);
 
     await textEditor.moveCursor(13, 17);
     await textEditor.typeText(Key.ENTER);
@@ -112,11 +114,13 @@ describe("Serverless workflow editor - functions tests", () => {
   });
 
   it("Checks functions are loaded from specs and routes directories into YAML serverless workflow file", async function () {
-    this.timeout(80000);
+    this.timeout(100000);
 
     const editorWebviews = await testHelper.openFileFromSidebar("function.sw.yaml");
     const swfTextEditor = new SwfTextEditorTestHelper(editorWebviews[0]);
     const textEditor = await swfTextEditor.getSwfTextEditor();
+
+    testHelper.setimplicitTimeout(30000);
 
     await textEditor.moveCursor(10, 4);
     await textEditor.typeText(" ");

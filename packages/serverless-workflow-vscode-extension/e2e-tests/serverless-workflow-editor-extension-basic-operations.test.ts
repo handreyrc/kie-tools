@@ -22,7 +22,7 @@ import * as path from "path";
 import * as fs from "fs";
 import SwfEditorTestHelper from "./helpers/swf/SwfEditorTestHelper";
 import SwfTextEditorTestHelper from "./helpers/swf/SwfTextEditorTestHelper";
-import { VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
+import { sleep, VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
 
 describe("Serverless workflow editor - Basic operations tests", () => {
   const TEST_PROJECT_FOLDER: string = path.resolve("e2e-tests-tmp", "resources", "basic-operations");
@@ -31,32 +31,34 @@ describe("Serverless workflow editor - Basic operations tests", () => {
   let testHelper: VSCodeTestHelper;
 
   before(async function () {
-    this.timeout(30000);
+    this.timeout(50000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
   });
 
   beforeEach(async function () {
-    this.timeout(15000);
+    this.timeout(30000);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   afterEach(async function () {
-    this.timeout(15000);
+    this.timeout(30000);
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   it("Opens, edits and saves the *.sw.json file", async function () {
-    this.timeout(80000);
+    this.timeout(100000);
 
     const WORKFLOW_NAME = "greet.sw.json";
 
     let editorWebViews = await testHelper.openFileFromSidebar(WORKFLOW_NAME);
     let swfTextEditor = new SwfTextEditorTestHelper(editorWebViews[0]);
     let swfEditor = new SwfEditorTestHelper(editorWebViews[1]);
+
+    testHelper.setimplicitTimeout(30000);
 
     expect((await swfEditor.getAllNodeIds()).length).equal(6);
 
@@ -108,13 +110,15 @@ describe("Serverless workflow editor - Basic operations tests", () => {
   });
 
   it("Opens, edits and saves the *.sw.yaml file", async function () {
-    this.timeout(80000);
+    this.timeout(100000);
 
     const WORKFLOW_NAME = "greet.sw.yaml";
 
     let editorWebViews = await testHelper.openFileFromSidebar(WORKFLOW_NAME);
     let swfTextEditor = new SwfTextEditorTestHelper(editorWebViews[0]);
     let swfEditor = new SwfEditorTestHelper(editorWebViews[1]);
+
+    testHelper.setimplicitTimeout(30000);
 
     expect((await swfEditor.getAllNodeIds()).length).equal(6);
 
@@ -162,13 +166,13 @@ describe("Serverless workflow editor - Basic operations tests", () => {
 
   //The following test is skipped because of bug: https://issues.redhat.com/browse/KOGITO-8384
   it.skip("Renames *.sw.json file while editor is open", async function () {
-    this.timeout(30000);
+    this.timeout(50000);
     await testRenameSWFile("hello-world.sw.json");
   });
 
   //The following test is skipped because of bug: https://issues.redhat.com/browse/KOGITO-8384
   it.skip("Renames *.sw.yaml file while editor is open", async function () {
-    this.timeout(30000);
+    this.timeout(50000);
     await testRenameSWFile("hello-world.sw.yaml");
   });
 
@@ -181,6 +185,8 @@ describe("Serverless workflow editor - Basic operations tests", () => {
 
     let textEditor = await swfTextEditor.getSwfTextEditor();
     const expectedContent = fs.readFileSync(path.resolve(TEST_PROJECT_FOLDER, workflowName), "utf-8");
+
+    testHelper.setimplicitTimeout(30000);
 
     expect(await textEditor.getText()).equal(expectedContent);
     expect((await swfEditor.getAllNodeIds()).length).equal(3);

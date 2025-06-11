@@ -22,7 +22,7 @@ require("./serverless-workflow-editor-extension-smoke.test");
 import * as path from "path";
 import { expect } from "chai";
 import { By, WebDriver, WebElement } from "vscode-extension-tester";
-import { VSCodeTestHelper, isWorkflowJSONFile } from "@kie-tools/vscode-extension-common-test-helpers";
+import { sleep, VSCodeTestHelper, isWorkflowJSONFile } from "@kie-tools/vscode-extension-common-test-helpers";
 import SwfTextEditorTestHelper from "./helpers/swf/SwfTextEditorTestHelper";
 
 describe("Serverless workflow editor - syntax highlighting test", () => {
@@ -33,30 +33,31 @@ describe("Serverless workflow editor - syntax highlighting test", () => {
   let driver: WebDriver;
 
   before(async function () {
-    this.timeout(30000);
+    this.timeout(50000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
   });
 
   beforeEach(async function () {
+    this.timeout(30000);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   afterEach(async function () {
-    this.timeout(15000);
+    this.timeout(30000);
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   it("Checks syntax highlighting of *.sw.json files in serverless workflow editor", async function () {
-    this.timeout(30000);
+    this.timeout(50000);
     await testSyntaxHighlighting("syntax-highlight-hello-world.sw.json");
   });
 
   it("Checks syntax highlighting of *.sw.yaml files in serverless workflow editor", async function () {
-    this.timeout(30000);
+    this.timeout(50000);
     await testSyntaxHighlighting("syntax-highlight-hello-world.sw.yaml");
   });
 

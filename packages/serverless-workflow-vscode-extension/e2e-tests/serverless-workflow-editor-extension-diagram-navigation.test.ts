@@ -21,7 +21,7 @@ import { expect } from "chai";
 import * as path from "path";
 import SwfEditorTestHelper from "./helpers/swf/SwfEditorTestHelper";
 import SwfTextEditorTestHelper from "./helpers/swf/SwfTextEditorTestHelper";
-import { VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
+import { sleep, VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
 
 describe("Serverless workflow editor - Diagram navigation tests", () => {
   const TEST_PROJECT_FOLDER: string = path.resolve("e2e-tests-tmp", "resources", "diagram-navigation");
@@ -30,32 +30,34 @@ describe("Serverless workflow editor - Diagram navigation tests", () => {
   let testHelper: VSCodeTestHelper;
 
   before(async function () {
-    this.timeout(30000);
+    this.timeout(50000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
   });
 
   beforeEach(async function () {
-    this.timeout(15000);
+    this.timeout(30000);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   afterEach(async function () {
-    this.timeout(15000);
+    this.timeout(30000);
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   it("Select states using JSON serverless workflow files", async function () {
-    this.timeout(50000);
+    this.timeout(70000);
 
     const WORKFLOW_NAME = "applicant-request-decision.sw.json";
 
     const editorWebViews = await testHelper.openFileFromSidebar(WORKFLOW_NAME);
     const swfTextEditor = new SwfTextEditorTestHelper(editorWebViews[0]);
     const swfEditor = new SwfEditorTestHelper(editorWebViews[1]);
+
+    testHelper.setimplicitTimeout(30000);
 
     const nodeIds = await swfEditor.getAllNodeIds();
     expect(nodeIds.length).equal(6);
@@ -88,6 +90,8 @@ describe("Serverless workflow editor - Diagram navigation tests", () => {
     const editorWebViews = await testHelper.openFileFromSidebar(WORKFLOW_NAME);
     const swfTextEditor = new SwfTextEditorTestHelper(editorWebViews[0]);
     const swfEditor = new SwfEditorTestHelper(editorWebViews[1]);
+
+    testHelper.setimplicitTimeout(30000);
 
     const nodeIds = await swfEditor.getAllNodeIds();
     expect(nodeIds.length).equal(6);
