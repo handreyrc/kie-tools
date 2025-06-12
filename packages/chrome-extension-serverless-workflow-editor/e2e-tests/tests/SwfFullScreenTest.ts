@@ -26,6 +26,7 @@ import Tools from "@kie-tools/chrome-extension-test-helper/dist/utils/Tools";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import { env } from "../../env";
+import { testTimeout } from "../../jest.e2e.config";
 const buildEnv: any = env; // build-env is not typed
 
 const TEST_NAME = "SwfFullScreenTest";
