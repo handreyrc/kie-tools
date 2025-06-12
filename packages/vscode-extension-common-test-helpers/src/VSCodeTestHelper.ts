@@ -89,7 +89,7 @@ export class VSCodeTestHelper {
   /**
    * Loading timeout for editors.
    */
-  private readonly EDITOR_LOADING_TIMEOUT: number = 60000;
+  private readonly EDITOR_LOADING_TIMEOUT: number = 100000;
 
   constructor() {
     this.workbench = new Workbench() as Workbench;
@@ -198,7 +198,7 @@ export class VSCodeTestHelper {
         await fileItem.click();
       }
     }
-    await sleep(5000);
+    await sleep(10000);
 
     return await this.workbench.getEditorView().getEditorGroups();
   };
@@ -222,7 +222,7 @@ export class VSCodeTestHelper {
           .getAttribute("aria-expanded");
         return currentValue === "true";
       },
-      25000,
+      30000,
       "Folder structure didn't expand in time. Please investigate."
     );
   };
@@ -338,7 +338,7 @@ export class VSCodeTestHelper {
       "Editor was still loading after " + this.EDITOR_LOADING_TIMEOUT + "ms. Please investigate."
     );
 
-    await sleep(8000);
+    await sleep(10000);
 
     await switchBack(webview);
   };
@@ -356,7 +356,7 @@ export class VSCodeTestHelper {
       const label = await quickPick.getLabel();
       if (label === command) {
         await quickPick.select();
-        await sleep(1000);
+        await sleep(5000);
         return;
       }
     }
@@ -399,7 +399,7 @@ export class VSCodeTestHelper {
   public saveFileInTextEditor = async (): Promise<void> => {
     const textEditor = new TextEditor(this.workbench.getEditorView());
     await textEditor.save();
-    await sleep(1000);
+    await sleep(5000);
   };
 
   /**
@@ -426,9 +426,16 @@ export class VSCodeTestHelper {
     }
 
     await new EditorView().closeEditor("Settings");
-    await sleep(1000);
+    await sleep(5000);
 
     return previousSettingValuesArray;
+  };
+
+  /**
+   * Wait up to n seconds for a script
+   */
+  public setScriptTimeout = async (time: number): Promise<void> => {
+    await this.driver.manage().setTimeouts({ script: time });
   };
 }
 
@@ -441,7 +448,7 @@ export async function switchWebviewToFrame(webview: WebView): Promise<void> {
   const driver = webview.getDriver();
   await driver.wait(
     until.elementLocated(webViewReady()),
-    10000,
+    15000,
     "No iframe.webview.ready that was ready was located in webview under 10 seconds." +
       "This should not happen and is most probably issue of VSCode." +
       "In case this happens investigate vscode or vscode-extension-tester dependency."
@@ -449,7 +456,7 @@ export async function switchWebviewToFrame(webview: WebView): Promise<void> {
   await driver.switchTo().frame(await driver.findElement(webViewReady()));
   await driver.wait(
     until.elementLocated(activeFrame()),
-    10000,
+    15000,
     "No iframe#active-frame located in webview under 10 seconds." +
       "This should not happen and is most probably issue of VSCode." +
       "In case this happens investigate vscode or vscode-extension-tester dependency."

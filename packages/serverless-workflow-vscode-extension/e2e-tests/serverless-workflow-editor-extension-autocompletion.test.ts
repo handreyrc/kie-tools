@@ -34,31 +34,27 @@ describe("Serverless workflow editor - autocompletion tests", () => {
   let testHelper: VSCodeTestHelper;
 
   before(async function () {
-    this.timeout(80000);
+    this.timeout(50000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
-    await sleep(5000);
   });
 
   beforeEach(async function () {
-    this.timeout(80000);
+    this.timeout(30000);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
-    await sleep(5000);
   });
 
   afterEach(async function () {
-    this.timeout(80000);
+    this.timeout(30000);
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
-    await sleep(5000);
   });
 
   describe("JSON files", () => {
     it("Completes serverless workflow with function and state autocompletion", async function () {
       this.timeout(100000);
-
       const editorWebviews = await testHelper.openFileFromSidebar("autocompletion.sw.json");
       const swfEditor = new SwfEditorTestHelper(editorWebviews[1]);
       const swfTextEditor = new SwfTextEditorTestHelper(editorWebviews[0]);
