@@ -33,21 +33,21 @@ describe("Serverless workflow editor - events tests", () => {
   let testHelper: VSCodeTestHelper;
 
   before(async function () {
-    this.timeout(50000);
+    this.timeout(55000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
     await sleep(5000);
   });
 
   beforeEach(async function () {
-    this.timeout(50000);
+    this.timeout(30000);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
     await sleep(5000);
   });
 
   afterEach(async function () {
-    this.timeout(50000);
+    this.timeout(30000);
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
