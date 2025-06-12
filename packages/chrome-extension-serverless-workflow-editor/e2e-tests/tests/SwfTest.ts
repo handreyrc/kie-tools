@@ -34,6 +34,7 @@ const TEST_NAME = "SwfTest";
 let tools: Tools;
 
 beforeEach(async () => {
+  jest.setTimeout(50000);
   tools = await Tools.init(TEST_NAME);
 
   if (buildEnv.swfChromeExtension.e2eTestingToken !== "") {
@@ -43,6 +44,7 @@ beforeEach(async () => {
     );
     await gitHubRepoPage.addToken(buildEnv.swfChromeExtension.e2eTestingToken);
   }
+  await tools.sleep(5000);
 });
 
 test(TEST_NAME, async () => {
@@ -59,6 +61,8 @@ test(TEST_NAME, async () => {
 
   await swfEditor.enter();
 
+  await tools.sleep(5000);
+
   expect(await swfEditor.isTextEditorPresent()).toBe(true);
   expect(await swfEditor.isDiagramEditorPresent()).toBe(true);
 
@@ -71,6 +75,8 @@ test(TEST_NAME, async () => {
   expect(editorContent).toContain('"description": "This JSON sample is created for testing purposes.",');
 
   await swfEditor.leave();
+
+  await tools.sleep(5000);
 
   // open and check source/editor
   expect(await editorPage.isSourceVisible()).toBe(false);
@@ -85,4 +91,5 @@ test(TEST_NAME, async () => {
 
 afterEach(async () => {
   await tools.finishTest();
+  await tools.sleep(5000);
 });

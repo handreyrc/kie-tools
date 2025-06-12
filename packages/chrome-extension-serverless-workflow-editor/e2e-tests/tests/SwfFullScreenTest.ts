@@ -26,7 +26,6 @@ import Tools from "@kie-tools/chrome-extension-test-helper/dist/utils/Tools";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import { env } from "../../env";
-import { testTimeout } from "../../jest.e2e.config";
 const buildEnv: any = env; // build-env is not typed
 
 const TEST_NAME = "SwfFullScreenTest";
@@ -41,6 +40,7 @@ beforeEach(async () => {
       "https://github.com/apache/incubator-kie-tools"
     );
     await gitHubRepoPage.addToken(buildEnv.swfChromeExtension.e2eTestingToken);
+    await tools.sleep(5000);
   }
 });
 
@@ -52,6 +52,8 @@ test(TEST_NAME, async () => {
   const fullScreenPage: FullScreenPage = await swfPage.fullScreen();
   const fullScreenEditor: SwfEditor = await fullScreenPage.getSwfEditor();
   await fullScreenEditor.enter();
+
+  await tools.sleep(5000);
 
   expect(await fullScreenEditor.isTextEditorPresent()).toBe(true);
   expect(await fullScreenEditor.isDiagramEditorPresent()).toBe(true);
@@ -66,6 +68,8 @@ test(TEST_NAME, async () => {
 
   await fullScreenEditor.leave();
 
+  await tools.sleep(5000);
+
   expect(await fullScreenPage.getExitFullScreenUrl()).toBe(workflowUrl + "#");
 
   await fullScreenPage.scrollToTop();
@@ -76,4 +80,5 @@ test(TEST_NAME, async () => {
 
 afterEach(async () => {
   await tools.finishTest();
+  await tools.sleep(5000);
 });
