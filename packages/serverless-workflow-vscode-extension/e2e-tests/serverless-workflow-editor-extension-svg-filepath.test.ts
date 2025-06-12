@@ -38,12 +38,14 @@ describe("Serverless workflow editor - SVG generation with path setting end-to-e
     this.timeout(80000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
+    await sleep(5000);
   });
 
   beforeEach(async function () {
     this.timeout(25000);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
+    await sleep(5000);
   });
 
   afterEach(async function () {
@@ -51,6 +53,7 @@ describe("Serverless workflow editor - SVG generation with path setting end-to-e
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
+    await sleep(5000);
   });
 
   it(`Opens ${WORKFLOW_NAME}, saves it, and verifies SVG generation`, async function () {

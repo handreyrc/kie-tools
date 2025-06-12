@@ -19,7 +19,7 @@
 
 import * as path from "path";
 import { assert } from "chai";
-import { VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
+import { sleep, VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
 import SwfEditorTestHelper from "./helpers/swf/SwfEditorTestHelper";
 import SwfTextEditorTestHelper from "./helpers/swf/SwfTextEditorTestHelper";
 
@@ -33,11 +33,13 @@ describe("Serverless workflow editor - smoke end-to-end tests", () => {
     this.timeout(80000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
+    await sleep(5000);
   });
 
   beforeEach(async function () {
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
+    await sleep(5000);
   });
 
   afterEach(async function () {
@@ -45,6 +47,7 @@ describe("Serverless workflow editor - smoke end-to-end tests", () => {
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
+    await sleep(5000);
   });
 
   it("Opens greetings.sw.json and loads two editor groups", async function () {

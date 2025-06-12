@@ -22,7 +22,7 @@ require("./serverless-workflow-editor-extension-smoke.test");
 import * as path from "path";
 import { expect } from "chai";
 import { By, WebDriver, WebElement } from "vscode-extension-tester";
-import { VSCodeTestHelper, isWorkflowJSONFile } from "@kie-tools/vscode-extension-common-test-helpers";
+import { sleep, VSCodeTestHelper, isWorkflowJSONFile } from "@kie-tools/vscode-extension-common-test-helpers";
 import SwfTextEditorTestHelper from "./helpers/swf/SwfTextEditorTestHelper";
 
 describe("Serverless workflow editor - syntax highlighting test", () => {
@@ -36,12 +36,14 @@ describe("Serverless workflow editor - syntax highlighting test", () => {
     this.timeout(50000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
+    await sleep(5000);
   });
 
   beforeEach(async function () {
     this.timeout(25000);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
+    await sleep(5000);
   });
 
   afterEach(async function () {
@@ -49,6 +51,7 @@ describe("Serverless workflow editor - syntax highlighting test", () => {
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
+    await sleep(5000);
   });
 
   it("Checks syntax highlighting of *.sw.json files in serverless workflow editor", async function () {

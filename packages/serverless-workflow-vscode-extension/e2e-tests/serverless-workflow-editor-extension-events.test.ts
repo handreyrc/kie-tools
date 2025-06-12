@@ -23,7 +23,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { expect } from "chai";
 import { Key } from "vscode-extension-tester";
-import { VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
+import { sleep, VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
 import SwfTextEditorTestHelper from "./helpers/swf/SwfTextEditorTestHelper";
 
 describe("Serverless workflow editor - events tests", () => {
@@ -36,12 +36,14 @@ describe("Serverless workflow editor - events tests", () => {
     this.timeout(50000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
+    await sleep(5000);
   });
 
   beforeEach(async function () {
     this.timeout(50000);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
+    await sleep(5000);
   });
 
   afterEach(async function () {
@@ -49,6 +51,7 @@ describe("Serverless workflow editor - events tests", () => {
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
+    await sleep(5000);
   });
 
   it("Checks events are loaded from asyncapi files into JSON serverless workflow file", async function () {

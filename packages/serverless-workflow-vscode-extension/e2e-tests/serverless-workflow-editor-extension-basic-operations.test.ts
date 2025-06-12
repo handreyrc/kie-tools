@@ -22,7 +22,7 @@ import * as path from "path";
 import * as fs from "fs";
 import SwfEditorTestHelper from "./helpers/swf/SwfEditorTestHelper";
 import SwfTextEditorTestHelper from "./helpers/swf/SwfTextEditorTestHelper";
-import { VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
+import { sleep, VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
 
 describe("Serverless workflow editor - Basic operations tests", () => {
   const TEST_PROJECT_FOLDER: string = path.resolve("e2e-tests-tmp", "resources", "basic-operations");
@@ -34,12 +34,14 @@ describe("Serverless workflow editor - Basic operations tests", () => {
     this.timeout(50000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
+    await sleep(5000);
   });
 
   beforeEach(async function () {
     this.timeout(25000);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
+    await sleep(5000);
   });
 
   afterEach(async function () {
@@ -47,6 +49,7 @@ describe("Serverless workflow editor - Basic operations tests", () => {
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
+    await sleep(5000);
   });
 
   it("Opens, edits and saves the *.sw.json file", async function () {
