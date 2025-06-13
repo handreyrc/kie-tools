@@ -23,17 +23,17 @@ import * as path from "path";
 import * as fs from "fs";
 import { expect } from "chai";
 import { Key } from "vscode-extension-tester";
-import { VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
+import { sleep, VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
 import SwfTextEditorTestHelper from "./helpers/swf/SwfTextEditorTestHelper";
 
 describe("Serverless workflow editor - events tests", () => {
   const TEST_PROJECT_FOLDER: string = path.resolve("e2e-tests-tmp", "resources", "functions-events");
-  const DIST_E2E_TESTS_FOLDER: string = path.resolve("dist-e2e-tests");
+  const DIST_E2E_TESTS_FOLDER: string = path.resolve("dist-tests-e2e");
 
   let testHelper: VSCodeTestHelper;
 
   before(async function () {
-    this.timeout(30000);
+    this.timeout(50000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
   });
@@ -52,11 +52,13 @@ describe("Serverless workflow editor - events tests", () => {
   });
 
   it("Checks events are loaded from asyncapi files into JSON serverless workflow file", async function () {
-    this.timeout(50000);
+    this.timeout(70000);
 
     const editorWebViews = await testHelper.openFileFromSidebar("event.sw.json");
     const swfTextEditor = new SwfTextEditorTestHelper(editorWebViews[0]);
     const textEditor = await swfTextEditor.getSwfTextEditor();
+
+    testHelper.setimplicitTimeout(30000);
 
     await textEditor.moveCursor(13, 14);
     await textEditor.typeText(Key.ENTER);
@@ -83,11 +85,13 @@ describe("Serverless workflow editor - events tests", () => {
   });
 
   it("Checks events are loaded from asyncapi files into YAML serverless workflow file", async function () {
-    this.timeout(50000);
+    this.timeout(100000);
 
     const editorWebViews = await testHelper.openFileFromSidebar("event.sw.yaml");
     const swfTextEditor = new SwfTextEditorTestHelper(editorWebViews[0]);
     const textEditor = await swfTextEditor.getSwfTextEditor();
+
+    testHelper.setimplicitTimeout(30000);
 
     await textEditor.moveCursor(10, 4);
     await textEditor.typeText(" ");

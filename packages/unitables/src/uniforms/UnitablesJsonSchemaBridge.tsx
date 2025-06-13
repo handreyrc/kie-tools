@@ -18,7 +18,7 @@
  */
 
 import * as React from "react";
-import { SelectDirection } from "@patternfly/react-core/dist/js/components/Select";
+import { SelectDirection } from "@patternfly/react-core/deprecated";
 import { UnitablesI18n } from "../i18n";
 import { JSONSchemaBridge } from "uniforms-bridge-json-schema";
 import { joinName } from "uniforms";
@@ -71,7 +71,7 @@ export class UnitablesJsonSchemaBridge extends JSONSchemaBridge {
   }
 
   public getFieldDataType(field: Record<string, any>): { dataType: DmnBuiltInDataType; width: number; type: string } {
-    const xDmnType: string | undefined = field["x-dmn-type"]; // FIXME: Please address this as part of https://github.com/kiegroup/kie-issues/issues/166
+    const xDmnType: string | undefined = field["x-dmn-type"]; // FIXME: Please address this as part of https://github.com/apache/incubator-kie-issues/issues/166
 
     let type: string | undefined;
     if (!xDmnType) {

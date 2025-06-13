@@ -17,22 +17,22 @@
  * under the License.
  */
 
-import { VsCodeBackendProxy } from "@kie-tools-core/backend/dist/vscode";
 import { EditorEnvelopeLocator } from "@kie-tools-core/editor/dist/api";
 import { I18n } from "@kie-tools-core/i18n/dist/core";
-import { VsCodeWorkspaceChannelApiImpl } from "@kie-tools-core/workspace/dist/vscode";
+import { VsCodeJavaCodeCompletionApiImpl } from "@kie-tools-core/vscode-java-code-completion/dist/vscode";
 import * as vscode from "vscode";
 import { EnvelopeBusMessageBroadcaster } from "./EnvelopeBusMessageBroadcaster";
-import { generateSvg } from "./generateSvg";
-import { vsCodeI18nDefaults, vsCodeI18nDictionaries } from "./i18n";
+import { VsCodeKieEditorChannelApiProducer } from "./VsCodeKieEditorChannelApiProducer";
 import { VsCodeKieEditorControllerFactory } from "./VsCodeKieEditorControllerFactory";
 import { VsCodeKieEditorStore } from "./VsCodeKieEditorStore";
-import { VsCodeKieEditorsTextEditorProvider } from "./VsCodeKieEditorsTextEditorProvider";
-import { VsCodeNotificationsChannelApiImpl } from "@kie-tools-core/notifications/dist/vscode";
-import { VsCodeJavaCodeCompletionApiImpl } from "@kie-tools-core/vscode-java-code-completion/dist/vscode";
-import { VsCodeKieEditorChannelApiProducer } from "./VsCodeKieEditorChannelApiProducer";
 import { VsCodeKieEditorsCustomEditorProvider } from "./VsCodeKieEditorsCustomEditorProvider";
+import { VsCodeKieEditorsTextEditorProvider } from "./VsCodeKieEditorsTextEditorProvider";
+import { generateSvg } from "./generateSvg";
+import { vsCodeI18nDefaults, vsCodeI18nDictionaries } from "./i18n";
+import { VsCodeNotificationsChannelApiImpl } from "./notifications/VsCodeNotificationsChannelApiImpl";
 import { executeOnSaveHook } from "./onSaveHook";
+import { VsCodeWorkspaceChannelApiImpl } from "./workspace/VsCodeWorkspaceChannelApiImpl";
+import { VsCodeRecommendation } from "./VsCodeRecommendation";
 
 /**
  * Starts a Kogito extension.
@@ -41,7 +41,6 @@ import { executeOnSaveHook } from "./onSaveHook";
  *  @param args.webviewLocation The relative path to search for an "index.js" file for the WebView panel.
  *  @param args.context The vscode.ExtensionContext provided on the activate method of the extension.
  *  @param args.routes The routes to be used to find resources for each language.
- *  @param args.backendProxy The proxy between channels and available backend services.
  *  @param args.channelApiProducer Optional producer of custom KogitoEditorChannelApi instances.
  */
 export async function startExtension(args: {
@@ -51,17 +50,14 @@ export async function startExtension(args: {
   generateSvgCommandId?: string;
   silentlyGenerateSvgCommandId?: string;
   editorEnvelopeLocator: EditorEnvelopeLocator;
-  backendProxy: VsCodeBackendProxy;
   channelApiProducer?: VsCodeKieEditorChannelApiProducer;
   editorDocumentType?: "text" | "custom";
 }) {
-  await args.backendProxy.tryLoadBackendExtension(true);
-
   const i18n = new I18n(vsCodeI18nDefaults, vsCodeI18nDictionaries, vscode.env.language);
-  const workspaceApi = new VsCodeWorkspaceChannelApiImpl();
+  const vscodeWorkspace = new VsCodeWorkspaceChannelApiImpl();
   const editorStore = new VsCodeKieEditorStore();
   const messageBroadcaster = new EnvelopeBusMessageBroadcaster();
-  const vsCodeNotificationsApi = new VsCodeNotificationsChannelApiImpl(workspaceApi);
+  const vscodeNotifications = new VsCodeNotificationsChannelApiImpl(vscodeWorkspace);
   const vsCodeJavaCodeCompletionChannelApi = new VsCodeJavaCodeCompletionApiImpl();
 
   const editorFactory = new VsCodeKieEditorControllerFactory(
@@ -69,9 +65,8 @@ export async function startExtension(args: {
     editorStore,
     args.editorEnvelopeLocator,
     messageBroadcaster,
-    workspaceApi,
-    args.backendProxy,
-    vsCodeNotificationsApi,
+    vscodeWorkspace,
+    vscodeNotifications,
     vsCodeJavaCodeCompletionChannelApi,
     args.viewType,
     i18n,
@@ -88,7 +83,7 @@ export async function startExtension(args: {
           editorStore,
           editorFactory,
           i18n,
-          vsCodeNotificationsApi,
+          vscodeNotifications,
           args.editorEnvelopeLocator
         ),
         {
@@ -123,8 +118,8 @@ export async function startExtension(args: {
     args.context.subscriptions.push(
       vscode.commands.registerCommand(args.generateSvgCommandId, () =>
         generateSvg({
-          editorStore: editorStore,
-          workspaceApi: workspaceApi,
+          editorStore,
+          vscodeWorkspace,
           vsCodeI18n: i18n,
           displayNotification: true,
           editorEnvelopeLocator: args.editorEnvelopeLocator,
@@ -137,8 +132,8 @@ export async function startExtension(args: {
     args.context.subscriptions.push(
       vscode.commands.registerCommand(args.silentlyGenerateSvgCommandId, () =>
         generateSvg({
-          editorStore: editorStore,
-          workspaceApi: workspaceApi,
+          editorStore,
+          vscodeWorkspace,
           vsCodeI18n: i18n,
           displayNotification: false,
           editorEnvelopeLocator: args.editorEnvelopeLocator,
@@ -151,3 +146,4 @@ export async function startExtension(args: {
 }
 
 export * from "./VsCodeKieEditorStore";
+export * from "./VsCodeRecommendation";

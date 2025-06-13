@@ -27,26 +27,26 @@ module.exports = composeEnv([require("@kie-tools/root-env/env")], {
     },
     EXTENDED_SERVICES__version: {
       default: require("../package.json").version,
-      description: "Extended Services version",
+      description: "Extended Services version. Used by clients for checking compatibility.",
     },
     EXTENDED_SERVICES__ip: {
-      default: "0.0.0.0",
+      default: "127.0.0.1",
       description: "Extended Services IP",
     },
     EXTENDED_SERVICES__port: {
       default: "21345",
-      description: "Extended Services port",
+      description: "HTTP port",
     },
     EXTENDED_SERVICES__nativeBinaryPath_macOS: {
-      default: "./node_modules/@kie-tools/jitexecutor-native/dist/darwin/jitexecutor",
+      default: `./dist-dev/jitexecutor-native-darwin-999-20250511-SNAPSHOT-runner`,
       description: "",
     },
     EXTENDED_SERVICES__nativeBinaryPath_linux: {
-      default: "./node_modules/@kie-tools/jitexecutor-native/dist/linux/jitexecutor",
+      default: `./dist-dev/jitexecutor-native-linux-999-20250511-SNAPSHOT-runner`,
       description: "",
     },
     EXTENDED_SERVICES__nativeBinaryPath_win32: {
-      default: ".\\node_modules\\@kie-tools\\jitexecutor-native\\dist\\win32\\jitexecutor.exe",
+      default: `.\\dist-dev\\jitexecutor-native-win32-999-20250511-SNAPSHOT-runner.exe`,
       description: "",
     },
   }),

@@ -20,48 +20,46 @@
 import React, { useCallback } from "react";
 import { Page, PageSection } from "@patternfly/react-core/dist/js/components/Page";
 import { Text, TextContent, TextVariants } from "@patternfly/react-core/dist/js/components/Text";
-import { WorkflowListContainer } from "@kie-tools/runtime-tools-webapp-components/dist/WorkflowListContainer";
-import { CloudEventPageSource } from "@kie-tools/runtime-tools-webapp-components/dist/CloudEventForm";
-import { useHistory } from "react-router";
-import { WorkflowListState } from "@kie-tools/runtime-tools-gateway-api/dist/types";
+import { WorkflowListContainer } from "@kie-tools/runtime-tools-swf-webapp-components/dist/WorkflowListContainer";
+import { CloudEventPageSource } from "@kie-tools/runtime-tools-swf-webapp-components/dist/CloudEventForm";
+import { useLocation, useNavigate } from "react-router-dom";
+import { WorkflowListState } from "@kie-tools/runtime-tools-swf-gateway-api/dist/types";
 import { routes } from "../../navigation/Routes";
 
 const PAGE_TITLE = "Workflow Instances";
 
 export function RuntimeToolsWorkflowInstances() {
-  const history = useHistory();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const initialState: WorkflowListState = history.location && (history.location.state as WorkflowListState);
+  const initialState: WorkflowListState = location && (location.state as WorkflowListState);
 
   const onOpenWorkflowDetails = useCallback(
     (args: { workflowId: string; state: WorkflowListState }) => {
-      history.push({
-        pathname: routes.runtimeToolsWorkflowDetails.path({ workflowId: args.workflowId }),
-        state: args.state,
-      });
+      navigate(
+        {
+          pathname: routes.runtimeToolsWorkflowDetails.path({ workflowId: args.workflowId }),
+        },
+        { state: args.state }
+      );
     },
-    [history]
+    [navigate]
   );
-
-  const onOpenTriggerCloudEvent = useCallback(() => {
-    history.push({
-      pathname: routes.runtimeToolsTriggerCloudEvent.path({}),
-      state: {
-        source: CloudEventPageSource.INSTANCES,
-      },
-    });
-  }, [history]);
 
   const onOpenTriggerCloudEventForWorkflow = useCallback(
     (workflowId: string) => {
-      history.push({
-        pathname: routes.runtimeToolsTriggerCloudEventForWorkflow.path({ workflowId }),
-        state: {
-          source: CloudEventPageSource.INSTANCES,
+      navigate(
+        {
+          pathname: routes.runtimeToolsTriggerCloudEventForWorkflowInstance.path({ workflowId }),
         },
-      });
+        {
+          state: {
+            source: CloudEventPageSource.INSTANCES,
+          },
+        }
+      );
     },
-    [history]
+    [navigate]
   );
 
   return (
@@ -79,7 +77,6 @@ export function RuntimeToolsWorkflowInstances() {
         <WorkflowListContainer
           initialState={initialState}
           onOpenWorkflowDetails={onOpenWorkflowDetails}
-          onOpenTriggerCloudEvent={onOpenTriggerCloudEvent}
           onOpenTriggerCloudEventForWorkflow={onOpenTriggerCloudEventForWorkflow}
         />
       </PageSection>

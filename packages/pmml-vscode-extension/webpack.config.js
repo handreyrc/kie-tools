@@ -22,8 +22,8 @@ const { merge } = require("webpack-merge");
 const common = require("@kie-tools-core/webpack-base/webpack.common.config");
 const { ProvidePlugin } = require("webpack");
 
-const commonConfig = (env) =>
-  merge(common(env), {
+const commonConfig = (webpackEnv) =>
+  merge(common(webpackEnv), {
     output: {
       library: "PmmlEditor",
       libraryTarget: "umd",
@@ -35,11 +35,17 @@ const commonConfig = (env) =>
     },
   });
 
-module.exports = async (env) => [
-  merge(commonConfig(env), {
-    target: "web",
+module.exports = async (webpackEnv) => [
+  merge(commonConfig(webpackEnv), {
+    target: "node",
     entry: {
       "extension/extension": "./src/extension/extension.ts",
+    },
+  }),
+  merge(commonConfig(webpackEnv), {
+    target: "webworker",
+    entry: {
+      "extension/extensionWeb": "./src/extension/extension.ts",
     },
     plugins: [
       new ProvidePlugin({
@@ -48,7 +54,7 @@ module.exports = async (env) => [
       }),
     ],
   }),
-  merge(commonConfig(env), {
+  merge(commonConfig(webpackEnv), {
     target: "web",
     entry: {
       "webview/PmmlEditorEnvelopeApp": "./src/webview/PmmlEditorEnvelopeApp.ts",
@@ -57,7 +63,7 @@ module.exports = async (env) => [
       alias: {
         // `react-monaco-editor` points to the `monaco-editor` package by default, therefore doesn't use our minified
         // version. To solve that, we fool webpack, saying that every import for Monaco directly should actually point to
-        // `@kiegroup/monaco-editor`. This way, everything works as expected.
+        // `@kie-tools-core/monaco-editor`. This way, everything works as expected.
         "monaco-editor/esm/vs/editor/editor.api": require.resolve("@kie-tools-core/monaco-editor"),
       },
     },
@@ -65,10 +71,16 @@ module.exports = async (env) => [
       rules: [
         {
           test: /\.ttf$/,
-          use: ["file-loader"],
+          use: [require.resolve("file-loader")],
         },
         ...patternflyBase.webpackModuleRules,
       ],
     },
+    plugins: [
+      new ProvidePlugin({
+        process: require.resolve("process/browser.js"),
+        Buffer: ["buffer", "Buffer"],
+      }),
+    ],
   }),
 ];

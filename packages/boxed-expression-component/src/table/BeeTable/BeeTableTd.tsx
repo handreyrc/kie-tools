@@ -31,8 +31,9 @@ import {
   useBeeTableSelectableCell,
   useBeeTableSelectableCellRef,
 } from "../../selection/BeeTableSelectionContext";
-import { useBoxedExpressionEditor } from "../../expressions/BoxedExpressionEditor/BoxedExpressionEditorContext";
+import { useBoxedExpressionEditor } from "../../BoxedExpressionEditorContext";
 import { InsertRowColumnsDirection } from "../../api";
+import { Icon } from "@patternfly/react-core/dist/js/components/Icon";
 
 export interface BeeTableTdProps<R extends object> {
   // Individual cells are not immutable references, By referencing the row, we avoid multiple re-renders and bugs.
@@ -46,6 +47,13 @@ export interface BeeTableTdProps<R extends object> {
   column: ReactTable.ColumnInstance<R>;
   resizerStopBehavior: ResizerStopBehavior;
   lastColumnMinWidth?: number;
+  onDataCellClick?: (columnID: string) => void;
+  onDataCellKeyUp?: (columnID: string) => void;
+  isReadOnly: boolean;
+  /** True means the table cell can display evaluation hits count. False means evaluation hits count is not displayed in the table cell. */
+  canDisplayEvaluationHitsCountBadge?: boolean;
+  /** Actuall evaluation hits count number that will be displayed in the table cell if 'canDisplayEvaluationHitsCountBadge' is set to true. */
+  evaluationHitsCount?: number;
 }
 
 export type HoverInfo =
@@ -67,6 +75,11 @@ export function BeeTableTd<R extends object>({
   resizerStopBehavior,
   onRowAdded,
   lastColumnMinWidth,
+  onDataCellClick,
+  onDataCellKeyUp,
+  isReadOnly,
+  canDisplayEvaluationHitsCountBadge,
+  evaluationHitsCount,
 }: BeeTableTdProps<R>) {
   const [isResizing, setResizing] = useState(false);
   const [hoverInfo, setHoverInfo] = useState<HoverInfo>({ isHovered: false });
@@ -103,14 +116,13 @@ export function BeeTableTd<R extends object>({
 
   const { isActive } = useBeeTableSelectableCellRef(rowIndex, columnIndex, undefined);
 
+  // FIXME: The BeeTable shouldn't know about DMN or GWT
+  // The following useEffect shouldn't be placed here.
   const { beeGwtService, editorRef } = useBoxedExpressionEditor();
-
   useEffect(() => {
     if (isActive) {
       if (column.isRowIndexColumn) {
         beeGwtService?.selectObject("");
-      } else {
-        beeGwtService?.selectObject(typeof cell.value === "string" ? "" : cell.value?.id ?? "");
       }
     }
   }, [beeGwtService, isActive, column.isRowIndexColumn, cell.value]);
@@ -212,14 +224,33 @@ export function BeeTableTd<R extends object>({
     [column.isWidthConstant, hoverInfo.isHovered, isActive, isResizing, resizingWidth?.isPivoting]
   );
 
+  const onClick = useCallback(() => {
+    return onDataCellClick?.(column.id);
+  }, [column.id, onDataCellClick]);
+
+  const onKeyUp = useCallback(() => {
+    return onDataCellKeyUp?.(column.id);
+  }, [column.id, onDataCellKeyUp]);
+
+  const evaluationHitsCountBadgeClassName = useMemo(() => {
+    return canDisplayEvaluationHitsCountBadge
+      ? (evaluationHitsCount ?? 0) > 0
+        ? "evaluation-hits-count-badge-colored"
+        : "evaluation-hits-count-badge-non-colored"
+      : "";
+  }, [canDisplayEvaluationHitsCountBadge, evaluationHitsCount]);
+
   return (
     <BeeTableCoordinatesContextProvider coordinates={coordinates}>
       <td
         onMouseDown={onMouseDown}
-        onDoubleClick={onDoubleClick}
+        onDoubleClick={isReadOnly ? undefined : onDoubleClick}
+        onClick={onClick}
+        onKeyUp={isReadOnly ? undefined : onKeyUp}
         ref={tdRef}
         tabIndex={-1}
-        className={`${cssClass} ${cssClasses}`}
+        className={`${cssClass} ${cssClasses} ${column.cssClasses}`}
+        data-testid={`kie-tools--bee--expression-column-${columnIndex}`}
         data-ouia-component-id={`expression-column-${columnIndex}`}
         style={{
           outline: "none",
@@ -230,12 +261,14 @@ export function BeeTableTd<R extends object>({
         }}
       >
         {column.isRowIndexColumn ? (
-          <>{rowIndexLabel}</>
+          <div className={evaluationHitsCountBadgeClassName} data-evaluation-hits-count={evaluationHitsCount}>
+            {rowIndexLabel}
+          </div>
         ) : (
-          <>
+          <div className={evaluationHitsCountBadgeClassName} data-evaluation-hits-count={evaluationHitsCount}>
             {tdContent}
 
-            {shouldRenderResizer && (
+            {!isReadOnly && shouldRenderResizer && (
               <Resizer
                 getWidthToFitData={cellWidthToFitDataRef?.getWidthToFitData}
                 minWidth={lastColumnMinWidth ?? cell.column.minWidth}
@@ -246,27 +279,33 @@ export function BeeTableTd<R extends object>({
                 setResizing={setResizing}
               />
             )}
-          </>
-        )}
-
-        {hoverInfo.isHovered && shouldRenderInlineButtons && onRowAdded && shouldShowRowsInlineControls && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-            }}
-          >
-            <div
-              onMouseDown={(e) => e.stopPropagation()}
-              onDoubleClick={(e) => e.stopPropagation()}
-              onClick={onAddRowButtonClick}
-              className={"add-row-button"}
-              style={addRowButtonStyle}
-            >
-              <PlusIcon size="sm" />
-            </div>
           </div>
         )}
+
+        {!isReadOnly &&
+          hoverInfo.isHovered &&
+          shouldRenderInlineButtons &&
+          onRowAdded &&
+          shouldShowRowsInlineControls && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
+              <div
+                onMouseDown={(e) => e.stopPropagation()}
+                onDoubleClick={(e) => e.stopPropagation()}
+                onClick={onAddRowButtonClick}
+                className={"add-row-button"}
+                style={addRowButtonStyle}
+              >
+                <Icon size="sm">
+                  <PlusIcon />
+                </Icon>
+              </div>
+            </div>
+          )}
       </td>
     </BeeTableCoordinatesContextProvider>
   );

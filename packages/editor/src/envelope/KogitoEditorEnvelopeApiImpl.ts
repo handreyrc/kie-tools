@@ -24,6 +24,7 @@ import {
   EditorContent,
   EditorFactory,
   EditorInitArgs,
+  EditorTheme,
   KogitoEditorChannelApi,
   KogitoEditorEnvelopeApi,
   KogitoEditorEnvelopeContextType,
@@ -39,11 +40,12 @@ import { ApiDefinition } from "@kie-tools-core/envelope-bus/dist/api";
 export class KogitoEditorEnvelopeApiImpl<
   E extends Editor,
   EnvelopeApi extends KogitoEditorEnvelopeApi & ApiDefinition<EnvelopeApi> = KogitoEditorEnvelopeApi,
-  ChannelApi extends KogitoEditorChannelApi & ApiDefinition<ChannelApi> = KogitoEditorChannelApi
+  ChannelApi extends KogitoEditorChannelApi & ApiDefinition<ChannelApi> = KogitoEditorChannelApi,
 > implements KogitoEditorEnvelopeApi
 {
   protected view: () => EditorEnvelopeViewApi<E>;
   private capturedInitRequestYet = false;
+  private normalizedPosixPathRelativeToTheWorkspaceRoot: string;
   private editor: E;
 
   constructor(
@@ -51,9 +53,9 @@ export class KogitoEditorEnvelopeApiImpl<
       EnvelopeApi,
       ChannelApi,
       EditorEnvelopeViewApi<E>,
-      KogitoEditorEnvelopeContextType<KogitoEditorChannelApi>
+      KogitoEditorEnvelopeContextType<KogitoEditorEnvelopeApi, KogitoEditorChannelApi>
     >,
-    private readonly editorFactory: EditorFactory<E, KogitoEditorChannelApi>,
+    private readonly editorFactory: EditorFactory<E, KogitoEditorEnvelopeApi, KogitoEditorChannelApi>,
     private readonly i18n: I18n<EditorEnvelopeI18n> = new I18n<EditorEnvelopeI18n>(
       editorEnvelopeI18nDefaults,
       editorEnvelopeI18nDictionaries
@@ -83,6 +85,13 @@ export class KogitoEditorEnvelopeApiImpl<
 
     this.editor = await this.editorFactory.createEditor(this.args.envelopeContext, initArgs);
 
+    // "Permanent" theme subscription, destroyed along editor's iFrame
+    if (this.args.envelopeContext.supportedThemes.length > 1) {
+      this.args.envelopeContext.channelApi.shared.kogitoEditor_theme.subscribe((theme: EditorTheme) => {
+        this.editor.setTheme(theme);
+      });
+    }
+
     await this.view().setEditor(this.editor);
 
     this.editor.af_onStartup?.();
@@ -91,9 +100,10 @@ export class KogitoEditorEnvelopeApiImpl<
     this.view().setLoading();
 
     const editorContent = await this.args.envelopeContext.channelApi.requests.kogitoEditor_contentRequest();
+    this.normalizedPosixPathRelativeToTheWorkspaceRoot = editorContent.normalizedPosixPathRelativeToTheWorkspaceRoot;
 
     await this.editor
-      .setContent(editorContent.path ?? "", editorContent.content)
+      .setContent(editorContent.normalizedPosixPathRelativeToTheWorkspaceRoot, editorContent.content)
       .catch((e) => this.args.envelopeContext.channelApi.notifications.kogitoEditor_setContentError.send(editorContent))
       .finally(() => this.view().setLoadingFinished());
 
@@ -108,7 +118,7 @@ export class KogitoEditorEnvelopeApiImpl<
     }
 
     return this.editor
-      .setContent(editorContent.path ?? "", editorContent.content)
+      .setContent(editorContent.normalizedPosixPathRelativeToTheWorkspaceRoot, editorContent.content)
       .catch((e) => {
         this.args.envelopeContext.channelApi.notifications.kogitoEditor_setContentError.send(editorContent);
         throw e;
@@ -125,7 +135,10 @@ export class KogitoEditorEnvelopeApiImpl<
   }
 
   public kogitoEditor_contentRequest() {
-    return this.editor.getContent().then((content) => ({ content: sanitize(content) }));
+    return this.editor.getContent().then((content) => ({
+      content: sanitize(content),
+      normalizedPosixPathRelativeToTheWorkspaceRoot: this.normalizedPosixPathRelativeToTheWorkspaceRoot,
+    }));
   }
 
   public kogitoEditor_previewRequest() {
@@ -206,6 +219,8 @@ export class KogitoEditorEnvelopeApiImpl<
   }
 }
 
+// Not using the `u` flag as it's not trying to match a unicode character outside the BMP (Basic Multilingual Plane)
+// The BMP are the unicodes from U+0000 to U+FFFF. Also, the `u` flag requires target `es6`+
 function sanitize(str: string): string {
-  return str.replace(/[\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069]/gu, "");
+  return str.replace(/[\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069]/g, "");
 }

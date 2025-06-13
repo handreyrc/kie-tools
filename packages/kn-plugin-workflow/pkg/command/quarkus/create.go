@@ -21,6 +21,7 @@ package quarkus
 
 import (
 	"fmt"
+
 	"github.com/apache/incubator-kie-tools/packages/kn-plugin-workflow/pkg/common"
 	"github.com/apache/incubator-kie-tools/packages/kn-plugin-workflow/pkg/metadata"
 	"github.com/ory/viper"
@@ -113,7 +114,6 @@ func runCreateProject(cfg CreateQuarkusProjectConfig) (err error) {
 		"mvn",
 		fmt.Sprintf("%s:%s:%s:create", cfg.DependenciesVersion.QuarkusPlatformGroupId, metadata.QuarkusMavenPlugin, cfg.DependenciesVersion.QuarkusVersion),
 		"-DprojectGroupId=org.acme",
-		"-DnoCode",
 		fmt.Sprintf("-DplatformVersion=%s", cfg.DependenciesVersion.QuarkusVersion),
 		fmt.Sprintf("-DprojectArtifactId=%s", cfg.ProjectName),
 		fmt.Sprintf("-Dextensions=%s", cfg.Extensions))
@@ -126,6 +126,11 @@ func runCreateProject(cfg CreateQuarkusProjectConfig) (err error) {
 	); err != nil {
 		return err
 	}
+
+	if err := PostMavenCleanup(cfg); err != nil {
+		return err
+	}
+
 	return
 }
 
@@ -135,15 +140,10 @@ func runCreateCmdConfig() (cfg CreateQuarkusProjectConfig, err error) {
 
 	cfg = CreateQuarkusProjectConfig{
 		ProjectName: viper.GetString("name"),
-		Extensions: fmt.Sprintf("%s,%s,%s,%s,%s,%s,%s,%s,%s",
-			metadata.KogitoQuarkusServerlessWorkflowExtension,
-			metadata.KogitoAddonsQuarkusKnativeEventingExtension,
+		Extensions: fmt.Sprintf("%s,%s,%s,%s",
 			metadata.QuarkusKubernetesExtension,
 			metadata.QuarkusResteasyJacksonExtension,
-			metadata.KogitoQuarkusServerlessWorkflowDevUi,
-			metadata.KogitoAddonsQuarkusSourceFiles,
 			metadata.SmallryeHealth,
-			metadata.KogitoDataIndexInMemory,
 			viper.GetString("extension"),
 		),
 		DependenciesVersion: metadata.DependenciesVersion{

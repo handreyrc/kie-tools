@@ -21,13 +21,18 @@ package quarkus
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
+
 	"github.com/apache/incubator-kie-tools/packages/kn-plugin-workflow/pkg/common"
 	"github.com/apache/incubator-kie-tools/packages/kn-plugin-workflow/pkg/metadata"
 	"github.com/ory/viper"
 	"github.com/spf13/cobra"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 type BuildCmdConfig struct {
@@ -79,7 +84,7 @@ func NewBuildCommand() *cobra.Command {
 	# Build from the local directory, passing separately image options
 	{{.Name}} build --image-registry docker.io --image-repository myuser --image-name myworkflow --image-tag 1.0
 
-	# Build using Jib instead of Docker. (Read more: https://kiegroup.github.io/kogito-docs/serverlessworkflow/main/cloud/build-workflow-image-with-quarkus-cli.html)
+	# Build using Jib instead of Docker. (Read more: https://apache.github.io/incubator-kie-kogito-docs/serverlessworkflow/main/cloud/build-workflow-image-with-quarkus-cli.html)
 	# Docker is still required to save the image if the push flag is not used
 	{{.Name}} build --jib
 	
@@ -223,8 +228,32 @@ func runAddExtension(cfg BuildCmdConfig) error {
 }
 
 func runBuildImage(cfg BuildCmdConfig) (out string, err error) {
+	var flags = log.Flags()
+	defer log.SetFlags(flags)
+	log.SetFlags(0)
+
+	dir := "target"
+	filePath := filepath.Join(dir, "build.log")
+
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err = os.MkdirAll(dir, 0755)
+		if err != nil {
+			log.Fatalf("Unable to create a target folder: %v", err)
+		}
+	}
+
+	file, err := os.Create(filePath)
+	if err != nil {
+		log.Fatalf("Unable to create a log file  : %v", err)
+	}
+	log.SetOutput(file)
+	defer file.Close()
+
+	multiWriter := io.MultiWriter(os.Stdout, file)
+
 	registry, repository, name, tag := getImageConfig(cfg)
 	if err = checkImageName(name); err != nil {
+		log.Print(err)
 		return
 	}
 
@@ -232,7 +261,7 @@ func runBuildImage(cfg BuildCmdConfig) (out string, err error) {
 	builderConfig := getBuilderConfig(cfg)
 	executableName := getExecutableNameConfig(cfg)
 
-	build := common.ExecCommand("mvn", "package",
+	build := common.ExecCommand("mvn", "-B", "package",
 		skipTestsConfig,
 		"-Dquarkus.kubernetes.deployment-target=knative",
 		fmt.Sprintf("-Dquarkus.knative.name=%s", name),
@@ -246,25 +275,32 @@ func runBuildImage(cfg BuildCmdConfig) (out string, err error) {
 		executableName,
 	)
 
-	if err = common.RunCommand(
-		build,
-		"build",
-	); err != nil {
+	build.Stdout = multiWriter
+	build.Stderr = multiWriter
+
+	if err := build.Start(); err != nil {
+		// write to the log as well
+		log.Println("ERROR: starting command \"build\" failed")
 		if cfg.Push {
-			fmt.Println("ERROR: Image build failed.")
-			fmt.Println("If you're using a private registry, check if you're authenticated")
+			log.Println("ERROR: Image build failed.")
+			log.Println("If you're using a private registry, check if you're authenticated")
 		}
-		return
+		return "", err
+	}
+
+	if err := build.Wait(); err != nil {
+		log.Println("ERROR: something went wrong during command \"build\"")
+		return "", err
 	}
 
 	out = getImage(registry, repository, name, tag)
 	if cfg.Push {
-		fmt.Printf("Created and pushed an image to registry: %s\n", out)
+		log.Printf("Created and pushed an image to registry: %s\n", out)
 	} else {
-		fmt.Printf("Created a local image: %s\n", out)
+		log.Printf("Created a local image: %s\n", out)
 	}
 
-	fmt.Println("✅ Build success")
+	log.Println("✅ Build success")
 	return
 }
 
@@ -273,11 +309,11 @@ func checkImageName(name string) (err error) {
 	if !matched {
 		fmt.Println(`
 ERROR: Image name should match [a-z]([-a-z0-9]*[a-z0-9])?
-The name needs to start with a lower case letter and then it can be composed exclusvely of lower case letters, numbers or dashes ('-')
+The name needs to start with a lower case letter and then it can be composed exclusively of lower case letters, numbers or dashes ('-')
 Example of valid names: "test-0-0-1", "test", "t1"
 Example of invalid names: "1-test", "test.1", "test/1"
 		`)
-		err = fmt.Errorf("invalid image name")
+		err = fmt.Errorf("invalid image name: %s", name)
 	}
 	return
 }

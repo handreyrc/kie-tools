@@ -21,26 +21,26 @@ import { devices, defineConfig } from "@playwright/test";
 import { ProjectName } from "./projectNames";
 
 export default defineConfig({
-  testDir: "./tests/e2e",
-  outputDir: "dist-e2e-tests/output",
+  testDir: "./tests-e2e",
+  outputDir: "dist-tests-e2e/output",
   snapshotPathTemplate: "{testDir}/__screenshots__/{projectName}/{testFileDir}/{arg}{ext}",
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 2 : 1,
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 2 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: process.env.CI
     ? [
         ["github"],
-        ["junit", { outputFile: "./dist-e2e-tests/junit-report-e2e.xml" }],
-        ["html", { outputFolder: "./dist-e2e-tests/reports/", open: "never" }],
+        ["junit", { outputFile: "./dist-tests-e2e/junit-report-e2e.xml" }],
+        ["html", { outputFolder: "./dist-tests-e2e/reports/", open: "never" }],
         ["list"],
       ]
-    : [["html", { outputFolder: "./dist-e2e-tests/reports/", open: "never" }], ["list"]],
+    : [["html", { outputFolder: "./dist-tests-e2e/reports/", open: "never" }], ["list"]],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
@@ -53,17 +53,17 @@ export default defineConfig({
     locale: "en-US",
   },
   expect: {
-    timeout: 10000,
+    timeout: 30_000,
     toHaveScreenshot: {
       // An acceptable ratio of pixels that are different to the
       // total amount of pixels, between 0 and 1.
-      maxDiffPixelRatio: 0.01,
+      maxDiffPixelRatio: 0.001,
     },
   },
   /* Configure projects for major browsers */
   projects: [
     {
-      timeout: 60000,
+      timeout: 180_000,
       name: ProjectName.CHROMIUM,
       use: { ...devices["Desktop Chrome"], permissions: ["clipboard-read"] },
     },
@@ -74,13 +74,13 @@ export default defineConfig({
     // },
 
     {
-      timeout: 60000,
+      timeout: 180_000,
       name: ProjectName.WEBKIT,
       use: { ...devices["Desktop Safari"], deviceScaleFactor: 1 },
     },
 
     {
-      timeout: 60000,
+      timeout: 180_000,
       name: ProjectName.GOOGLE_CHROME,
       use: { ...devices["Desktop Chrome"], channel: "chrome", permissions: ["clipboard-read"] },
     },

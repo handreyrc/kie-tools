@@ -19,30 +19,41 @@
 
 import * as React from "react";
 import { useCallback } from "react";
-import { BeeTableCellProps, ListExpressionDefinition, ExpressionDefinitionLogicType } from "../../api";
+import { BeeTableCellProps, BoxedList, Normalized } from "../../api";
 import {
   useBoxedExpressionEditorDispatch,
   NestedExpressionDispatchContextProvider,
-} from "../BoxedExpressionEditor/BoxedExpressionEditorContext";
+  OnSetExpression,
+} from "../../BoxedExpressionEditorContext";
 import { ExpressionContainer } from "../ExpressionDefinitionRoot/ExpressionContainer";
 import { ROWTYPE } from "./ListExpression";
+import { DMN15__tList } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/ts-gen/types";
 
 export function ListItemCell({
   rowIndex,
   data: items,
   columnIndex,
   parentElementId,
-}: BeeTableCellProps<ROWTYPE> & { parentElementId: string }) {
+  listExpression,
+}: BeeTableCellProps<ROWTYPE> & { parentElementId: string; listExpression: Normalized<DMN15__tList> }) {
   const { setExpression } = useBoxedExpressionEditorDispatch();
 
-  const onSetExpression = useCallback(
-    ({ getNewExpression }) => {
-      setExpression((prev: ListExpressionDefinition) => {
-        const newItems = [...(prev.items ?? [])];
-        newItems[rowIndex] = getNewExpression(
-          newItems[rowIndex] ?? { logicType: ExpressionDefinitionLogicType.Undefined }
-        );
-        return { ...prev, items: newItems };
+  const onSetExpression = useCallback<OnSetExpression>(
+    ({ getNewExpression, expressionChangedArgs }) => {
+      setExpression({
+        setExpressionAction: (prev: Normalized<BoxedList>) => {
+          const newItems = [...(prev.expression ?? [])];
+          newItems[rowIndex] = getNewExpression(newItems[rowIndex])!; // SPEC DISCREPANCY: Allowing undefined expression
+
+          // Do not inline this variable for type safety. See https://github.com/microsoft/TypeScript/issues/241
+          const ret: Normalized<BoxedList> = {
+            ...prev,
+            expression: newItems,
+          };
+
+          return ret;
+        },
+        expressionChangedArgs,
       });
     },
     [rowIndex, setExpression]
@@ -51,12 +62,13 @@ export function ListItemCell({
   return (
     <NestedExpressionDispatchContextProvider onSetExpression={onSetExpression}>
       <ExpressionContainer
-        expression={items[rowIndex]?.entryExpression}
+        expression={items[rowIndex]?.expression}
         isResetSupported={true}
         isNested={true}
         rowIndex={rowIndex}
         columnIndex={columnIndex}
         parentElementId={parentElementId}
+        parentElementTypeRef={listExpression["@_typeRef"]}
       />
     </NestedExpressionDispatchContextProvider>
   );

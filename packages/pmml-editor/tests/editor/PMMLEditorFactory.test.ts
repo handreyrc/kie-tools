@@ -19,25 +19,29 @@
 
 import {
   ChannelType,
+  DEFAULT_WORKSPACE_ROOT_ABSOLUTE_POSIX_PATH,
   Editor,
   KogitoEditorChannelApi,
+  KogitoEditorEnvelopeApi,
   KogitoEditorEnvelopeContextType,
 } from "@kie-tools-core/editor/dist/api";
 import { PMMLEditorFactory, PMMLEditorInterface } from "@kie-tools/pmml-editor";
 import { DefaultKeyboardShortcutsService } from "@kie-tools-core/keyboard-shortcuts/dist/envelope";
 import { OperatingSystem } from "@kie-tools-core/operating-system";
-import { messageBusClientApiMock } from "@kie-tools-core/envelope-bus/dist-tests/common";
+import { messageBusClientApiMock } from "@kie-tools-core/envelope-bus/dist-tests/messageBusClientApiMock";
 import { I18nService } from "@kie-tools-core/i18n/dist/envelope";
 
 const channelApi = messageBusClientApiMock<KogitoEditorChannelApi>();
 
-const envelopeContext: KogitoEditorEnvelopeContextType<KogitoEditorChannelApi> = {
+const envelopeContext: KogitoEditorEnvelopeContextType<KogitoEditorEnvelopeApi, KogitoEditorChannelApi> = {
+  shared: {} as any,
   channelApi: channelApi,
   operatingSystem: OperatingSystem.LINUX,
   services: {
     keyboardShortcuts: new DefaultKeyboardShortcutsService({ os: OperatingSystem.LINUX }),
     i18n: new I18nService(),
   },
+  supportedThemes: [],
 };
 
 describe("PMMLEditorFactory", () => {
@@ -52,6 +56,7 @@ describe("PMMLEditorFactory", () => {
       initialLocale: "en",
       isReadOnly: false,
       channel: ChannelType.EMBEDDED,
+      workspaceRootAbsolutePosixPath: DEFAULT_WORKSPACE_ROOT_ABSOLUTE_POSIX_PATH,
     });
     expect(created).resolves.toBeInstanceOf(PMMLEditorInterface);
   });

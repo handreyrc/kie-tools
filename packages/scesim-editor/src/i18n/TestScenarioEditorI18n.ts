@@ -22,10 +22,29 @@ import { ReferenceDictionary } from "@kie-tools-core/i18n/dist/core";
 
 interface TestScenarioEditorDictionary extends ReferenceDictionary {
   alerts: {
-    dmnDataNotAvailable: string;
     ruleDataNotAvailable: string;
     dmnDataRetrievedFromScesim: string;
     ruleDataRetrievedFromScesim: string;
+  };
+  creationPanel: {
+    assetsGroup: string;
+    assetsOption: {
+      dmn: string;
+      noChoice: string;
+      rule: string;
+    };
+    autoFillTable: string;
+    autoFillTableTooltip: string;
+    createButton: string;
+    dmnGroup: string;
+    dmnNoChoice: string;
+    dmnNoPresent: string;
+    kieSessionGroup: string;
+    kieAgendaGroup: string;
+    optional: string;
+    statelessSession: string;
+    testSkip: string;
+    title: string;
   };
   drawer: {
     cheatSheet: {
@@ -57,25 +76,34 @@ interface TestScenarioEditorDictionary extends ReferenceDictionary {
       paragraph6Rule: string;
       title: string;
     };
-    dataObjects: {
+    dataSelector: {
       clearSelection: string;
       collapseAll: string;
       dataObjectsDescriptionDMN: string;
       dataObjectsDescriptionRule: string;
       descriptionDMN: string;
       descriptionRule: string;
+      emptyDataObjectsTitle: string;
+      emptyDataObjectsMissingTitle: string;
       emptyDataObjectsTitleDMN: string;
       emptyDataObjectsTitleRule: string;
+      emptyDataObjectsDescription: string;
+      emptyDataObjectsMissingDescription: string;
       emptyDataObjectsDescriptionDMN: string;
       emptyDataObjectsDescriptionRule: string;
       expandAll: string;
       insertDataObject: string;
+      insertDataObjectTooltipColumnSelectionMessage: string;
+      insertDataObjectTooltipDataObjectSelectionMessage: string;
+      insertDataObjectTooltipDataObjectAlreadyAssignedMessage: string;
+      insertDataObjectTooltipDataObjectAssignMessage: string;
       titleDMN: string;
       titleRule: string;
     };
     settings: {
       assetType: string;
       dmnModel: string;
+      dmnModelReferenceError: string;
       dmnName: string;
       dmnNameSpace: string;
       fileName: string;
@@ -92,9 +120,15 @@ interface TestScenarioEditorDictionary extends ReferenceDictionary {
       title: string;
     };
   };
+  errorFallBack: {
+    title: string;
+    body: string;
+    lastActionButton: string;
+    fileIssueHref: string;
+  };
   sidebar: {
     cheatSheetTooltip: string;
-    dataObjectsTooltip: string;
+    dataSelectorTooltip: string;
     settingsTooltip: string;
   };
   tab: {

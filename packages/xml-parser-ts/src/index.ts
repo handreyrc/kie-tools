@@ -36,9 +36,11 @@ export type XmlDocument = {
   };
 };
 
-export type MetaTypeDef = { type: string; isArray: boolean; fromType: string; xsdType: string };
+export type MetaTypeProp = { type: string; isArray: boolean; fromType: string; xsdType: string };
 
-export type Meta = Record<string, Record<string, MetaTypeDef>>;
+export type MetaType = Record<string, MetaTypeProp>;
+
+export type Meta = Record<string, MetaType>;
 
 export type Root = { element: string; type: string };
 
@@ -160,7 +162,7 @@ export function getParser<T extends object>(args: {
         if (k.endsWith(":") || k === "" /* Filters only `xmlns --> URL` mappings, since `ns` is bi-directional.*/) {
           const instanceNsKey = instanceNs.get(v)?.slice(0, -1);
           const originalXmlnsPropName = instanceNsKey ? `@_xmlns:${instanceNsKey}` : `@_xmlns`;
-          if (!instanceNsKey || !__json[args.root.element][originalXmlnsPropName]) {
+          if (instanceNsKey === undefined || !__json[args.root.element][originalXmlnsPropName]) {
             const nsName = k.slice(0, -1);
             const newXmlnsPropName = nsName ? `@_xmlns:${nsName}` : `@_xmlns`;
             console.warn(`Adding NS mapping to XML: ${newXmlnsPropName} --> ${v}`);
@@ -174,7 +176,26 @@ export function getParser<T extends object>(args: {
         "@_encoding": "UTF-8",
       };
 
-      const xml = build({ json: __json, ns: args.ns, instanceNs, indent: "" });
+      // Since building starts from a level above the root element, we need create this pseudo-metaType to correctly type the tree we're building.
+      const rootMetaType = {
+        [args.root.element]: { type: args.root.type, fromType: "root", isArray: false, xsdType: "// root" },
+      };
+
+      const declaredElementsOrder = [];
+      for (const e in args.elements ?? {}) {
+        declaredElementsOrder.push(e);
+      }
+
+      const xml = build({
+        json: __json,
+        ns: args.ns,
+        instanceNs,
+        elements: args.elements,
+        meta: args.meta,
+        metaType: rootMetaType,
+        declaredElementsOrder,
+        indent: "",
+      });
       // console.timeEnd("building took");
       return xml;
     },
@@ -187,7 +208,7 @@ export function getParser<T extends object>(args: {
 
 export function parse(args: {
   node: Node;
-  nodeMetaType: Record<string, MetaTypeDef | undefined> | undefined;
+  nodeMetaType: MetaType | undefined;
   ns: Map<string, string>;
   instanceNs: Map<string, string>;
   meta: Meta;
@@ -201,7 +222,7 @@ export function parse(args: {
     const elemNode = children[ii];
 
     if (elemNode.nodeType === 1 /* ELEMENT_NODE */) {
-      const { nsedName, subsedName } = resolveElement(elemNode.nodeName, args.nodeMetaType, args);
+      const { nsedName, subsedName } = resolveQName(elemNode.nodeName, args.nodeMetaType, args);
 
       const elemMetaProp = args.nodeMetaType?.[subsedName ?? nsedName];
 
@@ -212,7 +233,8 @@ export function parse(args: {
           : undefined); // If the current element is not known, we simply ignore its type and go with the defaults.
 
       // If the elemNode's meta type has a __$$text property, this is the one we use to parse its value.
-      // All other properties on `elemType` are certainly attributes, which are handlded below.
+      // All other properties (except `__$$element`) on `elemType` are certainly attributes, which are handled below.
+      // The `__$$element` property is also processed below, since there can be an element with both `__$$text` and `__$$element` properties.
       const t = elemMetaType?.["__$$text"]?.type ?? elemMetaProp?.type;
 
       let elemValue: any = {};
@@ -226,16 +248,27 @@ export function parse(args: {
         elemValue["__$$text"] = parseFloat(elemNode.textContent ?? "");
       } else {
         elemValue = parse({ ...args, node: elemNode, nodeMetaType: elemMetaType });
-        if (subsedName !== nsedName) {
-          // substitution occurred, need to save the original, normalized element name
-          elemValue["__$$element"] = nsedName;
-        }
       }
 
+      if (subsedName !== nsedName) {
+        // substitution occurred, need to save the original, normalized element name
+        elemValue["__$$element"] = nsedName;
+      }
+
+      const argsForAttrs = { ns: args.ns, instanceNs: args.instanceNs, subs: {} }; // Attributes can't use substitution groups.
       const attrs = (elemNode as Element).attributes;
       for (let i = 0; i < attrs.length; i++) {
         const attr = attrs[i];
-        const attrPropType = elemMetaType?.[`@_${attr.name}`];
+        const resolvedAttrQName = resolveQName(attr.name, args.nodeMetaType, argsForAttrs);
+
+        // If the attribute's name is not qualified, we don't mess
+        // with it. We treat it as having no namespace, instead of
+        // potentially using the default namespace mapped with `xmlns=`.
+        const attrName = resolvedAttrQName.isQualified
+          ? resolvedAttrQName.subsedName ?? resolvedAttrQName.nsedName
+          : attr.name;
+
+        const attrPropType = elemMetaType?.[`@_${attrName}`];
 
         let attrValue: any;
         if (attrPropType?.type === "string") {
@@ -252,7 +285,7 @@ export function parse(args: {
           attrValue = attr.value; // Unknown type, default to the text from the XML.
         }
 
-        elemValue[`@_${attr.name}`] = attrValue;
+        elemValue[`@_${attrName}`] = attrValue;
       }
 
       const currentValue = json[subsedName ?? nsedName];
@@ -281,9 +314,9 @@ export function parse(args: {
   return json;
 }
 
-export function resolveElement(
+export function resolveQName(
   name: string,
-  parentMetaType: Record<string, MetaTypeDef | undefined> | undefined,
+  parentMetaType: MetaType | undefined,
   {
     ns,
     instanceNs,
@@ -296,14 +329,17 @@ export function resolveElement(
 ) {
   let nameNs = undefined;
   let nameName = undefined;
+  let isQualified: boolean;
 
   const s = name.split(":");
   if (s.length === 1) {
     nameNs = ns.get(instanceNs.get("")!) ?? "";
     nameName = s[0];
+    isQualified = false;
   } else if (s.length === 2) {
     nameNs = ns.get(instanceNs.get(`${s[0]}:`)!) ?? `${s[0]}:`;
     nameName = s[1];
+    isQualified = true;
   } else {
     throw new Error(name);
   }
@@ -324,7 +360,7 @@ export function resolveElement(
     subsedName = nsedSubs[subsedName];
   }
 
-  return { nsedName, subsedName };
+  return { nsedName, subsedName, isQualified };
 }
 
 function parseInt(attrValue: string) {
@@ -395,14 +431,20 @@ function applyEntities(value: any) {
     .replace(quotEntity.regex, quotEntity.replacement);
 }
 
-function buildAttrs(json: any) {
+function buildAttrs(json: any, { ns, instanceNs }: { ns: Map<string, string>; instanceNs: Map<string, string> }) {
   let isEmpty = true;
   let hasText = false;
   let attrs = " ";
 
+  // Attributes don't ever need to be serialized in a particular order.
   for (const propName in json) {
     if (propName[0] === "@") {
-      attrs += `${propName.substring(2)}="${applyEntities(json[propName])}" `;
+      const attrName =
+        propName.split(":").length === 2 // only apply namespace if it's qualified name. attributes are unnamespaced by default.
+          ? applyInstanceNs({ propName: propName.substring(2), instanceNs, ns })
+          : propName.substring(2);
+
+      attrs += `${attrName}="${applyEntities(json[propName])}" `;
     } else if (propName === "__$$text") {
       hasText = true;
       isEmpty = false;
@@ -422,9 +464,13 @@ export function build(args: {
   json: any;
   ns: Map<string, string>;
   instanceNs: Map<string, string>;
+  elements: Elements;
+  meta: Meta;
+  metaType: MetaType | undefined;
+  declaredElementsOrder: string[];
   indent: string;
 }): string {
-  const { json, ns, instanceNs, indent } = args;
+  const { json, ns, instanceNs, indent, metaType } = args;
 
   if (typeof json !== "object" || json === null) {
     throw new Error(`Can't build XML from a non-object value. '${json}'.`);
@@ -432,41 +478,63 @@ export function build(args: {
 
   let xml = "";
 
-  for (const _propName in json) {
-    const propName = applyEntities(_propName);
-    const propValue = json[propName];
+  // We want to respect a certain order here given xsd:sequence, xsd:choice, and xsd:all declarations
+  const sortedJsonProps: string[] = [];
+  for (const p in json) {
+    sortedJsonProps.push(p);
+  }
+
+  const declaredPropOrder: string[] = [];
+  for (const p in metaType ?? {}) {
+    declaredPropOrder.push(p);
+  }
+
+  sortedJsonProps.sort((a, b) => declaredPropOrder.indexOf(a) - declaredPropOrder.indexOf(b));
+
+  // After the correct order is established, we can iterate over the `json` object.
+  for (const __unsafeJsonPropName of sortedJsonProps) {
+    const jsonPropName = applyEntities(__unsafeJsonPropName);
+    const jsonPropValue = json[jsonPropName];
 
     // attributes are processed individually.
-    if (propName[0] === "@") {
+    if (jsonPropName[0] === "@") {
       continue;
     }
     // ignore this, as we won't make it part of the final XML.
-    else if (propName === "__$$element") {
+    else if (jsonPropName === "__$$element") {
       continue;
     }
     // ignore this. text content is treated inside the "array" and "nested element" sections.
-    else if (propName === "__$$text") {
+    else if (jsonPropName === "__$$text") {
       continue;
     }
     // pi tag
-    else if (propName[0] === "?") {
-      xml = `${indent}<${propName}${buildAttrs(propValue).attrs} ?>\n` + xml; // PI Tags should always go at the top of the XML
+    else if (jsonPropName[0] === "?") {
+      xml = `${indent}<${jsonPropName}${buildAttrs(jsonPropValue, args).attrs} ?>\n` + xml; // PI Tags should always go at the top of the XML
     }
     // empty tag
-    else if (propValue === undefined || propValue === null || propValue === "") {
-      const elementName = applyInstanceNs({ ns, instanceNs, propName });
+    else if (jsonPropValue === undefined || jsonPropValue === null || jsonPropValue === "") {
+      const elementName = applyInstanceNs({ ns, instanceNs, propName: jsonPropName });
       xml += `${indent}<${elementName} />\n`;
     }
     // primitive element
-    else if (typeof propValue !== "object") {
-      const elementName = applyInstanceNs({ ns, instanceNs, propName });
-      xml += `${indent}<${elementName}>${applyEntities(propValue)}</${elementName}>\n`;
+    else if (typeof jsonPropValue !== "object") {
+      const elementName = applyInstanceNs({ ns, instanceNs, propName: jsonPropName });
+      xml += `${indent}<${elementName}>${applyEntities(jsonPropValue)}</${elementName}>\n`;
     }
     // array
-    else if (Array.isArray(propValue)) {
-      for (const item of propValue) {
-        const elementName = applyInstanceNs({ ns, instanceNs, propName: item?.["__$$element"] ?? propName });
-        const { attrs, isEmpty, hasText } = buildAttrs(item);
+    else if (Array.isArray(jsonPropValue)) {
+      // In order to keep the order of elements of xsd:sequences in a `substituionGroup`
+      // we need to sort elements by their declaration order.
+      const elemOrder = args.declaredElementsOrder;
+      const arr =
+        jsonPropValue?.[0]?.__$$element === undefined
+          ? jsonPropValue
+          : jsonPropValue.toSorted((a, b) => elemOrder.indexOf(a.__$$element) - elemOrder.indexOf(b.__$$element));
+
+      for (const item of arr) {
+        const elementName = applyInstanceNs({ ns, instanceNs, propName: item?.["__$$element"] ?? jsonPropName });
+        const { attrs, isEmpty, hasText } = buildAttrs(item, args);
         xml += `${indent}<${elementName}${attrs}`;
         if (isEmpty) {
           xml += " />\n";
@@ -474,7 +542,12 @@ export function build(args: {
           if (hasText) {
             xml += `>${applyEntities(item["__$$text"])}</${elementName}>\n`;
           } else {
-            xml += `>\n${build({ ...args, json: item, indent: `${indent}  ` })}`;
+            xml += `>\n${build({
+              ...args,
+              json: item,
+              metaType: getPropMetaTypeForJsonObj({ args, jsonObj: item, jsonPropName, metaType }),
+              indent: `${indent}  `,
+            })}`;
             xml += `${indent}</${elementName}>\n`;
           }
         }
@@ -482,9 +555,9 @@ export function build(args: {
     }
     // nested element
     else {
-      const item = propValue;
-      const elementName = applyInstanceNs({ ns, instanceNs, propName: item["__$$element"] ?? propName });
-      const { attrs, isEmpty, hasText } = buildAttrs(item);
+      const item = jsonPropValue;
+      const elementName = applyInstanceNs({ ns, instanceNs, propName: item["__$$element"] ?? jsonPropName });
+      const { attrs, isEmpty, hasText } = buildAttrs(item, args);
       xml += `${indent}<${elementName}${attrs}`;
       if (isEmpty) {
         xml += " />\n";
@@ -492,7 +565,12 @@ export function build(args: {
         if (hasText) {
           xml += `>${applyEntities(item["__$$text"])}</${elementName}>\n`;
         } else {
-          xml += `>\n${build({ ...args, json: item, indent: `${indent}  ` })}`;
+          xml += `>\n${build({
+            ...args,
+            json: item,
+            metaType: getPropMetaTypeForJsonObj({ args, jsonObj: item, jsonPropName, metaType }),
+            indent: `${indent}  `,
+          })}`;
           xml += `${indent}</${elementName}>\n`;
         }
       }
@@ -500,6 +578,26 @@ export function build(args: {
   }
 
   return xml;
+}
+
+// To know what the metaType of `jsonObj` is, we first need to check if it is mapped as an element.
+// If it is, we use the type mapped to elements with its `__$$element` attribute or `jsonPropName`
+// If it's not, we proceed normally with traversing the metaType tree.
+function getPropMetaTypeForJsonObj({
+  args: { elements, meta },
+  jsonObj,
+  jsonPropName,
+  metaType,
+}: {
+  args: {
+    elements: Elements;
+    meta: Meta;
+  };
+  jsonObj: any;
+  jsonPropName: string;
+  metaType: MetaType | undefined;
+}): MetaType | undefined {
+  return meta[elements[jsonObj?.["__$$element"] ?? jsonPropName] ?? metaType?.[jsonPropName]?.type ?? ""];
 }
 
 function applyInstanceNs({

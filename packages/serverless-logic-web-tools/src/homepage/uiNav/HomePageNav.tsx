@@ -30,7 +30,7 @@ export function HomePageNav(props: { pathname: string }) {
   const settings = useSettings();
 
   const runtimeToolsNavItem = useMemo(() => {
-    if (settings.runtimeTools.config.kogitoServiceUrl && settings.runtimeTools.config.dataIndexUrl) {
+    if (settings.runtimeTools.config.dataIndexUrl) {
       return (
         <NavExpandable title="Runtime Tools" groupId="runtime-tools-nav-group">
           <NavItem
@@ -49,14 +49,6 @@ export function HomePageNav(props: { pathname: string }) {
           >
             <Link to={routes.runtimeToolsWorkflowInstances.path({})}>Workflow Instances</Link>
           </NavItem>
-          <NavItem
-            itemId={5}
-            key={"RuntimeToolsTriggerCloudEvent-nav"}
-            isActive={props.pathname === routes.runtimeToolsTriggerCloudEvent.path({})}
-            ouiaId="runtime-tools-trigger-cloud-event-nav"
-          >
-            <Link to={routes.runtimeToolsTriggerCloudEvent.path({})}>Trigger Cloud Event</Link>
-          </NavItem>
         </NavExpandable>
       );
     }
@@ -71,7 +63,7 @@ export function HomePageNav(props: { pathname: string }) {
         <Link to={routes.settings.runtime_tools.path({})}>Runtime Tools</Link>
       </NavItem>
     );
-  }, [settings]);
+  }, [settings, props.pathname]);
 
   return (
     <>
@@ -91,8 +83,8 @@ export function HomePageNav(props: { pathname: string }) {
             key={"Recent-models-nav"}
             isActive={
               props.pathname === routes.recentModels.path({}) ||
-              matchPath(props.pathname, { path: routes.workspaceWithFiles.path({ workspaceId: ":workspaceId" }) })
-                ?.isExact
+              matchPath({ path: routes.workspaceWithFiles.path({ workspaceId: ":workspaceId" }) }, props.pathname) !==
+                null
             }
             ouiaId="recent-models-nav"
           >

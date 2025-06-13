@@ -27,14 +27,9 @@ import { Title } from "@patternfly/react-core/dist/js/components/Title";
 import { Flex, FlexItem } from "@patternfly/react-core/dist/js/layouts/Flex";
 import * as React from "react";
 import { useCallback, useMemo, useState } from "react";
-import { useDmnEditorStore, useDmnEditorStoreApi } from "../store/Store";
+import { useDmnEditorStore, useDmnEditorStoreApi } from "../store/StoreContext";
 import { TypeRefSelector } from "./TypeRefSelector";
-import {
-  Dropdown,
-  DropdownItem,
-  DropdownSeparator,
-  KebabToggle,
-} from "@patternfly/react-core/dist/js/components/Dropdown";
+import { Dropdown, DropdownItem, DropdownSeparator, KebabToggle } from "@patternfly/react-core/deprecated";
 import { DataType, DataTypeIndex, EditItemDefinition, AddItemComponent } from "./DataTypes";
 import { DataTypeName } from "./DataTypeName";
 import { ItemComponentsTable } from "./ItemComponentsTable";
@@ -42,23 +37,26 @@ import { getNewItemDefinition, isStruct } from "./DataTypeSpec";
 import { TrashIcon } from "@patternfly/react-icons/dist/js/icons/trash-icon";
 import { Label } from "@patternfly/react-core/dist/js/components/Label";
 import { CopyIcon } from "@patternfly/react-icons/dist/js/icons/copy-icon";
-import { useDmnEditorDerivedStore } from "../store/DerivedStore";
-import { UniqueNameIndex } from "../Dmn15Spec";
+import { UniqueNameIndex } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/Dmn15Spec";
 import { buildFeelQNameFromNamespace } from "../feel/buildFeelQName";
 import { buildClipboardFromDataType } from "../clipboard/Clipboard";
-import { Constraints } from "./Constraints";
+import { ConstraintsFromAllowedValuesAttribute, ConstraintsFromTypeConstraintAttribute } from "./Constraints";
 import { original } from "immer";
 import { builtInFeelTypeNames } from "./BuiltInFeelTypes";
 import { useDmnEditor } from "../DmnEditorContext";
 import { useResolvedTypeRef } from "./useResolvedTypeRef";
+import { useExternalModels } from "../includedModels/DmnEditorDependenciesContext";
+import { Alert } from "@patternfly/react-core/dist/js/components/Alert/Alert";
+import { Popover } from "@patternfly/react-core/dist/js/components/Popover";
+import { InfoAltIcon } from "@patternfly/react-icons/dist/js/icons/info-alt-icon";
 
 export function DataTypePanel({
-  isReadonly,
+  isReadOnly,
   dataType,
   allDataTypesById,
   editItemDefinition,
 }: {
-  isReadonly: boolean;
+  isReadOnly: boolean;
   dataType: DataType;
   allDataTypesById: DataTypeIndex;
   editItemDefinition: EditItemDefinition;
@@ -67,7 +65,7 @@ export function DataTypePanel({
 
   const toggleStruct = useCallback(
     (isChecked: boolean) => {
-      if (isReadonly) {
+      if (isReadOnly) {
         return;
       }
 
@@ -75,6 +73,7 @@ export function DataTypePanel({
         if (isChecked) {
           itemDefinition.typeRef = undefined;
           itemDefinition.itemComponent = [];
+          itemDefinition.typeConstraint = undefined;
           itemDefinition.allowedValues = undefined;
         } else {
           itemDefinition.typeRef = { __$$text: DmnBuiltInDataType.Any };
@@ -82,43 +81,59 @@ export function DataTypePanel({
         }
       });
     },
-    [dataType.itemDefinition, editItemDefinition, isReadonly]
+    [dataType.itemDefinition, editItemDefinition, isReadOnly]
   );
 
   const toggleCollection = useCallback(
     (isChecked: boolean) => {
-      if (isReadonly) {
+      if (isReadOnly) {
         return;
       }
 
       editItemDefinition(dataType.itemDefinition["@_id"]!, (itemDefinition) => {
         itemDefinition["@_isCollection"] = isChecked;
-        itemDefinition.allowedValues = undefined;
-      });
-    },
-    [dataType.itemDefinition, editItemDefinition, isReadonly]
-  );
+        if (isChecked === true) {
+          itemDefinition.allowedValues = itemDefinition.typeConstraint
+            ? {
+                ...itemDefinition.typeConstraint,
+              }
+            : undefined;
 
-  const changeTypeRef = useCallback(
-    (typeRef: DmnBuiltInDataType) => {
-      if (isReadonly) {
-        return;
-      }
-
-      editItemDefinition(dataType.itemDefinition["@_id"]!, (itemDefinition) => {
-        itemDefinition.typeRef = { __$$text: typeRef };
-        const originalItemDefinition = original(itemDefinition);
-        if (originalItemDefinition?.typeRef?.__$$text !== typeRef) {
+          itemDefinition.typeConstraint = undefined;
+        } else {
+          itemDefinition.typeConstraint = itemDefinition.allowedValues
+            ? {
+                ...itemDefinition.allowedValues,
+              }
+            : undefined;
           itemDefinition.allowedValues = undefined;
         }
       });
     },
-    [dataType.itemDefinition, editItemDefinition, isReadonly]
+    [dataType.itemDefinition, editItemDefinition, isReadOnly]
+  );
+
+  const changeTypeRef = useCallback(
+    (typeRef: DmnBuiltInDataType) => {
+      if (isReadOnly) {
+        return;
+      }
+
+      editItemDefinition(dataType.itemDefinition["@_id"]!, (itemDefinition) => {
+        itemDefinition.typeRef = typeRef ? { __$$text: typeRef } : undefined;
+        const originalItemDefinition = original(itemDefinition);
+        if (originalItemDefinition?.typeRef?.__$$text !== typeRef) {
+          itemDefinition.typeConstraint = undefined;
+          itemDefinition.allowedValues = undefined;
+        }
+      });
+    },
+    [dataType.itemDefinition, editItemDefinition, isReadOnly]
   );
 
   const changeDescription = useCallback(
     (newDescription: string) => {
-      if (isReadonly) {
+      if (isReadOnly) {
         return;
       }
 
@@ -126,7 +141,7 @@ export function DataTypePanel({
         itemDefinition.description = { __$$text: newDescription };
       });
     },
-    [dataType.itemDefinition, editItemDefinition, isReadonly]
+    [dataType.itemDefinition, editItemDefinition, isReadOnly]
   );
 
   const parents = useMemo(() => {
@@ -144,7 +159,7 @@ export function DataTypePanel({
 
   const addItemComponent = useCallback<AddItemComponent>(
     (id, how, partial) => {
-      if (isReadonly) {
+      if (isReadOnly) {
         return;
       }
 
@@ -155,16 +170,20 @@ export function DataTypePanel({
         state.focus.consumableId = newItemDefinition["@_id"];
       });
     },
-    [editItemDefinition, isReadonly]
+    [editItemDefinition, isReadOnly]
   );
 
   const dmnEditorStoreApi = useDmnEditorStoreApi();
 
   const [dropdownOpenFor, setDropdownOpenFor] = useState<string | undefined>(undefined);
   const [topLevelDropdownOpen, setTopLevelDropdownOpen] = useState<boolean>(false);
-
-  const { importsByNamespace, allTopLevelItemDefinitionUniqueNames, allTopLevelDataTypesByFeelName } =
-    useDmnEditorDerivedStore();
+  const { externalModelsByNamespace } = useExternalModels();
+  const importsByNamespace = useDmnEditorStore((s) => s.computed(s).importsByNamespace());
+  const allTopLevelItemDefinitionUniqueNames = useDmnEditorStore(
+    (s) => s.computed(s).getDataTypes(externalModelsByNamespace).allTopLevelItemDefinitionUniqueNames
+  );
+  const [isCollectionConstraintPopoverOpen, setIsCollectionConstraintPopoverOpen] = useState(false);
+  const [isCollectionItemConstraintPopoverOpen, setIsCollectionItemConstraintPopoverOpen] = useState(false);
 
   const allUniqueNames = useMemo(
     () =>
@@ -193,7 +212,7 @@ export function DataTypePanel({
         direction={{ default: "row" }}
       >
         <FlexItem>
-          <Flex direction={{ default: "column" }}>
+          <Flex direction={{ default: "column" }} gap={{ default: "gapMd" }}>
             <FlexItem>
               <Flex direction={{ default: "row" }}>
                 {dataType.namespace !== thisDmnsNamespace && (
@@ -235,8 +254,8 @@ export function DataTypePanel({
                   itemDefinition={dataType.itemDefinition}
                   isActive={false}
                   editMode={"hover"}
-                  isReadonly={dataType.namespace !== thisDmnsNamespace}
-                  allUniqueNames={allUniqueNames}
+                  isReadOnly={isReadOnly || dataType.namespace !== thisDmnsNamespace}
+                  onGetAllUniqueNames={() => allUniqueNames}
                 />
               </div>
             </FlexItem>
@@ -248,7 +267,9 @@ export function DataTypePanel({
             <span>|</span>
             <Button variant={ButtonVariant.link}>View usages</Button> */}
           <Dropdown
-            toggle={<KebabToggle id={"toggle-kebab-top-level"} onToggle={setTopLevelDropdownOpen} />}
+            toggle={
+              <KebabToggle id={"toggle-kebab-top-level"} onToggle={(_event, val) => setTopLevelDropdownOpen(val)} />
+            }
             onSelect={() => setTopLevelDropdownOpen(false)}
             isOpen={topLevelDropdownOpen}
             menuAppendTo={document.body}
@@ -272,28 +293,30 @@ export function DataTypePanel({
               >
                 Copy
               </DropdownItem>,
-              <DropdownSeparator key="separator-2" />,
               <React.Fragment key={"remove-fragment"}>
-                {!isReadonly && (
-                  <DropdownItem
-                    style={{ minWidth: "240px" }}
-                    icon={<TrashIcon />}
-                    onClick={() => {
-                      if (isReadonly) {
-                        return;
-                      }
+                {!isReadOnly && (
+                  <>
+                    <DropdownSeparator key="separator-2" />
+                    <DropdownItem
+                      style={{ minWidth: "240px" }}
+                      icon={<TrashIcon />}
+                      onClick={() => {
+                        if (isReadOnly) {
+                          return;
+                        }
 
-                      editItemDefinition(dataType.itemDefinition["@_id"]!, (_, items) => {
-                        items?.splice(dataType.index, 1);
-                      });
-                      dmnEditorStoreApi.setState((state) => {
-                        state.dataTypesEditor.activeItemDefinitionId =
-                          dataType.parentId ?? state.dmn.model.definitions.itemDefinition?.[0]?.["@_id"];
-                      });
-                    }}
-                  >
-                    Remove
-                  </DropdownItem>
+                        editItemDefinition(dataType.itemDefinition["@_id"]!, (_, items) => {
+                          items?.splice(dataType.index, 1);
+                        });
+                        dmnEditorStoreApi.setState((state) => {
+                          state.dataTypesEditor.activeItemDefinitionId =
+                            dataType.parentId ?? state.dmn.model.definitions.itemDefinition?.[0]?.["@_id"];
+                        });
+                      }}
+                    >
+                      Remove
+                    </DropdownItem>
+                  </>
                 )}
               </React.Fragment>,
             ]}
@@ -301,28 +324,33 @@ export function DataTypePanel({
         </FlexItem>
       </Flex>
       {/* This padding was necessary because PF4 has a @media query that doesn't run inside iframes, for some reason. */}
-      <PageSection style={{ padding: "24px" }}>
+      <PageSection style={{ padding: "24px" }} variant="light">
         <TextArea
-          isDisabled={isReadonly}
+          isDisabled={isReadOnly}
           key={dataType.itemDefinition["@_id"]}
           value={dataType.itemDefinition.description?.__$$text}
-          onChange={changeDescription}
+          onChange={(_event, val) => changeDescription(val)}
           placeholder={"Enter a description..."}
           resizeOrientation={"vertical"}
           aria-label={"Data type description"}
         />
-        <br />
         <br />
         <Divider inset={{ default: "insetMd" }} />
         <br />
         <Switch
           label={"Is collection?"}
           isChecked={!!dataType.itemDefinition["@_isCollection"]}
-          onChange={toggleCollection}
+          onChange={(_event, val) => toggleCollection(val)}
+          isDisabled={isReadOnly}
         />
         <br />
         <br />
-        <Switch label={"Is struct?"} isChecked={isStruct(dataType.itemDefinition)} onChange={toggleStruct}></Switch>
+        <Switch
+          label={"Is struct?"}
+          isChecked={isStruct(dataType.itemDefinition)}
+          onChange={(_event, val) => toggleStruct(val)}
+          isDisabled={isReadOnly}
+        ></Switch>
         <br />
         <br />
         <Divider inset={{ default: "insetMd" }} />
@@ -334,26 +362,106 @@ export function DataTypePanel({
             </Title>
             <TypeRefSelector
               heightRef={dmnEditorRootElementRef}
-              isDisabled={isReadonly}
+              isDisabled={isReadOnly}
               typeRef={resolvedTypeRef}
               onChange={changeTypeRef}
+              removeDataTypes={[dataType]}
             />
+            <br />
+            <br />
+            {dataType.itemDefinition["@_isCollection"] === true ? (
+              <>
+                <Flex direction={{ default: "row" }} alignItems={{ default: "alignItemsCenter" }}>
+                  <Title size={"md"} headingLevel="h4">
+                    Collection constraint
+                  </Title>
+                  <Popover
+                    showClose={false}
+                    isVisible={isCollectionConstraintPopoverOpen}
+                    shouldClose={() => setIsCollectionConstraintPopoverOpen(false)}
+                    headerContent="Collection Constraints (Type Constraint)"
+                    headerIcon={<InfoAltIcon />}
+                    headerComponent="h1"
+                    bodyContent={
+                      <p>
+                        As per the DMN specification, the <b>Type Constraint</b> attribute lists the possible values
+                        <br />
+                        or ranges of values in the base type that are allowed in this ItemDefinition.
+                      </p>
+                    }
+                  >
+                    <InfoAltIcon
+                      onMouseEnter={() => setIsCollectionConstraintPopoverOpen(true)}
+                      onMouseLeave={() => setIsCollectionConstraintPopoverOpen(false)}
+                    />
+                  </Popover>
+                </Flex>
+                <ConstraintsFromTypeConstraintAttribute
+                  isReadOnly={isReadOnly}
+                  itemDefinition={dataType.itemDefinition}
+                  editItemDefinition={editItemDefinition}
+                  defaultsToAllowedValues={false}
+                />
+                <br />
+                <br />
+                <Flex direction={{ default: "row" }} alignItems={{ default: "alignItemsCenter" }}>
+                  <Title size={"md"} headingLevel="h4">
+                    Collection item constraint
+                  </Title>
+                  <Popover
+                    showClose={false}
+                    isVisible={isCollectionItemConstraintPopoverOpen}
+                    shouldClose={() => setIsCollectionItemConstraintPopoverOpen(false)}
+                    headerContent="Collection Item Constraints (Allowed Values)"
+                    headerIcon={<InfoAltIcon />}
+                    headerComponent="h1"
+                    bodyContent={
+                      <p>
+                        As per the DMN specification, the <b>Allowed Values</b> attribute lists the possible values
+                        <br />
+                        or ranges of values in the base type that are allowed in this ItemDefinition.
+                      </p>
+                    }
+                  >
+                    <InfoAltIcon
+                      onMouseEnter={() => setIsCollectionItemConstraintPopoverOpen(true)}
+                      onMouseLeave={() => setIsCollectionItemConstraintPopoverOpen(false)}
+                    />
+                  </Popover>
+                </Flex>
+                <Alert variant="warning" isInline isPlain title="Deprecated">
+                  <p>
+                    Creating constraints for the collection items directly on the collection itself is deprecated since
+                    DMN 1.5 and will possibly be removed in future versions. To prepare your DMN model for future
+                    updates, please create a dedicated Data Type for the items of this list and add constraints there.
+                  </p>
+                </Alert>
+                <br />
 
-            <br />
-            <br />
-            <Title size={"md"} headingLevel="h4">
-              Constraints
-            </Title>
-            <Constraints
-              isReadonly={isReadonly}
-              itemDefinition={dataType.itemDefinition}
-              editItemDefinition={editItemDefinition}
-            />
+                <ConstraintsFromAllowedValuesAttribute
+                  isReadOnly={isReadOnly}
+                  itemDefinition={dataType.itemDefinition}
+                  editItemDefinition={editItemDefinition}
+                />
+              </>
+            ) : (
+              <>
+                <Title size={"md"} headingLevel="h4">
+                  Constraints
+                </Title>
+                <ConstraintsFromTypeConstraintAttribute
+                  isReadOnly={isReadOnly}
+                  itemDefinition={dataType.itemDefinition}
+                  editItemDefinition={editItemDefinition}
+                  defaultsToAllowedValues={true}
+                />
+              </>
+            )}
           </>
         )}
         {isStruct(dataType.itemDefinition) && (
           <ItemComponentsTable
-            isReadonly={isReadonly}
+            isReadOnly={isReadOnly}
             addItemComponent={addItemComponent}
             allDataTypesById={allDataTypesById}
             parent={dataType}

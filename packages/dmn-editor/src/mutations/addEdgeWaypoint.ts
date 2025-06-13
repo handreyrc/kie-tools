@@ -18,31 +18,32 @@
  */
 
 import { DC__Point, DMN15__tDefinitions } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/ts-gen/types";
+import { Normalized } from "@kie-tools/dmn-marshaller/dist/normalization/normalize";
 import { addOrGetDrd } from "./addOrGetDrd";
 
 export function addEdgeWaypoint({
   definitions,
   drdIndex,
-  edgeIndex,
+  dmnEdgeIndex,
   beforeIndex,
   waypoint,
 }: {
-  definitions: DMN15__tDefinitions;
+  definitions: Normalized<DMN15__tDefinitions>;
   drdIndex: number;
-  edgeIndex: number;
+  dmnEdgeIndex: number;
   beforeIndex: number;
   waypoint: DC__Point;
 }) {
   const { diagramElements } = addOrGetDrd({ definitions, drdIndex });
 
-  const diagramElement = diagramElements[edgeIndex];
+  const diagramElement = diagramElements[dmnEdgeIndex];
   if (diagramElement.__$$element !== "dmndi:DMNEdge") {
-    throw new Error("Can't remove a waypoint from an element that is not a DMNEdge.");
+    throw new Error("DMN MUTATION: Can't add a waypoint for an element that is not a DMNEdge.");
   }
 
   if (beforeIndex > (diagramElement["di:waypoint"]?.length ?? 0) - 1) {
     throw new Error(
-      `Can't add waypoint before index '${beforeIndex}' to DMNEdge '${diagramElement["@_id"]}' because the waypoint array is smaller than 'beforeIndex' requires.`
+      `DMN MUTATION: Can't add waypoint before index '${beforeIndex}' to DMNEdge '${diagramElement["@_id"]}' because the waypoint array is smaller than 'beforeIndex' requires.`
     );
   }
 

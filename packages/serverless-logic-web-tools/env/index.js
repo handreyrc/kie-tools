@@ -19,11 +19,13 @@
 
 const { varsWithName, getOrDefault, composeEnv } = require("@kie-tools-scripts/build-env");
 const { version } = require("@kie-tools-scripts/build-env/package.json");
+
+const rootEnv = require("@kie-tools/root-env/env");
 const corsProxyEnv = require("@kie-tools/cors-proxy/env");
 
 module.exports = composeEnv(
   [
-    require("@kie-tools/root-env/env"),
+    rootEnv,
     require("@kie-tools/serverless-logic-web-tools-swf-builder-image-env/env"),
     require("@kie-tools/serverless-logic-web-tools-swf-dev-mode-image-env/env"),
     require("@kie-tools/serverless-logic-web-tools-base-builder-image-env/env"),
@@ -39,29 +41,33 @@ module.exports = composeEnv(
         default: version,
         description: "Version of the application",
       },
+      SERVERLESS_LOGIC_WEB_TOOLS__samplesRepositoryOrg: {
+        default: "kiegroup",
+        description: "Org owner for `kiegroup/kie-samples` repository",
+      },
+      SERVERLESS_LOGIC_WEB_TOOLS__samplesRepositoryName: {
+        default: "kie-samples",
+        description: "Repository name for `kiegroup/kie-samples` repository",
+      },
       SERVERLESS_LOGIC_WEB_TOOLS__samplesRepositoryRef: {
         default: "main",
         description: "Tag/branch to fetch samples from `kiegroup/kie-samples` repository",
       },
-      SERVERLESS_LOGIC_WEB_TOOLS__gtmId: {
-        default: undefined,
-        description: "Google Tag Manager ID for Analytics",
-      },
       SERVERLESS_LOGIC_WEB_TOOLS__swfBuilderImageTag: {
-        default: "latest",
+        default: rootEnv.env.root.streamName,
         description:
           "Tag for the Serverless Workflow Builder Image that has a pre-configured Serverless Workflow project",
       },
       SERVERLESS_LOGIC_WEB_TOOLS__baseBuilderImageTag: {
-        default: "latest",
+        default: rootEnv.env.root.streamName,
         description: "Tag for the Base Builder Image that is able to build Java projects with Maven",
       },
       SERVERLESS_LOGIC_WEB_TOOLS__dashbuilderViewerImageTag: {
-        default: "latest",
+        default: rootEnv.env.root.streamName,
         description: "Tag for the Dashbuilder Viewer Image that has a pre-configured project to load Dashbuilder files",
       },
       SERVERLESS_LOGIC_WEB_TOOLS__swfDevModeImageTag: {
-        default: "latest",
+        default: rootEnv.env.root.streamName,
         description:
           "Tag for the Serverless Workflow Dev Mode Image that runs a pre-configured Serverless Workflow project in Quarkus Dev Mode",
       },
@@ -79,24 +85,25 @@ module.exports = composeEnv(
         serverlessLogicWebTools: {
           version: getOrDefault(this.vars.SERVERLESS_LOGIC_WEB_TOOLS__version),
           buildInfo: getOrDefault(this.vars.SERVERLESS_LOGIC_WEB_TOOLS__buildInfo),
-          gtmId: getOrDefault(this.vars.SERVERLESS_LOGIC_WEB_TOOLS__gtmId),
           dev: {
             cypressUrl: getOrDefault(this.vars.SERVERLESS_LOGIC_WEB_TOOLS__cypressUrl),
             port: 9020,
           },
-          swfBuilderImage: {
+          slwtBuilderImageEnv: {
             tag: getOrDefault(this.vars.SERVERLESS_LOGIC_WEB_TOOLS__swfBuilderImageTag),
           },
-          baseBuilderImage: {
+          slwtBaseBuilderImage: {
             tag: getOrDefault(this.vars.SERVERLESS_LOGIC_WEB_TOOLS__baseBuilderImageTag),
           },
           dashbuilderViewerImage: {
             tag: getOrDefault(this.vars.SERVERLESS_LOGIC_WEB_TOOLS__dashbuilderViewerImageTag),
           },
-          swfDevModeImage: {
+          slwtDevModeImage: {
             tag: getOrDefault(this.vars.SERVERLESS_LOGIC_WEB_TOOLS__swfDevModeImageTag),
           },
           corsProxyUrl: getOrDefault(this.vars.SERVERLESS_LOGIC_WEB_TOOLS__corsProxyUrl),
+          samplesRepositoryOrg: getOrDefault(this.vars.SERVERLESS_LOGIC_WEB_TOOLS__samplesRepositoryOrg),
+          samplesRepositoryName: getOrDefault(this.vars.SERVERLESS_LOGIC_WEB_TOOLS__samplesRepositoryName),
           samplesRepositoryRef: getOrDefault(this.vars.SERVERLESS_LOGIC_WEB_TOOLS__samplesRepositoryRef),
         },
       };

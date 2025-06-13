@@ -25,6 +25,7 @@ import { BeeTableTdForAdditionalRow } from "./BeeTableTdForAdditionalRow";
 import { BeeTableTd } from "./BeeTableTd";
 import { BeeTableCoordinatesContextProvider } from "../../selection/BeeTableSelectionContext";
 import { ResizerStopBehavior } from "../../resizing/ResizingWidthsContext";
+import { useBoxedExpressionEditor } from "../../BoxedExpressionEditorContext";
 
 export interface BeeTableBodyProps<R extends object> {
   /** Table instance */
@@ -37,6 +38,10 @@ export interface BeeTableBodyProps<R extends object> {
   getRowKey: (row: ReactTable.Row<R>) => string;
   /** Custom function for getting column key prop, and avoid using the column index */
   getColumnKey: (column: ReactTable.ColumnInstance<R>) => string;
+  /** Function to be executed when a column's data cell is clicked */
+  onDataCellClick?: (columnID: string) => void;
+  /** Function to be executed when a key up event occurs in a column's data cell */
+  onDataCellKeyUp?: (columnID: string) => void;
   /** */
   onRowAdded?: (args: { beforeIndex: number; rowsCount: number; insertDirection: InsertRowColumnsDirection }) => void;
 
@@ -49,6 +54,10 @@ export interface BeeTableBodyProps<R extends object> {
   lastColumnMinWidth?: number;
 
   rowWrapper?: React.FunctionComponent<React.PropsWithChildren<{ row: R; rowIndex: number }>>;
+
+  isReadOnly: boolean;
+  /** See BeeTable.ts */
+  supportsEvaluationHitsCount?: (row: ReactTable.Row<R>) => boolean;
 }
 
 export function BeeTableBody<R extends object>({
@@ -58,23 +67,45 @@ export function BeeTableBody<R extends object>({
   getRowKey,
   getColumnKey,
   onRowAdded,
+  onDataCellClick,
+  onDataCellKeyUp,
   shouldRenderRowIndexColumn,
   shouldShowRowsInlineControls,
   resizerStopBehavior,
   lastColumnMinWidth,
   rowWrapper,
+  isReadOnly,
+  supportsEvaluationHitsCount,
 }: BeeTableBodyProps<R>) {
+  const { evaluationHitsCountById } = useBoxedExpressionEditor();
+
   const renderRow = useCallback(
     (row: ReactTable.Row<R>, rowIndex: number) => {
       reactTableInstance.prepareRow(row);
 
+      const rowKey = getRowKey(row);
+      const rowEvaluationHitsCount = evaluationHitsCountById ? evaluationHitsCountById?.get(rowKey) ?? 0 : undefined;
+      const canDisplayEvaluationHitsCountRowOverlay =
+        rowEvaluationHitsCount !== undefined && (supportsEvaluationHitsCount?.(row) ?? false);
+      const rowClassName = `${rowKey}${canDisplayEvaluationHitsCountRowOverlay && rowEvaluationHitsCount > 0 ? " evaluation-hits-count-row-overlay" : ""}`;
+
+      let evaluationHitsCountBadgeColumnIndex = -1;
       const renderTr = () => (
-        <tr className={rowKey} key={rowKey} data-ouia-component-id={`expression-row-${rowIndex}`}>
+        <tr className={rowClassName} key={rowKey} data-testid={`kie-tools--bee--expression-row-${rowIndex}`}>
           {row.cells.map((cell, cellIndex) => {
             const columnKey = getColumnKey(reactTableInstance.allColumns[cellIndex]);
+            const isColumnToRender =
+              (cell.column.isRowIndexColumn && shouldRenderRowIndexColumn) || !cell.column.isRowIndexColumn;
+            if (evaluationHitsCountBadgeColumnIndex === -1 && isColumnToRender) {
+              // We store the index of the first column in the row
+              // We show evaluation hits count badge in this column
+              evaluationHitsCountBadgeColumnIndex = cellIndex;
+            }
+            const canDisplayEvaluationHitsCountBadge =
+              canDisplayEvaluationHitsCountRowOverlay && cellIndex === evaluationHitsCountBadgeColumnIndex;
             return (
               <React.Fragment key={columnKey}>
-                {((cell.column.isRowIndexColumn && shouldRenderRowIndexColumn) || !cell.column.isRowIndexColumn) && (
+                {isColumnToRender && (
                   <BeeTableTd<R>
                     resizerStopBehavior={resizerStopBehavior}
                     shouldShowRowsInlineControls={shouldShowRowsInlineControls}
@@ -82,6 +113,8 @@ export function BeeTableBody<R extends object>({
                     row={row}
                     rowIndex={rowIndex}
                     column={reactTableInstance.allColumns[cellIndex]}
+                    onDataCellClick={onDataCellClick}
+                    onDataCellKeyUp={onDataCellKeyUp}
                     onRowAdded={onRowAdded}
                     isActive={false}
                     shouldRenderInlineButtons={
@@ -92,6 +125,9 @@ export function BeeTableBody<R extends object>({
                     lastColumnMinWidth={
                       cellIndex === reactTableInstance.allColumns.length - 1 ? lastColumnMinWidth : undefined
                     }
+                    isReadOnly={isReadOnly}
+                    canDisplayEvaluationHitsCountBadge={canDisplayEvaluationHitsCountBadge}
+                    evaluationHitsCount={rowEvaluationHitsCount}
                   />
                 )}
               </React.Fragment>
@@ -101,8 +137,6 @@ export function BeeTableBody<R extends object>({
       );
 
       const RowWrapper = rowWrapper;
-
-      const rowKey = getRowKey(row);
 
       return (
         <React.Fragment key={rowKey}>
@@ -117,6 +151,8 @@ export function BeeTableBody<R extends object>({
       );
     },
     [
+      evaluationHitsCountById,
+      supportsEvaluationHitsCount,
       reactTableInstance,
       rowWrapper,
       getRowKey,
@@ -124,8 +160,11 @@ export function BeeTableBody<R extends object>({
       shouldRenderRowIndexColumn,
       resizerStopBehavior,
       shouldShowRowsInlineControls,
+      onDataCellClick,
+      onDataCellKeyUp,
       onRowAdded,
       lastColumnMinWidth,
+      isReadOnly,
     ]
   );
 
@@ -143,7 +182,11 @@ export function BeeTableBody<R extends object>({
       })}
 
       {additionalRow && (
-        <tr className={"additional-row"} data-ouia-component-id={"additional-row"}>
+        <tr
+          className={"additional-row"}
+          data-ouia-component-id={"additional-row"}
+          data-testid={"kie-tools--bee--additional-row"}
+        >
           {shouldRenderRowIndexColumn && (
             <BeeTableCoordinatesContextProvider coordinates={{ rowIndex: additionalRowIndex, columnIndex: 0 }}>
               <BeeTableTdForAdditionalRow
@@ -154,6 +197,7 @@ export function BeeTableBody<R extends object>({
                 isLastColumn={false}
                 isEmptyCell={true}
                 resizerStopBehavior={resizerStopBehavior}
+                isReadOnly={isReadOnly}
               />
             </BeeTableCoordinatesContextProvider>
           )}
@@ -174,6 +218,7 @@ export function BeeTableBody<R extends object>({
                   isEmptyCell={false}
                   resizerStopBehavior={resizerStopBehavior}
                   lastColumnMinWidth={columnIndex === additionalRow.length - 1 ? lastColumnMinWidth : undefined}
+                  isReadOnly={isReadOnly}
                 >
                   {elem}
                 </BeeTableTdForAdditionalRow>

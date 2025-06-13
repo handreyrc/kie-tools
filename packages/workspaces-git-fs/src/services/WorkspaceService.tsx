@@ -56,6 +56,7 @@ export class WorkspaceService {
     preferredName?: string;
     gitAuthSessionId: string | undefined;
     gitInsecurelyDisableTlsCertificateValidation?: boolean;
+    gitDisableEncoding?: boolean;
   }) {
     const workspace = await this.descriptorsFsService.withReadWriteInMemoryFs(({ fs }) => {
       return this.workspaceDescriptorService.create({
@@ -64,6 +65,7 @@ export class WorkspaceService {
         preferredName: args.preferredName,
         gitAuthSessionId: args.gitAuthSessionId,
         gitInsecurelyDisableTlsCertificateValidation: args.gitInsecurelyDisableTlsCertificateValidation,
+        gitDisableEncoding: args.gitDisableEncoding,
       });
     });
 
@@ -160,9 +162,10 @@ export class WorkspaceService {
     fs: KieSandboxWorkspacesFs,
     schema: FsSchema,
     workspaceId: string,
-    onlyExtensions?: string[]
+    onlyExtensions?: string[],
+    globPattern?: string
   ): Promise<Blob> {
-    const wwfds = await this.getFilteredWorkspaceFileDescriptors(schema, workspaceId);
+    const wwfds = await this.getFilteredWorkspaceFileDescriptors(schema, workspaceId, globPattern);
 
     const filesToZip = (
       await Promise.all(

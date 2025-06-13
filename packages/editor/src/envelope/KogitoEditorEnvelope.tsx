@@ -38,14 +38,14 @@ import { KeyboardShortcutsService } from "@kie-tools-core/keyboard-shortcuts/dis
 export class KogitoEditorEnvelope<
   E extends Editor,
   EnvelopeApi extends KogitoEditorEnvelopeApi & ApiDefinition<EnvelopeApi>,
-  ChannelApi extends KogitoEditorChannelApi & ApiDefinition<ChannelApi>
+  ChannelApi extends KogitoEditorChannelApi & ApiDefinition<ChannelApi>,
 > {
   constructor(
     private readonly kogitoEditorEnvelopeApiFactory: EnvelopeApiFactory<
       EnvelopeApi,
       ChannelApi,
       EditorEnvelopeViewApi<E>,
-      KogitoEditorEnvelopeContextType<ChannelApi>
+      KogitoEditorEnvelopeContextType<EnvelopeApi, ChannelApi>
     >,
     private readonly keyboardShortcutsService: KeyboardShortcutsService,
     private readonly i18nService: I18nService,
@@ -53,15 +53,17 @@ export class KogitoEditorEnvelope<
       EnvelopeApi,
       ChannelApi,
       EditorEnvelopeViewApi<E>,
-      KogitoEditorEnvelopeContextType<ChannelApi>
+      KogitoEditorEnvelopeContextType<EnvelopeApi, ChannelApi>
     >,
-    private readonly context: KogitoEditorEnvelopeContextType<ChannelApi> = {
+    private readonly context: KogitoEditorEnvelopeContextType<EnvelopeApi, ChannelApi> = {
+      shared: envelope.shared,
       channelApi: envelope.channelApi,
       operatingSystem: getOperatingSystem(),
       services: {
         keyboardShortcuts: keyboardShortcutsService,
         i18n: i18nService,
       },
+      supportedThemes: [],
     }
   ) {}
 

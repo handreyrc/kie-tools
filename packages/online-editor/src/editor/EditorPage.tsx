@@ -19,11 +19,11 @@
 
 import * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useHistory } from "react-router";
+import { useNavigate, useParams } from "react-router-dom";
 import { useRoutes } from "../navigation/Hooks";
 import { EditorToolbar } from "./Toolbar/EditorToolbar";
 import { useOnlineI18n } from "../i18n";
-import { ChannelType, DEFAULT_WORKING_DIR_BASE_PATH } from "@kie-tools-core/editor/dist/api";
+import { ChannelType, DEFAULT_WORKSPACE_ROOT_ABSOLUTE_POSIX_PATH } from "@kie-tools-core/editor/dist/api";
 import { EmbeddedEditor, EmbeddedEditorRef, useStateControlSubscription } from "@kie-tools-core/editor/dist/embedded";
 import { Alert, AlertActionLink } from "@patternfly/react-core/dist/js/components/Alert";
 import { Page, PageSection } from "@patternfly/react-core/dist/js/components/Page";
@@ -57,29 +57,33 @@ import { DmnLanguageService } from "@kie-tools/dmn-language-service";
 import { decoder } from "@kie-tools-core/workspaces-git-fs/dist/encoderdecoder/EncoderDecoder";
 import { EditorPageDockContextProvider } from "./EditorPageDockContextProvider";
 import { ErrorBoundary } from "../reactExt/ErrorBoundary";
-import { EmptyState, EmptyStateBody, EmptyStateIcon } from "@patternfly/react-core/dist/js/components/EmptyState";
+import {
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateIcon,
+  EmptyStateHeader,
+} from "@patternfly/react-core/dist/js/components/EmptyState";
 import { I18nWrapped } from "@kie-tools-core/i18n/dist/react-components";
 import { ExclamationTriangleIcon } from "@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon";
 import { useEnv } from "../env/hooks/EnvContext";
 import { useSettings } from "../settings/SettingsContext";
 import { EditorEnvelopeLocatorFactory } from "../envelopeLocator/EditorEnvelopeLocatorFactory";
-import { relative } from "path";
-
-export interface Props {
-  workspaceId: string;
-  fileRelativePath: string;
-}
+import * as __path from "path";
 
 let saveVersion = 1;
 let refreshVersion = 0;
 
 const ISSUES_URL = "https://github.com/apache/incubator-kie-issues/issues";
 
-export function EditorPage(props: Props) {
+export function EditorPage() {
+  const { workspaceId, "*": fileRelativePath } = useParams<{
+    workspaceId: string;
+    "*": string;
+  }>();
   const { env } = useEnv();
   const routes = useRoutes();
   const editorEnvelopeLocator = useEditorEnvelopeLocator();
-  const history = useHistory();
+  const navigate = useNavigate();
   const workspaces = useWorkspaces();
   const { previewSvgService } = usePreviewSvgs();
   const { locale, i18n } = useOnlineI18n();
@@ -89,13 +93,13 @@ export function EditorPage(props: Props) {
   const [isFileBroken, setFileBroken] = useState(false);
   const [_, setEditorPageError] = useState(false);
   const lastContent = useRef<string>();
-  const workspaceFilePromise = useWorkspaceFilePromise(props.workspaceId, props.fileRelativePath);
+  const workspaceFilePromise = useWorkspaceFilePromise(workspaceId, fileRelativePath);
 
   const [embeddedEditorFile, setEmbeddedEditorFile] = useState<EmbeddedEditorFile>();
 
   useEffect(() => {
-    document.title = `${env.KIE_SANDBOX_APP_NAME} :: ${props.fileRelativePath}`;
-  }, [env.KIE_SANDBOX_APP_NAME, props.fileRelativePath]);
+    document.title = `${env.KIE_SANDBOX_APP_NAME} :: ${fileRelativePath}`;
+  }, [env.KIE_SANDBOX_APP_NAME, fileRelativePath]);
 
   const setContentErrorAlert = useGlobalAlert(
     useCallback(() => {
@@ -122,15 +126,17 @@ export function EditorPage(props: Props) {
       return;
     }
 
-    history.replace({
-      pathname: routes.workspaceWithFilePath.path({
-        workspaceId: workspaceFilePromise.data.workspaceFile.workspaceId,
-        fileRelativePath: workspaceFilePromise.data.workspaceFile.relativePathWithoutExtension,
-        extension: workspaceFilePromise.data.workspaceFile.extension,
-      }),
-      search: queryParams.toString(),
-    });
-  }, [history, routes, workspaceFilePromise, queryParams]);
+    navigate(
+      {
+        pathname: routes.workspaceWithFilePath.path({
+          workspaceId: workspaceFilePromise.data.workspaceFile.workspaceId,
+          fileRelativePath: workspaceFilePromise.data.workspaceFile.relativePath,
+        }),
+        search: queryParams.toString(),
+      },
+      { replace: true }
+    );
+  }, [navigate, routes, workspaceFilePromise, queryParams]);
 
   // begin (REFRESH)
   // Update EmbeddedEditorFile, but only if content is different from what was saved
@@ -168,7 +174,7 @@ export function EditorPage(props: Props) {
 
           // FIXME: KOGITO-7958: PMML Editor doesn't work well after this is called. Can't edit using multiple tabs.
           setEmbeddedEditorFile({
-            path: workspaceFilePromise.data.workspaceFile.relativePath,
+            normalizedPosixPathRelativeToTheWorkspaceRoot: workspaceFilePromise.data.workspaceFile.relativePath,
             getFileContents: async () => content,
             isReadOnly: false,
             fileExtension: workspaceFilePromise.data.workspaceFile.extension,
@@ -274,23 +280,23 @@ export function EditorPage(props: Props) {
   const handleResourceContentRequest = useCallback(
     async (request: ResourceContentRequest) => {
       return workspaces.resourceContentGet({
-        workspaceId: props.workspaceId,
-        relativePath: request.path,
+        workspaceId: workspaceId!,
+        relativePath: request.normalizedPosixPathRelativeToTheWorkspaceRoot, // This is the "normalized posix path relative to the workspace root", or here in the KIE Sandbox context, just "relativePath", as it is assumed that all "relativePaths" are relative to the workspace root.
         opts: request.opts,
       });
     },
-    [props.workspaceId, workspaces]
+    [workspaceId, workspaces]
   );
 
   const handleResourceListRequest = useCallback(
     async (request: ResourceListRequest) => {
       return workspaces.resourceContentList({
-        workspaceId: props.workspaceId,
+        workspaceId: workspaceId!,
         globPattern: request.pattern,
         opts: request.opts,
       });
     },
-    [workspaces, props.workspaceId]
+    [workspaces, workspaceId]
   );
 
   const refreshEditor = useCallback(() => {
@@ -299,31 +305,29 @@ export function EditorPage(props: Props) {
   }, [alertsDispatch]);
 
   const handleOpenFile = useCallback(
-    async (absolutePath: string) => {
+    async (normalizedPosixPathRelativeToTheWorkspaceRoot: string) => {
       if (!workspaceFilePromise.data) {
         return;
       }
-      const relativePath = relative(DEFAULT_WORKING_DIR_BASE_PATH, absolutePath);
       const file = await workspaces.getFile({
         workspaceId: workspaceFilePromise.data.workspaceFile.workspaceId,
-        relativePath,
+        relativePath: normalizedPosixPathRelativeToTheWorkspaceRoot,
       });
 
       if (!file) {
         throw new Error(
-          `Can't find ${relativePath} on Workspace '${workspaceFilePromise.data.workspaceFile.workspaceId}'`
+          `Can't find ${normalizedPosixPathRelativeToTheWorkspaceRoot} on Workspace '${workspaceFilePromise.data.workspaceFile.workspaceId}'`
         );
       }
 
-      history.push({
+      navigate({
         pathname: routes.workspaceWithFilePath.path({
           workspaceId: file.workspaceId,
-          fileRelativePath: file.relativePathWithoutExtension,
-          extension: file.extension,
+          fileRelativePath: file.relativePath,
         }),
       });
     },
-    [workspaceFilePromise, workspaces, history, routes]
+    [workspaceFilePromise, workspaces, navigate, routes]
   );
 
   const handleSetContentError = useCallback(() => {
@@ -370,7 +374,7 @@ Error details: ${err}`);
     () => (
       <div>
         <EmptyState>
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
+          <EmptyStateHeader icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} />
           <TextContent>
             <Text component={"h2"}>{i18n.editorPage.error.title}</Text>
           </TextContent>
@@ -400,7 +404,7 @@ Error details: ${err}`);
   const { settings } = useSettings();
 
   const settingsAwareEditorEnvelopeLocator = useMemo(() => {
-    if (settings.editors.useLegacyDmnEditor && props.fileRelativePath.endsWith(".dmn")) {
+    if (settings.editors.useLegacyDmnEditor && fileRelativePath?.endsWith(".dmn")) {
       return new EditorEnvelopeLocatorFactory().create({
         targetOrigin: window.location.origin,
         editorsConfig: [LEGACY_DMN_EDITOR_EDITOR_CONFIG],
@@ -408,10 +412,10 @@ Error details: ${err}`);
     }
 
     return editorEnvelopeLocator;
-  }, [editorEnvelopeLocator, props.fileRelativePath, settings.editors.useLegacyDmnEditor]);
+  }, [editorEnvelopeLocator, fileRelativePath, settings.editors.useLegacyDmnEditor]);
 
   // `workspaceFilePromise` is ONLY updated when there's an external change on this file (e.g., on another tab), but
-  // when we jump between the legacy and the new DMN Editor, `settingsAwareEditorEnvelopeLocator` changes,
+  // when we jump between the classic and the new DMN Editor, `settingsAwareEditorEnvelopeLocator` changes,
   // and if we don't update `embeddedEditorFile`, the new <EmbeddedEditor> will be rendered using the `embeddedEditorFile`
   // that originally was used for opening the file, and the new chosen DMN Editor will display stale content.
   useCancelableEffect(
@@ -460,7 +464,7 @@ Error details: ${err}`);
           </Bullseye>
         }
         rejected={(errors) => (
-          <EditorPageErrorPage title={"Can't open file"} errors={errors} path={props.fileRelativePath} />
+          <EditorPageErrorPage title={"Can't open file"} errors={errors} path={fileRelativePath!} />
         )}
         resolved={(file) => (
           <ErrorBoundary error={errorMessage} setHasError={setEditorPageError}>
@@ -469,6 +473,7 @@ Error details: ${err}`);
                 workspaceFile={file.workspaceFile}
                 workspaces={workspaces}
                 dmnLanguageService={dmnLanguageService}
+                envelopeServer={editor?.getEnvelopeServer()}
                 isEditorReady={editor?.isReady ?? false}
                 editorValidate={editor?.validate}
               >
@@ -497,7 +502,7 @@ Error details: ${err}`);
                             editorEnvelopeLocator={settingsAwareEditorEnvelopeLocator}
                             channelType={ChannelType.ONLINE_MULTI_FILE}
                             locale={locale}
-                            workingDirBasePath={""}
+                            workspaceRootAbsolutePosixPath={DEFAULT_WORKSPACE_ROOT_ABSOLUTE_POSIX_PATH}
                           />
                         )}
                       </EditorPageDockDrawer>

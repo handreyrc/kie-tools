@@ -20,136 +20,186 @@
 import _ from "lodash";
 import * as React from "react";
 import { useCallback, useMemo } from "react";
-import {
-  DmnBuiltInDataType,
-  ExpressionDefinitionLogicType,
-  FunctionExpressionDefinition,
-  FunctionExpressionDefinitionKind,
-  generateUuid,
-} from "../../api";
+import { Action, BoxedFunction, BoxedFunctionKind, DmnBuiltInDataType, generateUuid, Normalized } from "../../api";
 import { PopoverMenu } from "../../contextMenu/PopoverMenu";
 import { useBoxedExpressionEditorI18n } from "../../i18n";
-import { JAVA_FUNCTION_EXPRESSION_VALUES_MIN_WIDTH } from "../../resizing/WidthConstants";
-import {
-  useBoxedExpressionEditor,
-  useBoxedExpressionEditorDispatch,
-} from "../BoxedExpressionEditor/BoxedExpressionEditorContext";
-import { assertUnreachable } from "../ExpressionDefinitionRoot/ExpressionDefinitionLogicTypeSelector";
-import { FeelFunctionExpression } from "./FeelFunctionExpression";
-import "./FunctionExpression.css";
+import { useBoxedExpressionEditor, useBoxedExpressionEditorDispatch } from "../../BoxedExpressionEditorContext";
+import { BoxedFunctionFeel, FeelFunctionExpression } from "./FeelFunctionExpression";
 import { FunctionKindSelector } from "./FunctionKindSelector";
-import { JavaFunctionExpression } from "./JavaFunctionExpression";
+import { BoxedFunctionJava, JavaFunctionExpression } from "./JavaFunctionExpression";
 import { ParametersPopover } from "./ParametersPopover";
-import { PmmlFunctionExpression } from "./PmmlFunctionExpression";
+import { BoxedFunctionPmml, PmmlFunctionExpression } from "./PmmlFunctionExpression";
+import {
+  DMN15__tFunctionDefinition,
+  DMN15__tFunctionKind,
+} from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/ts-gen/types";
+import "./FunctionExpression.css";
 
-export const DEFAULT_FIRST_PARAM_NAME = "p-1";
-
-export function FunctionExpression(
-  functionExpression: FunctionExpressionDefinition & { isNested: boolean; parentElementId: string }
-) {
-  const functionKind = functionExpression.functionKind;
-  switch (functionKind) {
-    case FunctionExpressionDefinitionKind.Feel:
-      return <FeelFunctionExpression functionExpression={functionExpression} />;
-    case FunctionExpressionDefinitionKind.Java:
-      return <JavaFunctionExpression functionExpression={functionExpression} />;
-    case FunctionExpressionDefinitionKind.Pmml:
-      return <PmmlFunctionExpression functionExpression={functionExpression} />;
+export function FunctionExpression({
+  isNested,
+  parentElementId,
+  expression: boxedFunction,
+}: {
+  expression: Normalized<BoxedFunction>;
+  isNested: boolean;
+  parentElementId: string;
+}) {
+  switch (boxedFunction["@_kind"]) {
+    case "Java":
+      return (
+        <JavaFunctionExpression
+          functionExpression={boxedFunction as Normalized<BoxedFunctionJava>}
+          isNested={isNested}
+        />
+      );
+    case "PMML":
+      return (
+        <PmmlFunctionExpression
+          functionExpression={boxedFunction as Normalized<BoxedFunctionPmml>}
+          isNested={isNested}
+        />
+      );
+    case "FEEL":
     default:
-      assertUnreachable(functionKind);
+      return (
+        <FeelFunctionExpression
+          functionExpression={boxedFunction as Normalized<BoxedFunctionFeel>}
+          isNested={isNested}
+          parentElementId={parentElementId}
+        />
+      );
   }
 }
 
-export function useFunctionExpressionControllerCell(functionKind: FunctionExpressionDefinitionKind) {
+export function useFunctionExpressionControllerCell(functionKind: Normalized<DMN15__tFunctionKind>) {
   const { setExpression } = useBoxedExpressionEditorDispatch();
+  const { isReadOnly } = useBoxedExpressionEditor();
 
   const onFunctionKindSelect = useCallback(
-    (kind: string) => {
-      setExpression((prev) => {
-        if (kind === FunctionExpressionDefinitionKind.Feel) {
-          return {
-            name: prev.name,
-            id: generateUuid(),
-            logicType: ExpressionDefinitionLogicType.Function,
-            functionKind: FunctionExpressionDefinitionKind.Feel,
-            dataType: DmnBuiltInDataType.Undefined,
-            expression: {
-              id: generateUuid(),
-              logicType: ExpressionDefinitionLogicType.Undefined,
-              dataType: DmnBuiltInDataType.Undefined,
-            },
-            formalParameters: [],
-          };
-        } else if (kind === FunctionExpressionDefinitionKind.Java) {
-          return {
-            name: prev.name,
-            id: generateUuid(),
-            logicType: ExpressionDefinitionLogicType.Function,
-            functionKind: FunctionExpressionDefinitionKind.Java,
-            dataType: DmnBuiltInDataType.Undefined,
-            classAndMethodNamesWidth: JAVA_FUNCTION_EXPRESSION_VALUES_MIN_WIDTH,
-            formalParameters: [],
-          };
-        } else if (kind === FunctionExpressionDefinitionKind.Pmml) {
-          return {
-            name: prev.name,
-            id: generateUuid(),
-            logicType: ExpressionDefinitionLogicType.Function,
-            functionKind: FunctionExpressionDefinitionKind.Pmml,
-            dataType: DmnBuiltInDataType.Undefined,
-            formalParameters: [],
-          };
-        } else {
-          throw new Error("Shouldn't ever reach this point.");
-        }
+    (kind: Normalized<DMN15__tFunctionKind>) => {
+      setExpression({
+        setExpressionAction: (prev: Normalized<BoxedFunction>) => {
+          if (kind === BoxedFunctionKind.Feel) {
+            // Do not inline this variable for type safety. See https://github.com/microsoft/TypeScript/issues/241
+            const retFeel: Normalized<BoxedFunction> = {
+              __$$element: "functionDefinition",
+              "@_label": prev["@_label"],
+              "@_id": generateUuid(),
+              "@_kind": BoxedFunctionKind.Feel,
+              "@_typeRef": undefined,
+              expression: {
+                __$$element: "literalExpression",
+                "@_id": generateUuid(),
+                "@_typeRef": undefined,
+              },
+              formalParameter: [],
+            };
+            return retFeel;
+          } else if (kind === BoxedFunctionKind.Java) {
+            const expressionId = generateUuid();
+
+            // Do not inline this variable for type safety. See https://github.com/microsoft/TypeScript/issues/241
+            const retJava: Normalized<BoxedFunction> = {
+              __$$element: "functionDefinition",
+              "@_label": prev["@_label"],
+              "@_id": expressionId,
+              expression: {
+                __$$element: "context",
+                "@_id": generateUuid(),
+              },
+              "@_kind": BoxedFunctionKind.Java,
+              "@_typeRef": undefined,
+              formalParameter: [],
+            };
+            return retJava;
+          } else if (kind === BoxedFunctionKind.Pmml) {
+            // Do not inline this variable for type safety. See https://github.com/microsoft/TypeScript/issues/241
+            const retPmml: Normalized<BoxedFunction> = {
+              __$$element: "functionDefinition",
+              "@_label": prev["@_label"],
+              "@_id": generateUuid(),
+              expression: {
+                __$$element: "context",
+                "@_id": generateUuid(),
+              },
+              "@_kind": BoxedFunctionKind.Pmml,
+              "@_typeRef": undefined,
+              formalParameter: [],
+            };
+            return retPmml;
+          } else {
+            throw new Error("Shouldn't ever reach this point.");
+          }
+        },
+        expressionChangedArgs: { action: Action.FunctionKindChanged, from: functionKind, to: kind },
       });
     },
-    [setExpression]
+    [functionKind, setExpression]
   );
 
   return useMemo(
-    () => <FunctionKindSelector selectedFunctionKind={functionKind} onFunctionKindSelect={onFunctionKindSelect} />,
-    [functionKind, onFunctionKindSelect]
+    () => (
+      <FunctionKindSelector
+        isReadOnly={isReadOnly}
+        selectedFunctionKind={functionKind}
+        onFunctionKindSelect={onFunctionKindSelect}
+      />
+    ),
+    [functionKind, isReadOnly, onFunctionKindSelect]
   );
 }
 
 export function useFunctionExpressionParametersColumnHeader(
-  formalParameters: FunctionExpressionDefinition["formalParameters"]
+  formalParameters: Normalized<DMN15__tFunctionDefinition["formalParameter"]>,
+  isReadOnly: boolean
 ) {
   const { i18n } = useBoxedExpressionEditorI18n();
 
   const { editorRef } = useBoxedExpressionEditor();
 
-  return useMemo(
+  const expressionParametersContent = useMemo(
     () => (
+      <div
+        data-testid="kie-tools--bee--parameters-list"
+        className={`parameters-list ${_.isEmpty(formalParameters) ? "empty-parameters" : ""}`}
+      >
+        <p className="pf-v5-u-text-truncate">
+          {_.isEmpty(formalParameters) ? (
+            i18n.editParameters
+          ) : (
+            <>
+              <span>{"("}</span>
+              {(formalParameters ?? []).map((parameter, i) => (
+                <React.Fragment key={i}>
+                  <span>{parameter["@_name"]}</span>
+                  <span>{": "}</span>
+                  <span className={"expression-info-data-type"}>
+                    ({parameter["@_typeRef"] ?? DmnBuiltInDataType.Undefined})
+                  </span>
+                  {i < (formalParameters ?? []).length - 1 && <span>{", "}</span>}
+                </React.Fragment>
+              ))}
+              <span>{")"}</span>
+            </>
+          )}
+        </p>
+      </div>
+    ),
+    [formalParameters, i18n.editParameters]
+  );
+
+  return useMemo(() => {
+    return isReadOnly ? (
+      expressionParametersContent
+    ) : (
       <PopoverMenu
         appendTo={() => editorRef.current!}
         className="parameters-editor-popover"
         minWidth="400px"
-        body={<ParametersPopover parameters={formalParameters} />}
+        body={<ParametersPopover parameters={formalParameters ?? []} />}
       >
-        <div className={`parameters-list ${_.isEmpty(formalParameters) ? "empty-parameters" : ""}`}>
-          <p className="pf-u-text-truncate">
-            {_.isEmpty(formalParameters) ? (
-              i18n.editParameters
-            ) : (
-              <>
-                <span>{"("}</span>
-                {formalParameters.map((parameter, i) => (
-                  <React.Fragment key={i}>
-                    <span>{parameter.name}</span>
-                    <span>{": "}</span>
-                    <span className={"expression-info-data-type"}>({parameter.dataType})</span>
-                    {i < formalParameters.length - 1 && <span>{", "}</span>}
-                  </React.Fragment>
-                ))}
-                <span>{")"}</span>
-              </>
-            )}
-          </p>
-        </div>
+        {expressionParametersContent}
       </PopoverMenu>
-    ),
-    [formalParameters, i18n.editParameters, editorRef]
-  );
+    );
+  }, [isReadOnly, expressionParametersContent, formalParameters, editorRef]);
 }

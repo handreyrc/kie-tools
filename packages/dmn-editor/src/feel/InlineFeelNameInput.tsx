@@ -19,9 +19,11 @@
 
 import * as React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DMN15_SPEC } from "../Dmn15Spec";
-import { UniqueNameIndex } from "../Dmn15Spec";
+import { DMN15_SPEC, UniqueNameIndex } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/Dmn15Spec";
 import { useFocusableElement } from "../focus/useFocusableElement";
+import { State } from "../store/Store";
+import { useDmnEditorStoreApi } from "../store/StoreContext";
+import { getOperatingSystem, OperatingSystem } from "@kie-tools-core/operating-system";
 
 export type OnInlineFeelNameRenamed = (newName: string) => void;
 
@@ -34,7 +36,7 @@ export const invalidInlineFeelNameStyle = {
 export function InlineFeelNameInput({
   id,
   onRenamed,
-  isReadonly,
+  isReadOnly,
   name,
   shouldCommitOnBlur,
   isPlain,
@@ -49,10 +51,10 @@ export function InlineFeelNameInput({
   id: string;
   onRenamed: OnInlineFeelNameRenamed;
   name: string;
-  isReadonly: boolean;
+  isReadOnly: boolean;
   isPlain: boolean;
   shouldCommitOnBlur: boolean;
-  allUniqueNames: UniqueNameIndex;
+  allUniqueNames: (s: State) => UniqueNameIndex;
   placeholder?: string;
   saveInvalidValue?: boolean;
   validate?: typeof DMN15_SPEC.namedElement.isValidName;
@@ -75,14 +77,16 @@ export function InlineFeelNameInput({
     }, 0);
   }, []);
 
-  const [isValid, setValid] = useState(_validate(id, name, allUniqueNames));
+  const dmnEditorStoreApi = useDmnEditorStoreApi();
+
+  const [isValid, setValid] = useState(_validate(id, name, allUniqueNames(dmnEditorStoreApi.getState())));
   const updateIsValidFlag = useCallback(
     (name: string) => {
-      const isValid = _validate(id, name, allUniqueNames);
+      const isValid = _validate(id, name, allUniqueNames(dmnEditorStoreApi.getState()));
       setValid(isValid);
       return isValid;
     },
-    [_validate, allUniqueNames, id]
+    [_validate, allUniqueNames, dmnEditorStoreApi, id]
   );
 
   useEffect(() => {
@@ -115,7 +119,7 @@ export function InlineFeelNameInput({
       onInput={(e) => {
         (e.target as any).size = 2 + Math.max(0, _placeholder?.length ?? 0, (e.target as any).value.length ?? 0);
       }}
-      disabled={isReadonly}
+      disabled={isReadOnly}
       placeholder={_placeholder}
       onChange={(e) => updateIsValidFlag(e.currentTarget.value)}
       defaultValue={name}
@@ -124,7 +128,11 @@ export function InlineFeelNameInput({
       }}
       onKeyDown={(e) => {
         onKeyDown?.(e);
-        e.stopPropagation();
+        // In macOS, we can not stopPropagation here because, otherwise, shortcuts are not handled
+        // See https://github.com/apache/incubator-kie-issues/issues/1164
+        if (!(getOperatingSystem() === OperatingSystem.MACOS && e.metaKey)) {
+          e.stopPropagation();
+        }
 
         if (e.key === "Enter") {
           e.preventDefault();

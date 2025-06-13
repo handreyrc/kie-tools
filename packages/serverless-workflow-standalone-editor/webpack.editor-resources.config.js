@@ -23,8 +23,8 @@ const patternflyBase = require("@kie-tools-core/patternfly-base");
 const FileManagerPlugin = require("filemanager-webpack-plugin");
 const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
 
-module.exports = (env) => [
-  merge(common(env), {
+module.exports = (webpackEnv) => [
+  merge(common(webpackEnv), {
     output: {
       publicPath: "",
     },
@@ -56,6 +56,7 @@ module.exports = (env) => [
             copy: [
               { source: "./dist/*monaco-editor*.js", destination: "./dist/resources/swf/js/" },
               { source: "./dist/*worker*.js", destination: "./dist/resources/swf/js/" },
+              { source: "./dist/*.bundle.js", destination: "./dist/resources/swf/js/" },
             ],
             delete: ["./dist/*monaco-editor*.js", "./dist/*worker*.js"],
           },

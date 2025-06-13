@@ -19,7 +19,6 @@
 
 import * as React from "react";
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
-import "./DocumentationLinksFormGroup.css";
 import { KIE__tAttachment } from "@kie-tools/dmn-marshaller/dist/schemas/kie-1_0/ts-gen/types";
 import { Namespaced } from "@kie-tools/xml-parser-ts";
 import { Text, TextVariants } from "@patternfly/react-core/dist/js/components/Text";
@@ -33,16 +32,17 @@ import { AngleRightIcon } from "@patternfly/react-icons/dist/js/icons/angle-righ
 import { InlineFeelNameInput, invalidInlineFeelNameStyle } from "../feel/InlineFeelNameInput";
 import { generateUuid } from "@kie-tools/boxed-expression-component/dist/api";
 import { Draggable, DragAndDrop, useDraggableItemContext } from "../draggable/Draggable";
+import "./DocumentationLinksFormGroup.css";
 
 const PLACEHOLDER_URL_TITLE = "Enter a title...";
-const PLACEHOLDER_URL = "http://";
+const PLACEHOLDER_URL = "https://...";
 
 export function DocumentationLinksFormGroup({
-  isReadonly,
+  isReadOnly,
   values,
   onChange,
 }: {
-  isReadonly: boolean;
+  isReadOnly: boolean;
   values?: Namespaced<"kie", KIE__tAttachment>[];
   onChange?: (newExtensionElements: Namespaced<"kie", KIE__tAttachment>[]) => void;
 }) {
@@ -91,7 +91,7 @@ export function DocumentationLinksFormGroup({
   const onChangeKieAttachment = useCallback(
     (args: { index: number; newUrlTitle?: string; newUrl?: string }) => {
       setAutoFocusFirst(false);
-      if (isReadonly) {
+      if (isReadOnly) {
         return;
       }
 
@@ -104,7 +104,7 @@ export function DocumentationLinksFormGroup({
       };
       onInternalChange(newValues);
     },
-    [isReadonly, onInternalChange, values]
+    [isReadOnly, onInternalChange, values]
   );
 
   const onRemove = useCallback(
@@ -165,7 +165,7 @@ export function DocumentationLinksFormGroup({
   }, []);
 
   const draggableItem = useCallback(
-    (kieAttachment, index) => {
+    (kieAttachment: Namespaced<"kie", KIE__tAttachment>, index: number) => {
       return (
         <Draggable
           key={valuesUuid?.[index] ?? generateUuid()}
@@ -173,15 +173,16 @@ export function DocumentationLinksFormGroup({
           rowClassName={index !== 0 ? "kie-dmn-editor--documentation-link--not-first-element" : ""}
           handlerStyle={
             expandedUrls[index]
-              ? { alignSelf: "flex-start", paddingTop: "8px", paddingLeft: "24px", paddingRight: "8px" }
-              : { paddingLeft: "24px", paddingRight: "8px" }
+              ? { alignSelf: "flex-start", paddingTop: "8px", paddingLeft: "16px", paddingRight: "16px" }
+              : { paddingLeft: "16px", paddingRight: "16px" }
           }
+          isDisabled={isReadOnly}
         >
           <li>
             <DocumentationLinksInput
               title={kieAttachment["@_name"] ?? ""}
               url={kieAttachment["@_url"] ?? ""}
-              isReadonly={isReadonly}
+              isReadOnly={isReadOnly}
               onChange={(newUrlTitle, newUrl) => onChangeKieAttachment({ newUrlTitle, newUrl, index })}
               onRemove={() => onRemove(index)}
               isUrlExpanded={expandedUrls[index]}
@@ -192,30 +193,32 @@ export function DocumentationLinksFormGroup({
         </Draggable>
       );
     },
-    [autoFocusFirst, expandedUrls, isReadonly, onChangeKieAttachment, onRemove, setUrlExpanded, valuesUuid]
+    [autoFocusFirst, expandedUrls, isReadOnly, onChangeKieAttachment, onRemove, setUrlExpanded, valuesUuid]
   );
 
   return (
     <FormGroup
       label={
         <div style={{ display: "flex", flexDirection: "row" }}>
-          <label className={"pf-c-form__label"} style={{ flexGrow: 1, cursor: "auto" }}>
-            <span className={"pf-c-form__label-text"}>Documentation links</span>
+          <label className={"pf-v5-c-form__label"} style={{ flexGrow: 1, cursor: "auto" }}>
+            <span className={"pf-v5-c-form__label-text"}>Documentation links</span>
           </label>
-          {!isReadonly && <Button variant={"plain"} icon={<PlusCircleIcon />} onClick={onAdd} />}
+          {!isReadOnly && (
+            <Button variant={"plain"} icon={<PlusCircleIcon />} onClick={onAdd} title={"Add documentation link"} />
+          )}
         </div>
       }
     >
       <ul>
         {(values ?? []).length === 0 && (
-          <li className={"kie-dmn-editor--documentation-link--empty-state"}>{isReadonly ? "None" : "None yet"}</li>
+          <li className={"kie-dmn-editor--documentation-link--empty-state"}>{isReadOnly ? "None" : "None yet"}</li>
         )}
         <DragAndDrop
           reorder={reorder}
           onDragEnd={onDragEnd}
           values={values}
           draggableItem={draggableItem}
-          isDisabled={isReadonly}
+          isDisabled={isReadOnly}
         />
       </ul>
     </FormGroup>
@@ -225,7 +228,7 @@ export function DocumentationLinksFormGroup({
 function DocumentationLinksInput({
   title,
   url,
-  isReadonly,
+  isReadOnly,
   isUrlExpanded,
   onChange,
   onRemove,
@@ -234,7 +237,7 @@ function DocumentationLinksInput({
 }: {
   title: string;
   url: string;
-  isReadonly: boolean;
+  isReadOnly: boolean;
   isUrlExpanded: boolean;
   onChange: (newUrlTitle: string, newUrl: string) => void;
   onRemove: () => void;
@@ -255,7 +258,7 @@ function DocumentationLinksInput({
     } catch (error) {
       try {
         if (!newUrl.includes("http://") && !newUrl.includes("https://")) {
-          const urlWithProtocol = "http://" + newUrl + "/";
+          const urlWithProtocol = "https://" + newUrl + "/";
           const url = new URL(urlWithProtocol);
           // the new URL automatically converts the whitespaces to %20
           // this check verifies if the url has whitespaces
@@ -331,8 +334,12 @@ function DocumentationLinksInput({
 
   return (
     <React.Fragment>
-      <div className={"kie-dmn-editor--documentation-link--row"}>
+      <div
+        className={"kie-dmn-editor--documentation-link--row"}
+        data-testid={"kie-tools--dmn-editor--documentation-link--row"}
+      >
         <Button
+          title={"Expand / collapse documentation link"}
           variant={ButtonVariant.plain}
           className={"kie-dmn-editor--documentation-link--row-expand-toogle"}
           onClick={() => toogleExpanded(title, url)}
@@ -344,7 +351,7 @@ function DocumentationLinksInput({
             <>
               <div ref={urlTitleRef} className={"kie-dmn-editor--documentation-link--row-title"}>
                 {isUrl ? (
-                  <a href={url} target={"_blank"}>
+                  <a href={url} target={"_blank"} data-testid={"kie-tools--dmn-editor--documentation-link--row-title"}>
                     {title}
                   </a>
                 ) : (
@@ -354,14 +361,14 @@ function DocumentationLinksInput({
                 )}
               </div>
               {!isUrlExpanded && (
-                <Tooltip content={urlDescriptionTooltip} position={TooltipPosition.topStart} reference={urlTitleRef} />
+                <Tooltip content={urlDescriptionTooltip} position={TooltipPosition.topStart} triggerRef={urlTitleRef} />
               )}
             </>
           ) : (
             <div className={"kie-dmn-editor--documentation-link--row-inputs"}>
               <InlineFeelNameInput
                 isPlain={true}
-                isReadonly={isReadonly}
+                isReadOnly={isReadOnly}
                 id={`${uuid}-name`}
                 shouldCommitOnBlur={true}
                 placeholder={PLACEHOLDER_URL_TITLE}
@@ -374,7 +381,7 @@ function DocumentationLinksInput({
                   // reset the changedByToogle
                   updatedOnToogle.current = false;
                 }}
-                allUniqueNames={allUniqueNames}
+                allUniqueNames={() => allUniqueNames}
                 validate={validateTitle}
                 autoFocus={parentAutoFocus || autoFocus}
                 onKeyDown={(e) => {
@@ -388,7 +395,7 @@ function DocumentationLinksInput({
               <InlineFeelNameInput
                 className={"kie-dmn-editor--documentation-link--row-inputs-url"}
                 isPlain={true}
-                isReadonly={isReadonly}
+                isReadOnly={isReadOnly}
                 id={`${uuid}-url`}
                 shouldCommitOnBlur={true}
                 placeholder={PLACEHOLDER_URL}
@@ -400,7 +407,7 @@ function DocumentationLinksInput({
                   // reset the changedByToogle
                   updatedOnToogle.current = false;
                 }}
-                allUniqueNames={allUniqueNames}
+                allUniqueNames={() => allUniqueNames}
                 validate={validateUrl}
                 saveInvalidValue={true}
                 onKeyDown={(e) => {
@@ -417,9 +424,11 @@ function DocumentationLinksInput({
         {hovered && (
           <Tooltip content={removeTooltip}>
             <Button
+              title={"Remove documentation link"}
               className={"kie-dmn-editor--documentation-link--row-remove"}
               variant={"plain"}
               icon={<TimesIcon />}
+              isDisabled={isReadOnly}
               onClick={() => onRemove()}
             />
           </Tooltip>

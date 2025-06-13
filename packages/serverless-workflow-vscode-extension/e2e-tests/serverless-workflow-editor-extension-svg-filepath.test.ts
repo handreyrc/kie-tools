@@ -24,7 +24,7 @@ import { VSCodeTestHelper, sleep } from "@kie-tools/vscode-extension-common-test
 
 describe("Serverless workflow editor - SVG generation with path setting end-to-end tests", () => {
   const TEST_PROJECT_FOLDER: string = path.resolve("e2e-tests-tmp", "resources", "svg-filepath");
-  const DIST_E2E_TESTS_FOLDER: string = path.resolve("dist-e2e-tests");
+  const DIST_E2E_TESTS_FOLDER: string = path.resolve("dist-tests-e2e");
 
   const FILE_NAME_NO_EXTENSION: string = "hello-world";
   const WORKFLOW_NAME: string = `${FILE_NAME_NO_EXTENSION}.sw.json`;
@@ -35,26 +35,26 @@ describe("Serverless workflow editor - SVG generation with path setting end-to-e
   let testHelper: VSCodeTestHelper;
 
   before(async function () {
-    this.timeout(60000);
+    this.timeout(50000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
   });
 
   beforeEach(async function () {
-    this.timeout(15000);
+    this.timeout(30000);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   afterEach(async function () {
-    this.timeout(15000);
+    this.timeout(30000);
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   it(`Opens ${WORKFLOW_NAME}, saves it, and verifies SVG generation`, async function () {
-    this.timeout(30000);
+    this.timeout(50000);
 
     const svgName = `${FILE_NAME_NO_EXTENSION}.svg`;
 
@@ -71,7 +71,7 @@ describe("Serverless workflow editor - SVG generation with path setting end-to-e
   });
 
   it(`Changes settings, opens ${WORKFLOW_NAME}, saves it, and verifies SVG generation`, async function () {
-    this.timeout(60000);
+    this.timeout(80000);
 
     const svgNameAddition = "-changed";
     const svgName = `${FILE_NAME_NO_EXTENSION}${svgNameAddition}.svg`;
@@ -99,7 +99,7 @@ describe("Serverless workflow editor - SVG generation with path setting end-to-e
 
     // save file and wait for the SVG generation
     await testHelper.saveFileInTextEditor();
-    await sleep(1000);
+    await sleep(2000);
 
     // verify SVG was generated after file save
     const SVG_FILE_PATH: string = path.resolve(TEST_PROJECT_FOLDER, changedDirectory, svgName);

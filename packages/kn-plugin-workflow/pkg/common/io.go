@@ -21,11 +21,15 @@ package common
 
 import (
 	"fmt"
+	"github.com/apache/incubator-kie-tools/packages/kn-plugin-workflow/pkg/metadata"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 )
+
+var WorkflowExtensionsType = []string{metadata.YAMLSWExtension, metadata.YMLSWExtension, metadata.JSONSWExtension}
+
 
 func FindFilesWithExtensions(directoryPath string, extensions []string) ([]string, error) {
 	filePaths := []string{}
@@ -58,6 +62,37 @@ func FindFilesWithExtensions(directoryPath string, extensions []string) ([]strin
 	}
 
 	return filePaths, nil
+}
+
+func FindSonataFlowFileByDefaultExtensions() (string, error) {
+	return FindSonataFlowFile(WorkflowExtensionsType)
+}
+
+func FindSonataFlowFile(extensions []string) (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("❌ ERROR: failed to get current directory: %w", err)
+	}
+
+	matchingFiles := FindSonataFlowFiles(dir, extensions)
+
+	switch len(matchingFiles) {
+	case 0:
+		return "", fmt.Errorf("❌ ERROR: no matching files found")
+	case 1:
+		return matchingFiles[0], nil
+	default:
+		return "", fmt.Errorf("❌ ERROR: multiple SonataFlow definition files found")
+	}
+}
+
+func FindSonataFlowFiles(dir string, extensions []string) []string {
+	var matchingFiles []string
+	for _, ext := range extensions {
+		files, _ := filepath.Glob(filepath.Join(dir, "*."+ext))
+		matchingFiles = append(matchingFiles, files...)
+	}
+	return matchingFiles
 }
 
 func MustGetFile(filepath string) (io.Reader, error) {

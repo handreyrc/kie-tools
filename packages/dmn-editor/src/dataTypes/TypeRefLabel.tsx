@@ -18,13 +18,12 @@
  */
 
 import * as React from "react";
-import { DmnBuiltInDataType } from "@kie-tools/boxed-expression-component/dist/api";
-import { buildFeelQNameFromXmlQName } from "../feel/buildFeelQName";
 import { useMemo } from "react";
-import { useDmnEditorDerivedStore } from "../store/DerivedStore";
+import { DmnBuiltInDataType, generateUuid } from "@kie-tools/boxed-expression-component/dist/api";
+import { buildFeelQNameFromXmlQName } from "../feel/buildFeelQName";
 import { buildXmlQName, parseXmlQName } from "@kie-tools/xml-parser-ts/dist/qNames";
-import { useDmnEditorStore } from "../store/Store";
-import { getXmlNamespaceDeclarationName } from "../xml/xmlNamespaceDeclarations";
+import { getXmlNamespaceDeclarationName } from "@kie-tools/dmn-marshaller/dist/xml/xmlNamespaceDeclarations";
+import { useDmnEditorStore } from "../store/StoreContext";
 import { parseFeelQName } from "../feel/parseFeelQName";
 import { builtInFeelTypeNames } from "./BuiltInFeelTypes";
 
@@ -37,7 +36,7 @@ export function TypeRefLabel({
   typeRef: string | undefined;
   relativeToNamespace?: string;
 }) {
-  const { importsByNamespace } = useDmnEditorDerivedStore();
+  const importsByNamespace = useDmnEditorStore((s) => s.computed(s).importsByNamespace());
   const thisDmn = useDmnEditorStore((s) => s.dmn);
 
   const feelName = useMemo(() => {
@@ -53,7 +52,7 @@ export function TypeRefLabel({
     const parsedFeelQName = parseFeelQName(typeRef);
 
     const xmlNamespaceName = getXmlNamespaceDeclarationName({
-      model: thisDmn.model.definitions,
+      rootElement: thisDmn.model.definitions,
       namespace: relativeToNamespace ?? "",
     });
 
@@ -75,7 +74,10 @@ export function TypeRefLabel({
       importsByNamespace,
       relativeToNamespace: thisDmn.model.definitions["@_namespace"],
       model: thisDmn.model.definitions,
-      namedElement: { "@_name": parsedFeelQName.importName ? parsedFeelQName.localPart : typeRef },
+      namedElement: {
+        "@_id": generateUuid(),
+        "@_name": parsedFeelQName.importName ? parsedFeelQName.localPart : typeRef,
+      },
       namedElementQName: xmlQName,
     }).full;
 

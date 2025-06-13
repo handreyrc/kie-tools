@@ -31,17 +31,11 @@ import { defaultEnvJson } from "./build/defaultEnvJson";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import HtmlReplaceWebpackPlugin from "html-replace-webpack-plugin";
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
 import { env } from "./env";
-
 const buildEnv: any = env; // build-env is not typed
 
-export default async (env: any, argv: any) => {
+export default async (webpackEnv: any, webpackArgv: any) => {
   const buildInfo = getBuildInfo();
-  const gtmResource = getGtmResource();
   const [swfBuilderImageRegistry, swfBuilderImageAccount, swfBuilderImageName, swfBuilderImageTag] =
     getSwfBuilderImageArgs();
   const [baseBuilderImageRegistry, baseBuilderImageAccount, baseBuilderImageName, baseBuilderImageTag] =
@@ -56,13 +50,14 @@ export default async (env: any, argv: any) => {
   ] = getDashbuilderViewerImageArgs();
 
   return [
-    merge(common(env), {
+    merge(common(webpackEnv), {
       entry: {
         "workspace/worker/sharedWorker": "./src/workspace/worker/sharedWorker.ts",
       },
       target: "webworker",
       plugins: [
         new ProvidePlugin({
+          process: require.resolve("process/browser.js"),
           Buffer: ["buffer", "Buffer"],
         }),
         new EnvironmentPlugin({
@@ -79,7 +74,7 @@ export default async (env: any, argv: any) => {
       ],
     }),
     {
-      ...merge(common(env), {
+      ...merge(common(webpackEnv), {
         entry: {
           index: "./src/index.tsx",
           "yard-editor-envelope": "./src/envelope/YardEditorEnvelopeApp.ts",
@@ -96,12 +91,6 @@ export default async (env: any, argv: any) => {
             inject: false,
             minify: false,
           }),
-          new HtmlReplaceWebpackPlugin([
-            {
-              pattern: /(<!-- gtm):([\w-/]+)(\s*-->)?/g,
-              replacement: (match: any, gtm: any, type: keyof typeof gtmResource) => gtmResource?.[type] ?? `${match}`,
-            },
-          ]),
           new EnvironmentPlugin({
             WEBPACK_REPLACE__version: buildEnv.serverlessLogicWebTools.version,
             WEBPACK_REPLACE__buildInfo: buildInfo,
@@ -110,6 +99,8 @@ export default async (env: any, argv: any) => {
             WEBPACK_REPLACE__devModeImageFullUrl: `${swfDevModeImageRegistry}/${swfDevModeImageAccount}/${swfDevModeImageName}:${swfDevModeImageTag}`,
             WEBPACK_REPLACE__dashbuilderViewerImageFullUrl: `${dashbuilderViewerImageRegistry}/${dashbuilderViewerImageAccount}/${dashbuilderViewerImageName}:${dashbuilderViewerImageTag}`,
             WEBPACK_REPLACE__corsProxyUrl: buildEnv.serverlessLogicWebTools.corsProxyUrl,
+            WEBPACK_REPLACE__samplesRepositoryOrg: buildEnv.serverlessLogicWebTools.samplesRepositoryOrg,
+            WEBPACK_REPLACE__samplesRepositoryName: buildEnv.serverlessLogicWebTools.samplesRepositoryName,
             WEBPACK_REPLACE__samplesRepositoryRef: buildEnv.serverlessLogicWebTools.samplesRepositoryRef,
           }),
           new CopyPlugin({
@@ -162,6 +153,7 @@ export default async (env: any, argv: any) => {
             ],
           }),
           new ProvidePlugin({
+            process: require.resolve("process/browser.js"),
             Buffer: ["buffer", "Buffer"],
           }),
           new MonacoWebpackPlugin({
@@ -218,10 +210,10 @@ export default async (env: any, argv: any) => {
 };
 
 function getSwfBuilderImageArgs() {
-  const swfBuilderImageRegistry = buildEnv.swfBuilderImageEnv.registry;
-  const swfBuilderImageAccount = buildEnv.swfBuilderImageEnv.account;
-  const swfBuilderImageName = buildEnv.swfBuilderImageEnv.name;
-  const swfBuilderImageTag = buildEnv.serverlessLogicWebTools.swfBuilderImage.tag;
+  const swfBuilderImageRegistry = buildEnv.slwtBuilderImageEnv.registry;
+  const swfBuilderImageAccount = buildEnv.slwtBuilderImageEnv.account;
+  const swfBuilderImageName = buildEnv.slwtBuilderImageEnv.name;
+  const swfBuilderImageTag = buildEnv.serverlessLogicWebTools.slwtBuilderImageEnv.tag;
 
   console.info("Serverless Logic Web Tools :: SWF Builder Image Registry: " + swfBuilderImageRegistry);
   console.info("Serverless Logic Web Tools :: SWF Builder Image Account: " + swfBuilderImageAccount);
@@ -232,10 +224,10 @@ function getSwfBuilderImageArgs() {
 }
 
 function getSwfDevModeImageArgs() {
-  const swfDevModeImageRegistry = buildEnv.swfDevModeImageEnv.registry;
-  const swfDevModeImageAccount = buildEnv.swfDevModeImageEnv.account;
-  const swfDevModeImageName = buildEnv.swfDevModeImageEnv.name;
-  const swfDevModeImageTag = buildEnv.serverlessLogicWebTools.swfDevModeImage.tag;
+  const swfDevModeImageRegistry = buildEnv.slwtDevModeImageEnv.registry;
+  const swfDevModeImageAccount = buildEnv.slwtDevModeImageEnv.account;
+  const swfDevModeImageName = buildEnv.slwtDevModeImageEnv.name;
+  const swfDevModeImageTag = buildEnv.serverlessLogicWebTools.slwtDevModeImage.tag;
 
   console.info("Serverless Logic Web Tools :: Dev Mode Image Registry: " + swfDevModeImageRegistry);
   console.info("Serverless Logic Web Tools :: Dev Mode Image Account: " + swfDevModeImageAccount);
@@ -246,10 +238,10 @@ function getSwfDevModeImageArgs() {
 }
 
 function getBaseBuilderImageArgs() {
-  const baseBuilderImageRegistry = buildEnv.baseBuilderImageEnv.registry;
-  const baseBuilderImageAccount = buildEnv.baseBuilderImageEnv.account;
-  const baseBuilderImageName = buildEnv.baseBuilderImageEnv.name;
-  const baseBuilderImageTag = buildEnv.serverlessLogicWebTools.baseBuilderImage.tag;
+  const baseBuilderImageRegistry = buildEnv.slwtBaseBuilderImageEnv.registry;
+  const baseBuilderImageAccount = buildEnv.slwtBaseBuilderImageEnv.account;
+  const baseBuilderImageName = buildEnv.slwtBaseBuilderImageEnv.name;
+  const baseBuilderImageTag = buildEnv.serverlessLogicWebTools.slwtBaseBuilderImage.tag;
 
   console.info("Serverless Logic Web Tools :: Base Builder Image Registry: " + baseBuilderImageRegistry);
   console.info("Serverless Logic Web Tools :: Base Builder Image Account: " + baseBuilderImageAccount);
@@ -276,39 +268,6 @@ function getDashbuilderViewerImageArgs() {
     dashbuilderViewerImageName,
     dashbuilderViewerImageTag,
   ];
-}
-
-function getGtmResource() {
-  const gtmId = buildEnv.serverlessLogicWebTools.gtmId;
-  console.info(`Google Tag Manager :: ID: ${gtmId}`);
-
-  if (!gtmId) {
-    return undefined;
-  }
-
-  return {
-    id: gtmId,
-    header: `<!-- Google Tag Manager -->
-    <script>
-      (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-      new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-      j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-      'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-      })(window,document,'script','dataLayer','${gtmId}');
-    </script>
-    <!-- End Google Tag Manager -->`,
-    body: `<!-- Google Tag Manager (noscript) -->
-    <noscript>
-      <iframe
-        src="https://www.googletagmanager.com/ns.html?id=${gtmId}"
-        height="0"
-        width="0"
-        style="display:none;visibility:hidden"
-      >
-      </iframe>
-    </noscript>
-    <!-- End Google Tag Manager (noscript) -->`,
-  };
 }
 
 function getBuildInfo() {

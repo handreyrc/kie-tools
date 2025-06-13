@@ -106,11 +106,22 @@ def checkoutRepo(String url, String branch, String credentialsId) {
 def squashedMerge(String author, String branch, String url) {
     sh """#!/bin/bash -el
     git config --global user.email "kietoolsbot@gmail.com"
-    git config --global user.name "Apache KIE Tools Bot (kiegroup)"
+    git config --global user.name "Apache KIE Tools Bot"
     git remote add ${author} ${url}
     git fetch ${author} ${branch}
     git merge --squash ${author}/${branch}
     git commit --no-edit
+    """.trim()
+}
+
+/**
+* Create a new tag
+*/
+def createTag(String tagName) {
+    sh """#!/bin/bash -el
+    git config user.email asf-ci-kie@jenkins.kie.apache.org
+    git config user.name asf-ci-kie
+    git tag "${tagName}"
     """.trim()
 }
 
@@ -141,30 +152,22 @@ def pushObject(String remote, String object, String credentialsId) {
 */
 def getRepoSlug(String url) {
     tokens = url.tokenize('/')
-    org = tokens[tokens.size()-4]
-    repo = tokens[tokens.size()-3]
+    org = tokens[tokens.size() - 4]
+    repo = tokens[tokens.size() - 3]
 
     return "${org}/${repo}"
 }
 
 /**
-* @return the files changed in the last commit
-*/
-def getChangesetLastCommit() {
-    changeset = sh returnStdout: true, script: '''
-    git diff --name-only HEAD HEAD~1
-    '''.trim()
-
-    return changeset
-}
-
-/**
 * @return if a given file is in the changeset of the last commit
 */
-def fileIsInChangeset(String file) {
-    changeset = getChangesetLastCommit()
+def fileIsInChangeset(String branch, String file) {
+    changeset = sh returnStdout: true, script: """
+    git checkout ${branch}
+    git diff --name-only HEAD HEAD~1
+    """.trim()
 
     return changeset.contains(file)
 }
 
-return this;
+return this

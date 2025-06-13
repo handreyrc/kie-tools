@@ -17,24 +17,30 @@
  * under the License.
  */
 
-import { KogitoEditorChannelApi, KogitoEditorEnvelopeContextType } from "@kie-tools-core/editor/dist/api";
+import {
+  KogitoEditorChannelApi,
+  KogitoEditorEnvelopeApi,
+  KogitoEditorEnvelopeContextType,
+} from "@kie-tools-core/editor/dist/api";
 import { render } from "@testing-library/react";
 import { ReactElement } from "react";
 import { PMMLEditor, PMMLEditorInterface } from "@kie-tools/pmml-editor";
 import { DefaultKeyboardShortcutsService } from "@kie-tools-core/keyboard-shortcuts/dist/envelope";
 import { OperatingSystem } from "@kie-tools-core/operating-system";
-import { messageBusClientApiMock } from "@kie-tools-core/envelope-bus/dist-tests/common";
+import { messageBusClientApiMock } from "@kie-tools-core/envelope-bus/dist-tests/messageBusClientApiMock";
 import { I18nService } from "@kie-tools-core/i18n/dist/envelope";
 
 const channelApi = messageBusClientApiMock<KogitoEditorChannelApi>();
 
-const envelopeContext: KogitoEditorEnvelopeContextType<KogitoEditorChannelApi> = {
+const envelopeContext: KogitoEditorEnvelopeContextType<KogitoEditorEnvelopeApi, KogitoEditorChannelApi> = {
+  shared: {} as any,
   channelApi: channelApi,
   operatingSystem: OperatingSystem.LINUX,
   services: {
     keyboardShortcuts: new DefaultKeyboardShortcutsService({ os: OperatingSystem.LINUX }),
     i18n: new I18nService(),
   },
+  supportedThemes: [],
 };
 
 const editorInterface: PMMLEditorInterface = new PMMLEditorInterface(envelopeContext);
@@ -49,23 +55,23 @@ beforeEach(() => {
 
 describe("PMMLEditorInterface", () => {
   test("Mount", () => {
-    expect(channelApi.notifications.kogitoEditor_ready.send).toBeCalled();
+    expect(channelApi.notifications.kogitoEditor_ready.send).toHaveBeenCalled();
   });
 
   test("getContent", async () => {
-    spyOn(editor, "getContent");
+    jest.spyOn(editor, "getContent");
 
     await editorInterface.getContent();
 
-    expect(editor.getContent).toBeCalledTimes(1);
+    expect(editor.getContent).toHaveBeenCalledTimes(1);
   });
 
   test("setContent", async () => {
-    spyOn(editor, "setContent");
+    jest.spyOn(editor, "setContent").mockReturnValue(Promise.resolve());
 
     await editorInterface.setContent("path", "content");
 
-    expect(editor.setContent).toBeCalledTimes(1);
+    expect(editor.setContent).toHaveBeenCalledTimes(1);
   });
 
   test("getPreview", () => {

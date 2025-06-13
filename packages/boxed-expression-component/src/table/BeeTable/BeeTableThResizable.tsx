@@ -21,8 +21,7 @@ import { PopoverPosition } from "@patternfly/react-core/dist/js/components/Popov
 import * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as ReactTable from "react-table";
-import { ExpressionDefinition } from "../../api";
-import { ExpressionDefinitionHeaderMenu } from "../../expressions/ExpressionDefinitionHeaderMenu";
+import { ExpressionVariableMenu, OnExpressionVariableUpdated } from "../../expressionVariable/ExpressionVariableMenu";
 import { Resizer } from "../../resizing/Resizer";
 import { useBeeTableResizableCell } from "../../resizing/BeeTableResizableColumnsContext";
 import { BeeTableTh, getHoverInfo, HoverInfo } from "./BeeTableTh";
@@ -33,7 +32,7 @@ import {
   isParentColumn,
   useFillingResizingWidth,
 } from "../../resizing/FillingColumnResizingWidth";
-import { useBoxedExpressionEditor } from "../../expressions/BoxedExpressionEditor/BoxedExpressionEditorContext";
+import { useBoxedExpressionEditor } from "../../BoxedExpressionEditorContext";
 
 export interface BeeTableThResizableProps<R extends object> {
   onColumnAdded?: (args: { beforeIndex: number; groupType: string | undefined }) => void;
@@ -45,8 +44,9 @@ export interface BeeTableThResizableProps<R extends object> {
   isEditableHeader: boolean;
   getColumnKey: (column: ReactTable.ColumnInstance<R>) => string;
   getColumnLabel: (groupType: string | undefined) => string | undefined;
-  onExpressionHeaderUpdated: (args: Pick<ExpressionDefinition, "name" | "dataType">) => void;
-  onHeaderClick?: (columnKey: string) => () => void;
+  onExpressionHeaderUpdated: OnExpressionVariableUpdated;
+  onHeaderClick?: (columnKey: string) => void;
+  onHeaderKeyUp?: (columnKey: string) => void;
   reactTableInstance: ReactTable.TableInstance<R>;
   headerCellInfo: React.ReactElement;
   shouldShowColumnsInlineControls: boolean;
@@ -55,6 +55,7 @@ export interface BeeTableThResizableProps<R extends object> {
   onGetWidthToFitData: () => number;
   forwardRef?: React.RefObject<HTMLTableCellElement>;
   shouldRenderRowIndexColumn: boolean;
+  isReadOnly: boolean;
 }
 
 export function BeeTableThResizable<R extends object>({
@@ -68,6 +69,7 @@ export function BeeTableThResizable<R extends object>({
   getColumnKey,
   onExpressionHeaderUpdated,
   onHeaderClick,
+  onHeaderKeyUp,
   headerCellInfo,
   onColumnAdded,
   resizerStopBehavior,
@@ -75,6 +77,7 @@ export function BeeTableThResizable<R extends object>({
   lastColumnMinWidth,
   onGetWidthToFitData,
   forwardRef,
+  isReadOnly,
 }: BeeTableThResizableProps<R>) {
   const columnKey = useMemo(() => getColumnKey(column), [column, getColumnKey]);
 
@@ -87,13 +90,17 @@ export function BeeTableThResizable<R extends object>({
     }
 
     cssClasses.push(column.groupType ?? "");
-    // cssClasses.push(column.cssClasses ?? ""); // FIXME: Breaking Decision tables because of positioning of rowSpan=2 column headers (See https://github.com/kiegroup/kie-issues/issues/162)
+    cssClasses.push(column.cssClasses ?? "");
     return cssClasses.join(" ");
-  }, [columnKey, column.dataType, column.groupType]);
+  }, [columnKey, column.cssClasses, column.dataType, column.groupType]);
 
-  const onClick = useMemo(() => {
+  const onClick = useCallback(() => {
     return onHeaderClick?.(columnKey);
   }, [columnKey, onHeaderClick]);
+
+  const onKeyUp = useCallback(() => {
+    return onHeaderKeyUp?.(columnKey);
+  }, [columnKey, onHeaderKeyUp]);
 
   const { resizingWidth, setResizingWidth } = useBeeTableResizableCell(
     columnIndex,
@@ -173,6 +180,7 @@ export function BeeTableThResizable<R extends object>({
     <BeeTableTh<R>
       forwardRef={forwardRef}
       className={cssClasses}
+      isReadOnly={isReadOnly}
       thProps={{
         ...column.getHeaderProps(),
         style: {
@@ -182,11 +190,12 @@ export function BeeTableThResizable<R extends object>({
             isParentColumn(column) || isFlexbileColumn(column)
               ? fillingWidth
               : column.width
-              ? resizingWidth?.value
-              : "100%",
+                ? resizingWidth?.value
+                : "100%",
         },
       }}
       onClick={onClick}
+      onHeaderKeyUp={onKeyUp}
       columnKey={columnKey}
       columnIndex={columnIndex}
       rowIndex={rowIndex}
@@ -197,23 +206,34 @@ export function BeeTableThResizable<R extends object>({
       shouldShowColumnsInlineControls={shouldShowColumnsInlineControls}
       column={column}
     >
-      <div className="header-cell" data-ouia-component-type="expression-column-header" ref={headerCellRef}>
-        {column.dataType && isEditableHeader ? (
-          <ExpressionDefinitionHeaderMenu
+      <div
+        className={`header-cell ${cssClasses}`}
+        data-ouia-component-type="expression-column-header"
+        ref={headerCellRef}
+        // We stop propagation here because if the user performs a double click on any component inside
+        // the ExpressionVariableMenu (for example, to select a word) we don't want that action to bubble
+        // to the parent component (BeeTableTh).
+        onDoubleClick={(e) => e.stopPropagation()}
+      >
+        {!isReadOnly && column.dataType && isEditableHeader ? (
+          <ExpressionVariableMenu
             position={PopoverPosition.bottom}
             selectedExpressionName={column.label}
             selectedDataType={column.dataType}
-            onExpressionHeaderUpdated={onExpressionHeaderUpdated}
+            onVariableUpdated={onExpressionHeaderUpdated}
             appendTo={getAppendToElement}
+            variableUuid={column.id}
+            isContentAFeelExpression={column.isHeaderAFeelExpression ?? false}
           >
             {headerCellInfo}
-          </ExpressionDefinitionHeaderMenu>
+          </ExpressionVariableMenu>
         ) : (
           headerCellInfo
         )}
       </div>
       {/* resizingWidth. I.e., Exact-sized columns. */}
-      {!column.isWidthConstant &&
+      {!isReadOnly &&
+        !column.isWidthConstant &&
         column.width &&
         resizingWidth &&
         (hoverInfo.isHovered || (resizingWidth?.isPivoting && isResizing)) && (
@@ -230,7 +250,8 @@ export function BeeTableThResizable<R extends object>({
       {/* fillingResizingWidth. I.e., Flexible or parent columns. */}
       {getFlatListOfSubColumns(column).some((c) => !(c.isWidthConstant ?? false)) &&
         (isFlexbileColumn(column) || isParentColumn(column)) &&
-        (hoverInfo.isHovered || (fillingResizingWidth?.isPivoting && isResizing)) && (
+        (hoverInfo.isHovered || (fillingResizingWidth?.isPivoting && isResizing)) &&
+        !isReadOnly && (
           <Resizer
             minWidth={minFillingWidth}
             width={fillingWidth}
@@ -241,7 +262,7 @@ export function BeeTableThResizable<R extends object>({
             setResizing={setResizing}
           />
         )}
-      {/* //FIXME: Don't know if that's a good idea yet. Please address it as part of https://github.com/kiegroup/kie-issues/issues/181 */}
+      {/* //FIXME: Don't know if that's a good idea yet. Please address it as part of https://github.com/apache/incubator-kie-issues/issues/181 */}
       {/* {calcWidth && (hoverInfo.isHovered || (calcResizingWidth?.isPivoting && isCalcWidthResizing)) && (
         <Resizer
           minWidth={(column.columns ?? []).reduce((acc, { minWidth }) => acc + (minWidth ?? 0), 0)}

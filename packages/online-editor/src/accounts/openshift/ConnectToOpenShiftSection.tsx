@@ -19,7 +19,7 @@
 
 import React, { useMemo, useState, useCallback } from "react";
 import { OpenShiftInstanceStatus } from "./OpenShiftInstanceStatus";
-import { KieSandboxOpenShiftService } from "../../devDeployments/services/KieSandboxOpenShiftService";
+import { KieSandboxOpenShiftService } from "../../devDeployments/services/openshift/KieSandboxOpenShiftService";
 import { ConnecToOpenShiftSimple } from "./ConnecToOpenShiftSimple";
 import { ConnectToDeveloperSandboxForRedHatOpenShiftWizard } from "./ConnectToDeveloperSandboxForRedHatOpenShiftWizard";
 import { EMPTY_KUBERNETES_CONNECTION } from "@kie-tools-core/kubernetes-bridge/dist/service/KubernetesConnection";
@@ -46,7 +46,8 @@ export function ConnectToOpenShiftSection() {
   const [newAuthSession, setNewAuthSession] = useState<OpenShiftAuthSession>();
   const [status, setStatus] = useState(OpenShiftInstanceStatus.DISCONNECTED);
   const [connection, setConnection] = useState(EMPTY_KUBERNETES_CONNECTION);
-
+  const selectedOpenShiftSession =
+    accounts.section === AccountsSection.CONNECT_TO_OPENSHIFT ? accounts.selectedAuthSession : undefined;
   const [kieSandboxOpenShiftService, setKieSandboxOpenShiftService] = useState<KieSandboxOpenShiftService>();
   const [isLoadingService, setIsLoadingService] = useState(false);
 
@@ -133,6 +134,7 @@ export function ConnectToOpenShiftSection() {
               setNewAuthSession={setNewAuthSession}
               kieSandboxOpenShiftService={kieSandboxOpenShiftService}
               isLoadingService={isLoadingService}
+              selectedAuthSession={selectedOpenShiftSession}
             />
           )}
           {mode === OpenShiftSettingsTabMode.WIZARD && (
@@ -145,6 +147,7 @@ export function ConnectToOpenShiftSection() {
               setNewAuthSession={setNewAuthSession}
               kieSandboxOpenShiftService={kieSandboxOpenShiftService}
               isLoadingService={isLoadingService}
+              selectedAuthSession={selectedOpenShiftSession}
             />
           )}
         </>

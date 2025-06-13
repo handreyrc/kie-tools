@@ -18,7 +18,6 @@
  */
 
 import * as React from "react";
-import { DmnBuiltInDataType } from "../api";
 
 // Extending react-table definitions with missing and custom properties
 declare module "react-table" {
@@ -39,7 +38,7 @@ declare module "react-table" {
   }
 
   export interface ColumnInterface<D extends object> {
-    /** Used by react-table to hold the original id chosen for the column, independently from applied operations */
+    /** Used by react-table to hold the original id chosen for the column, independently of applied operations */
     originalId?: string;
     /** Column identifier */
     accessor: string;
@@ -51,14 +50,16 @@ declare module "react-table" {
     label: string;
     /** Custom Element to be rendered in place of the column label */
     headerCellElement?: JSX.Element;
+    /** Additional Element to be rendered in the Header Cell top right corner */
+    headerCellElementExtension?: JSX.Element;
     /** It makes this column header inline editable (with double-click) */
     isInlineEditable?: boolean;
     /** Column data type */
-    dataType: DmnBuiltInDataType;
+    dataType: string;
     /** It tells whether column is of type counter or not */
     isRowIndexColumn: boolean;
-
-    //
+    /** It tells if a header is a Feel Expression or just plain text */
+    isHeaderAFeelExpression?: boolean;
 
     cellDelegate?: (id: string) => React.ReactNode;
 

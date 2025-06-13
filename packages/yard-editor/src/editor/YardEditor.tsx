@@ -55,13 +55,13 @@ interface Props {
   onNewEdit: (edit: WorkspaceEdit) => void;
 
   /**
-   * Delegation for NotificationsChannelApi.kogitoNotifications_setNotifications(path, notifications) to report all validation
+   * Delegation for NotificationsChannelApi.kogitoNotifications_setNotifications(normalizedPosixPathRelativeToTheWorkspaceRoot, notifications) to report all validation
    * notifications to the Channel that will replace existing notification for the path. Increases the
    * decoupling of the ServerlessWorkflowEditor from the Channel.
-   * @param path The path that references the Notification
+   * @param normalizedPosixPathRelativeToTheWorkspaceRoot The path that references the Notification
    * @param notifications List of Notifications
    */
-  setNotifications: (path: string, notifications: Notification[]) => void;
+  setNotifications: (normalizedPosixPathRelativeToTheWorkspaceRoot: string, notifications: Notification[]) => void;
 
   /**
    * ChannelType where the component is running.
@@ -71,7 +71,7 @@ interface Props {
 }
 
 export type YardEditorRef = {
-  setContent(path: string, content: string): Promise<void>;
+  setContent(normalizedPosixPathRelativeToTheWorkspaceRoot: string, content: string): Promise<void>;
   moveCursorToPosition(position: Position): void;
 };
 
@@ -83,48 +83,44 @@ const RefForwardingYardEditor: React.ForwardRefRenderFunction<YardEditorRef | un
   const [yardData, setYardData] = useState<YardModel | undefined>();
   const yardTextEditorRef = useRef<YardTextEditorApi>(null);
 
-  useImperativeHandle(
-    forwardedRef,
-    () => {
-      return {
-        setContent: (path: string, newContent: string): Promise<void> => {
-          try {
-            setFile({
-              content: newContent,
-              path: path,
-            });
-            setYardData(deserialize(newContent));
-            return Promise.resolve();
-          } catch (e) {
-            console.error(e);
-            return Promise.reject();
-          }
-        },
-        getContent: (): Promise<string> => {
-          return Promise.resolve(yardTextEditorRef.current?.getContent() || "");
-        },
-        getPreview: (): Promise<string> => {
-          return Promise.resolve(""); // Should we define a preview here ?
-        },
-        undo: (): Promise<void> => {
-          return yardTextEditorRef.current?.undo() || Promise.resolve();
-        },
-        redo: (): Promise<void> => {
-          return yardTextEditorRef.current?.redo() || Promise.resolve();
-        },
-        validate: (): Notification[] => {
-          return [];
-        },
-        setTheme: (theme: EditorTheme): Promise<void> => {
-          return yardTextEditorRef.current?.setTheme(theme) || Promise.resolve();
-        },
-        moveCursorToPosition: (position: Position) => {
-          yardTextEditorRef.current?.moveCursorToPosition(position);
-        },
-      };
-    },
-    []
-  );
+  useImperativeHandle(forwardedRef, () => {
+    return {
+      setContent: (normalizedPosixPathRelativeToTheWorkspaceRoot: string, newContent: string): Promise<void> => {
+        try {
+          setFile({
+            content: newContent,
+            normalizedPosixPathRelativeToTheWorkspaceRoot,
+          });
+          setYardData(deserialize(newContent));
+          return Promise.resolve();
+        } catch (e) {
+          console.error(e);
+          return Promise.reject();
+        }
+      },
+      getContent: (): Promise<string> => {
+        return Promise.resolve(yardTextEditorRef.current?.getContent() || "");
+      },
+      getPreview: (): Promise<string> => {
+        return Promise.resolve(""); // Should we define a preview here ?
+      },
+      undo: (): Promise<void> => {
+        return yardTextEditorRef.current?.undo() || Promise.resolve();
+      },
+      redo: (): Promise<void> => {
+        return yardTextEditorRef.current?.redo() || Promise.resolve();
+      },
+      validate: (): Notification[] => {
+        return [];
+      },
+      setTheme: (theme: EditorTheme): Promise<void> => {
+        return yardTextEditorRef.current?.setTheme(theme) || Promise.resolve();
+      },
+      moveCursorToPosition: (position: Position) => {
+        yardTextEditorRef.current?.moveCursorToPosition(position);
+      },
+    };
+  }, []);
 
   const setValidationErrors = useCallback(
     (errors: editor.IMarker[]) => {
@@ -133,7 +129,7 @@ const RefForwardingYardEditor: React.ForwardRefRenderFunction<YardEditorRef | un
       }
       const notifications: Notification[] = errors.map((error: editor.IMarker) => ({
         type: "PROBLEM",
-        path: file.path,
+        normalizedPosixPathRelativeToTheWorkspaceRoot: file.normalizedPosixPathRelativeToTheWorkspaceRoot,
         severity: "ERROR",
         message: `${error.message}`,
         position: {
@@ -143,7 +139,7 @@ const RefForwardingYardEditor: React.ForwardRefRenderFunction<YardEditorRef | un
           endColumn: error.endColumn,
         },
       }));
-      props.setNotifications.apply(file.path, notifications);
+      props.setNotifications.apply(file.normalizedPosixPathRelativeToTheWorkspaceRoot, notifications);
     },
     [file, props.setNotifications]
   );

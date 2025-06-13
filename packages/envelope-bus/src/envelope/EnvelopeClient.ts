@@ -29,7 +29,7 @@ import { EnvelopeBusMessageManager } from "../common";
 
 export class EnvelopeClient<
   ApiToProvide extends ApiDefinition<ApiToProvide>,
-  ApiToConsume extends ApiDefinition<ApiToConsume>
+  ApiToConsume extends ApiDefinition<ApiToConsume>,
 > {
   public targetOrigin?: string;
   public associatedEnvelopeServerId?: string;
@@ -40,7 +40,14 @@ export class EnvelopeClient<
     return this.manager.clientApi;
   }
 
-  constructor(private readonly bus: EnvelopeBus, private readonly envelopeId?: string) {
+  public get shared() {
+    return this.manager.shared;
+  }
+
+  constructor(
+    private readonly bus: EnvelopeBus,
+    private readonly envelopeId?: string
+  ) {
     this.manager = new EnvelopeBusMessageManager((message) => this.send(message), "KogitoEnvelopeBus");
   }
 

@@ -17,51 +17,82 @@
  * under the License.
  */
 
-import { ExtendedServicesDmnJsonSchema } from "@kie-tools/extended-services-api";
+import { ExtendedServicesFormSchema } from "@kie-tools/extended-services-api";
 import OpenAPIParser from "@readme/openapi-parser";
 import { routes } from "./Routes";
-import { DmnFormAppProps } from "./DmnFormApp";
-import * as path from "path";
+import path from "path";
 
 export interface FormData {
   modelName: string;
-  schema: ExtendedServicesDmnJsonSchema;
+  schema: ExtendedServicesFormSchema;
 }
 
 export interface AppData {
   forms: FormData[];
-  baseOrigin: string;
-  basePath: string;
 }
 
 export type DmnDefinitionsJson = FormData;
 
-export async function fetchAppData(args: DmnFormAppProps): Promise<AppData> {
+export async function fetchAppData(args: { quarkusAppOrigin: string; quarkusAppPath: string }): Promise<AppData> {
   const openApiSpec = await (
-    await fetch(routes.quarkusApp.openApiJson.path({}, args.baseOrigin, args.basePath))
+    await fetch(routes.quarkusApp.openApiJson.path({}, args.quarkusAppOrigin, args.quarkusAppPath))
   ).json();
-  const fixedRefOpenApiSpec = JSON.parse(
-    JSON.stringify(openApiSpec).replace(
-      new RegExp(`${args.basePath ? `/${args.basePath}` : ""}/dmnDefinitions.json`, "g"),
-      routes.quarkusApp.dmnDefinitionsJson.path({}, args.baseOrigin, args.basePath)
-    )
+
+  // Save all `/dmnresult` routes.
+  const dmnResultPaths = new Set(
+    Object.keys(openApiSpec.paths).filter((modelPath) => modelPath.endsWith("/dmnresult"))
   );
 
-  const dereferencedSpec = await OpenAPIParser.dereference(fixedRefOpenApiSpec, {
+  // Append origin to schema $refs, but only on DMN paths
+  //
+  // It's important to skip paths not ending on `/dmnresult` (or paths that don't
+  // have a matching `/dmnresult` path) because the application being
+  // deployed may have other paths that we don't control, and not all of them
+  // will have valid JSON Schemas.
+  // Beyond that, we want to delete these paths from the openApiSpec to avoid trying to
+  // dereferencing them.
+  Object.keys(openApiSpec.paths).forEach((modelPath) => {
+    if (
+      !modelPath.endsWith("/dmnresult") &&
+      !Object.keys(openApiSpec.paths).find((path) => path === `${modelPath}/dmnresult`)
+    ) {
+      delete openApiSpec.paths?.[modelPath];
+      return;
+    }
+
+    const inputSetSchemaRef =
+      openApiSpec.paths?.[modelPath]?.post?.requestBody?.content?.["application/json"]?.schema?.$ref;
+    if (inputSetSchemaRef) {
+      openApiSpec.paths[modelPath].post.requestBody.content["application/json"].schema.$ref =
+        `${args.quarkusAppOrigin}${inputSetSchemaRef}`;
+    }
+
+    const outputSetSchemaRef =
+      openApiSpec.paths?.[modelPath]?.post?.responses?.default?.content?.["application/json"]?.schema?.$ref;
+    if (outputSetSchemaRef) {
+      openApiSpec.paths[modelPath].post.responses.default.content["application/json"].schema.$ref =
+        `${args.quarkusAppOrigin}${outputSetSchemaRef}`;
+    }
+  });
+
+  // Dereference schema (replace $refs with their values fetched from the <model>.json files)
+  const dereferencedSpec = await OpenAPIParser.dereference(openApiSpec, {
     dereference: { circular: "ignore" },
   });
 
+  // Filter models with dmnresult endpoints
   const models = Object.keys(dereferencedSpec.paths)
     .filter((path: string) => path.includes("/dmnresult"))
     .map((path) => path.replace("/dmnresult", ""));
 
+  // Generate form objects from the models
   const forms = models.map((modelPath: string) => {
     const inputSetSchema = dereferencedSpec.paths[modelPath]?.post.requestBody.content["application/json"].schema;
     const outputSetSchema =
       dereferencedSpec.paths[modelPath]?.post.responses.default.content["application/json"].schema;
 
     return {
-      modelName: modelPath.replace(args.basePath ? `/${args.basePath}` : "", "").replace("/", ""),
+      modelName: modelPath.replace(args.quarkusAppPath ? `/${args.quarkusAppPath}` : "", "").replace("/", ""),
       schema: {
         $ref: "#/definitions/InputSet",
         definitions: {
@@ -78,7 +109,5 @@ export async function fetchAppData(args: DmnFormAppProps): Promise<AppData> {
 
   return {
     forms,
-    baseOrigin: args.baseOrigin,
-    basePath: args.basePath,
   };
 }

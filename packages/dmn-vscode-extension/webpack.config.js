@@ -25,24 +25,36 @@ const { merge } = require("webpack-merge");
 const common = require("@kie-tools-core/webpack-base/webpack.common.config");
 const { ProvidePlugin } = require("webpack");
 
-const commonConfig = (env) =>
-  merge(common(env), {
+const commonConfig = (webpackEnv) =>
+  merge(common(webpackEnv), {
     output: {
       library: "DmnEditor",
       libraryTarget: "umd",
       umdNamedDefine: true,
       globalObject: "this",
     },
+    plugins: [
+      new ProvidePlugin({
+        process: require.resolve("process/browser.js"),
+        Buffer: ["buffer", "Buffer"],
+      }),
+    ],
     externals: {
       vscode: "commonjs vscode",
     },
   });
 
-module.exports = async (env) => [
-  merge(commonConfig(env), {
-    target: "web",
+module.exports = async (webpackEnv) => [
+  merge(commonConfig(webpackEnv), {
+    target: "node",
     entry: {
       "extension/extension": "./src/extension/extension.ts",
+    },
+  }),
+  merge(commonConfig(webpackEnv), {
+    target: "webworker",
+    entry: {
+      "extension/extensionWeb": "./src/extension/extension.ts",
     },
     plugins: [
       new ProvidePlugin({
@@ -51,12 +63,13 @@ module.exports = async (env) => [
       }),
     ],
   }),
-  merge(commonConfig(env), {
+  merge(commonConfig(webpackEnv), {
     target: "web",
     entry: {
       "webview/DmnEditorEnvelopeApp": "./src/webview/DmnEditorEnvelopeApp.ts",
       "webview/SceSimEditorEnvelopeApp": "./src/webview/SceSimEditorEnvelopeApp.ts",
       "webview/NewDmnEditorEnvelopeApp": "./src/webview/NewDmnEditorEnvelopeApp.ts",
+      "webview/NewTestScenarioEditorEnvelopeApp": "./src/webview/NewTestScenarioEditorEnvelopeApp.ts",
     },
     module: {
       rules: [...patternflyBase.webpackModuleRules],
@@ -86,16 +99,6 @@ module.exports = async (env) => [
           },
         ],
       }),
-      new ProvidePlugin({
-        process: require.resolve("process/browser.js"),
-        Buffer: ["buffer", "Buffer"],
-      }),
     ],
-    resolve: {
-      fallback: {
-        stream: require.resolve("stream-browserify"),
-        buffer: require.resolve("buffer/"),
-      },
-    },
   }),
 ];

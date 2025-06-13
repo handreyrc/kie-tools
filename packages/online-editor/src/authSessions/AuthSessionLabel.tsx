@@ -23,7 +23,6 @@ import { AuthSession } from "./AuthSessionApi";
 import { useAuthProvider } from "../authProviders/AuthProvidersContext";
 import { AuthProviderIcon } from "../authProviders/AuthProviderIcon";
 import { Flex } from "@patternfly/react-core/dist/js/layouts/Flex";
-import { IconSize } from "@patternfly/react-icons/dist/js/createIcon";
 
 export function AuthSessionLabel(props: { authSession: AuthSession }) {
   const authProvider = useAuthProvider(props.authSession);
@@ -31,14 +30,14 @@ export function AuthSessionLabel(props: { authSession: AuthSession }) {
   return (
     <>
       <Flex alignItems={{ default: "alignItemsCenter" }} style={{ display: "inline-flex" }}>
-        <AuthProviderIcon authProvider={authProvider} size={IconSize.md} />
+        <AuthProviderIcon authProvider={authProvider} size="md" />
         <TextContent>
           <Text component={TextVariants.h3}>
             {props.authSession.type === "git"
               ? props.authSession.login
               : props.authSession.type === "openshift" || props.authSession.type === "kubernetes"
-              ? props.authSession.namespace
-              : props.authSession.login}
+                ? props.authSession.namespace
+                : props.authSession.login}
           </Text>
         </TextContent>
         {authProvider && (

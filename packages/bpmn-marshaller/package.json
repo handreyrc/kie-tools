@@ -19,8 +19,9 @@
     "src"
   ],
   "scripts": {
-    "build:codegen": "pnpm build:codegen:bpmn20",
+    "build:codegen": "pnpm build:codegen:bpmn20 && pnpm build:codegen:drools10",
     "build:codegen:bpmn20": "xml-parser-ts-codegen ./src/schemas/bpmn-2_0/BPMN20.xsd definitions",
+    "build:codegen:drools10": "xml-parser-ts-codegen ./src/schemas/drools-1_0/drools.xsd global",
     "build:dev": "rimraf dist && pnpm build:codegen && tsc -p tsconfig.json",
     "build:prod": "pnpm lint && rimraf dist && pnpm build:codegen && tsc -p tsconfig.json && pnpm test",
     "lint": "run-script-if --bool \"$(build-env linters.run)\" --then \"kie-tools--eslint ./src\"",
@@ -34,17 +35,18 @@
     "@babel/preset-env": "^7.16.0",
     "@babel/preset-react": "^7.16.0",
     "@kie-tools/eslint": "workspace:*",
+    "@kie-tools/jest-base": "workspace:*",
     "@kie-tools/root-env": "workspace:*",
     "@kie-tools/tsconfig": "workspace:*",
     "@kie-tools/xml-parser-ts-codegen": "workspace:*",
-    "@types/jest": "^26.0.23",
-    "@types/jest-when": "^2.7.4",
+    "@types/jest": "^29.5.12",
+    "@types/jest-when": "^3.5.5",
     "@types/react": "^17.0.6",
-    "jest": "^26.6.3",
-    "jest-junit": "^14.0.0",
-    "jest-when": "^3.5.0",
+    "jest": "^29.7.0",
+    "jest-junit": "^16.0.0",
+    "jest-when": "^3.6.0",
     "rimraf": "^3.0.2",
-    "ts-jest": "^26.5.6",
-    "typescript": "^4.6.2"
+    "ts-jest": "^29.1.5",
+    "typescript": "^5.5.3"
   }
 }

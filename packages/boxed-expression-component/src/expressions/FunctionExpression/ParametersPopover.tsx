@@ -18,26 +18,25 @@
  */
 
 import { Button } from "@patternfly/react-core/dist/js/components/Button";
-import { EmptyState, EmptyStateIcon } from "@patternfly/react-core/dist/js/components/EmptyState";
-import { Title } from "@patternfly/react-core/dist/js/components/Title";
+import {
+  EmptyState,
+  EmptyStateIcon,
+  EmptyStateHeader,
+  EmptyStateFooter,
+} from "@patternfly/react-core/dist/js/components/EmptyState";
 import { CubesIcon } from "@patternfly/react-icons/dist/js/icons/cubes-icon";
 import { OutlinedTrashAltIcon } from "@patternfly/react-icons/dist/js/icons/outlined-trash-alt-icon";
 import * as React from "react";
 import { ChangeEvent, useCallback } from "react";
-import {
-  ContextExpressionDefinitionEntryInfo,
-  DmnBuiltInDataType,
-  FunctionExpressionDefinition,
-  generateUuid,
-  getNextAvailablePrefixedName,
-} from "../../api";
+import { Action, BoxedFunction, generateUuid, getNextAvailablePrefixedName, Normalized } from "../../api";
 import { useBoxedExpressionEditorI18n } from "../../i18n";
-import { useBoxedExpressionEditorDispatch } from "../BoxedExpressionEditor/BoxedExpressionEditorContext";
-import { DataTypeSelector } from "../ExpressionDefinitionHeaderMenu";
+import { useBoxedExpressionEditorDispatch } from "../../BoxedExpressionEditorContext";
+import { DMN15__tInformationItem } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/ts-gen/types";
+import { DataTypeSelector } from "../../expressionVariable/DataTypeSelector";
 import "./ParametersPopover.css";
 
 export interface ParametersPopoverProps {
-  parameters: ContextExpressionDefinitionEntryInfo[];
+  parameters: Normalized<DMN15__tInformationItem>[];
 }
 
 export const ParametersPopover: React.FunctionComponent<ParametersPopoverProps> = ({ parameters }) => {
@@ -45,25 +44,31 @@ export const ParametersPopover: React.FunctionComponent<ParametersPopoverProps> 
   const { setExpression } = useBoxedExpressionEditorDispatch();
 
   const addParameter = useCallback(
-    (mouseEvent) => {
-      mouseEvent.stopPropagation();
-      setExpression((prev: FunctionExpressionDefinition) => {
-        const newParameters = [
-          ...prev.formalParameters,
-          {
-            id: generateUuid(),
-            name: getNextAvailablePrefixedName(
-              prev.formalParameters.map((p) => p.name),
-              "p"
-            ),
-            dataType: DmnBuiltInDataType.Undefined,
-          },
-        ];
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setExpression({
+        setExpressionAction: (prev: Normalized<BoxedFunction>) => {
+          const newParameters = [
+            ...(prev.formalParameter ?? []),
+            {
+              "@_id": generateUuid(),
+              "@_name": getNextAvailablePrefixedName(
+                (prev.formalParameter ?? []).map((p) => p["@_name"]),
+                "p"
+              ),
+              "@_typeRef": undefined,
+            },
+          ];
 
-        return {
-          ...prev,
-          formalParameters: newParameters,
-        };
+          // Do not inline this variable for type safety. See https://github.com/microsoft/TypeScript/issues/241
+          const ret: Normalized<BoxedFunction> = {
+            ...prev,
+            formalParameter: newParameters,
+          };
+
+          return ret;
+        },
+        expressionChangedArgs: { action: Action.FunctionParameterAdded },
       });
     },
     [setExpression]
@@ -73,7 +78,7 @@ export const ParametersPopover: React.FunctionComponent<ParametersPopoverProps> 
     <div className="parameters-editor" onMouseDown={(e) => e.stopPropagation()}>
       {parameters.length ? (
         <>
-          <Button variant="tertiary" onClick={addParameter} className="add-parameter">
+          <Button variant="tertiary" onClickCapture={addParameter} className="add-parameter">
             {i18n.addParameter}
           </Button>
           <div className="parameters-container">
@@ -85,11 +90,16 @@ export const ParametersPopover: React.FunctionComponent<ParametersPopoverProps> 
       ) : (
         <div className="parameters-container-empty">
           <EmptyState>
-            <EmptyStateIcon icon={CubesIcon} />
-            <Title headingLevel="h4">{i18n.noParametersDefined}</Title>
-            <Button variant="primary" onClick={addParameter}>
-              {i18n.addParameter}
-            </Button>
+            <EmptyStateHeader
+              titleText={<>{i18n.noParametersDefined}</>}
+              icon={<EmptyStateIcon icon={CubesIcon} />}
+              headingLevel="h4"
+            />
+            <EmptyStateFooter>
+              <Button variant="primary" onClickCapture={addParameter}>
+                {i18n.addParameter}
+              </Button>
+            </EmptyStateFooter>
           </EmptyState>
         </div>
       )}
@@ -97,33 +107,58 @@ export const ParametersPopover: React.FunctionComponent<ParametersPopoverProps> 
   );
 };
 
-function ParameterEntry({ parameter, index }: { parameter: ContextExpressionDefinitionEntryInfo; index: number }) {
+function ParameterEntry({ parameter, index }: { parameter: DMN15__tInformationItem; index: number }) {
   const { setExpression } = useBoxedExpressionEditorDispatch();
 
   const onNameChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       e.stopPropagation();
-      setExpression((prev: FunctionExpressionDefinition) => {
-        const newParameters = [...prev.formalParameters];
-        newParameters[index].name = e.target.value;
-        return {
-          ...prev,
-          formalParameters: newParameters,
-        };
+      setExpression({
+        setExpressionAction: (prev: Normalized<BoxedFunction>) => {
+          const newParameters = [...(prev.formalParameter ?? [])];
+          newParameters[index] = {
+            ...newParameters[index],
+            "@_name": e.target.value,
+          };
+          // Do not inline this variable for type safety. See https://github.com/microsoft/TypeScript/issues/241
+          const ret: Normalized<BoxedFunction> = {
+            ...prev,
+            formalParameter: newParameters,
+          };
+
+          return ret;
+        },
+        expressionChangedArgs: {
+          action: Action.VariableChanged,
+          variableUuid: parameter["@_id"] ?? "",
+          nameChange: {
+            from: parameter["@_name"],
+            to: e.target.value,
+          },
+        },
       });
     },
-    [index, setExpression]
+    [index, parameter, setExpression]
   );
 
   const onDataTypeChange = useCallback(
-    (dataType: DmnBuiltInDataType) => {
-      setExpression((prev: FunctionExpressionDefinition) => {
-        const newParameters = [...prev.formalParameters];
-        newParameters[index].dataType = dataType;
-        return {
-          ...prev,
-          formalParameters: newParameters,
-        };
+    (typeRef: string | undefined) => {
+      setExpression({
+        setExpressionAction: (prev: Normalized<BoxedFunction>) => {
+          const newParameters = [...(prev.formalParameter ?? [])];
+          newParameters[index] = {
+            ...newParameters[index],
+            "@_typeRef": typeRef,
+          };
+          // Do not inline this variable for type safety. See https://github.com/microsoft/TypeScript/issues/241
+          const ret: Normalized<BoxedFunction> = {
+            ...prev,
+            formalParameter: newParameters,
+          };
+
+          return ret;
+        },
+        expressionChangedArgs: { action: Action.FunctionParameterTypeChanged },
       });
     },
     [index, setExpression]
@@ -132,34 +167,40 @@ function ParameterEntry({ parameter, index }: { parameter: ContextExpressionDefi
   const onParameterRemove = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      setExpression((prev: FunctionExpressionDefinition) => {
-        const newParameters = [...prev.formalParameters];
-        newParameters.splice(index, 1);
-        return {
-          ...prev,
-          formalParameters: newParameters,
-        };
+      setExpression({
+        setExpressionAction: (prev: Normalized<BoxedFunction>) => {
+          const newParameters = [...(prev.formalParameter ?? [])];
+          newParameters.splice(index, 1);
+          // Do not inline this variable for type safety. See https://github.com/microsoft/TypeScript/issues/241
+          const ret: Normalized<BoxedFunction> = {
+            ...prev,
+            formalParameter: newParameters,
+          };
+
+          return ret;
+        },
+        expressionChangedArgs: { action: Action.FunctionParameterRemoved },
       });
     },
     [index, setExpression]
   );
 
   return (
-    <div key={`${parameter.name}_${index}`} className="parameter-entry">
+    <div key={`${parameter["@_name"]}_${index}`} className="parameter-entry">
       <input
         className="parameter-name"
         type="text"
         onBlur={onNameChange}
         placeholder={"Parameter Name"}
-        defaultValue={parameter.name}
+        defaultValue={parameter["@_name"]}
       />
-      <DataTypeSelector value={parameter.dataType} onChange={onDataTypeChange} menuAppendTo="parent" />
+      <DataTypeSelector value={parameter["@_typeRef"]} onChange={onDataTypeChange} menuAppendTo="parent" />
       <Button
         variant="danger"
         className="delete-parameter"
         icon={<OutlinedTrashAltIcon />}
         iconPosition="left"
-        onClick={onParameterRemove}
+        onClickCapture={onParameterRemove}
       />
     </div>
   );

@@ -19,18 +19,19 @@
 
 import * as React from "react";
 import { useCallback, useState } from "react";
-import { DiagramNodesPanel, DmnEditorTab, useDmnEditorStoreApi } from "../store/Store";
+import { buildXmlHref } from "@kie-tools/dmn-marshaller/dist/xml/xmlHrefs";
+import { DiagramLhsPanel, DmnEditorTab } from "../store/Store";
+import { useDmnEditorStore, useDmnEditorStoreApi } from "../store/StoreContext";
 import { Flex } from "@patternfly/react-core/dist/js/layouts/Flex";
-import { useDmnEditorDerivedStore } from "../store/DerivedStore";
-import { buildXmlHref } from "../xml/xmlHrefs";
 import {
   EmptyState,
   EmptyStateBody,
   EmptyStateIcon,
-  EmptyStatePrimary,
+  EmptyStateActions,
+  EmptyStateHeader,
+  EmptyStateFooter,
 } from "@patternfly/react-core/dist/js/components/EmptyState";
 import { Button, ButtonVariant } from "@patternfly/react-core/dist/js/components/Button";
-import { Title } from "@patternfly/react-core/dist/js/components/Title";
 import { CubesIcon } from "@patternfly/react-icons/dist/js/icons/cubes-icon";
 import { DmnObjectListItem } from "./DmnObjectListItem";
 import { Text, TextContent } from "@patternfly/react-core/dist/js/components/Text";
@@ -39,6 +40,7 @@ import { EMPTY_IMPORT_NAME_NAMESPACE_IDENTIFIER } from "../includedModels/Includ
 import { useDmnEditor } from "../DmnEditorContext";
 import { SearchInput } from "@patternfly/react-core/dist/js/components/SearchInput";
 import { TimesIcon } from "@patternfly/react-icons/dist/js/icons/times-icon";
+import { useExternalModels } from "../includedModels/DmnEditorDependenciesContext";
 
 export type ExternalNode = {
   externalDrgElementNamespace: string;
@@ -50,7 +52,12 @@ export const MIME_TYPE_FOR_DMN_EDITOR_EXTERNAL_NODES_FROM_INCLUDED_MODELS =
 
 export function ExternalNodesPanel() {
   const dmnEditorStoreApi = useDmnEditorStoreApi();
-  const { dmnShapesByHref, externalDmnsByNamespace, importsByNamespace } = useDmnEditorDerivedStore();
+  const importsByNamespace = useDmnEditorStore((s) => s.computed(s).importsByNamespace());
+  const { externalModelsByNamespace } = useExternalModels();
+  const externalDmnsByNamespace = useDmnEditorStore(
+    (s) => s.computed(s).getDirectlyIncludedExternalModelsByNamespace(externalModelsByNamespace).dmns
+  );
+  const dmnShapesByHref = useDmnEditorStore((s) => s.computed(s).indexedDrd().dmnShapesByHref);
   const { onRequestToResolvePath } = useDmnEditor();
 
   const onDragStart = useCallback((event: React.DragEvent, externalNode: ExternalNode) => {
@@ -68,26 +75,29 @@ export function ExternalNodesPanel() {
       {externalDmnsByNamespace.size === 0 && (
         <>
           <EmptyState>
-            <EmptyStateIcon icon={CubesIcon} />
-            <Title size={"md"} headingLevel={"h4"}>
-              No external nodes available
-            </Title>
+            <EmptyStateHeader
+              titleText="No external nodes available"
+              icon={<EmptyStateIcon icon={CubesIcon} />}
+              headingLevel={"h4"}
+            />
             <EmptyStateBody>
               Maybe the included models have no exported nodes, or there are no included models.
             </EmptyStateBody>
-            <br />
-            <EmptyStatePrimary>
-              <Button
-                variant={ButtonVariant.link}
-                onClick={() =>
-                  dmnEditorStoreApi.setState((state) => {
-                    state.navigation.tab = DmnEditorTab.INCLUDED_MODELS;
-                  })
-                }
-              >
-                Included model...
-              </Button>
-            </EmptyStatePrimary>
+            <EmptyStateFooter>
+              <br />
+              <EmptyStateActions>
+                <Button
+                  variant={ButtonVariant.link}
+                  onClick={() =>
+                    dmnEditorStoreApi.setState((state) => {
+                      state.navigation.tab = DmnEditorTab.INCLUDED_MODELS;
+                    })
+                  }
+                >
+                  Include model...
+                </Button>
+              </EmptyStateActions>
+            </EmptyStateFooter>
           </EmptyState>
         </>
       )}
@@ -99,10 +109,11 @@ export function ExternalNodesPanel() {
                 <Text component="h3">External nodes</Text>
               </TextContent>
               <Button
+                title={"Close"}
                 variant={ButtonVariant.plain}
                 onClick={() =>
                   dmnEditorStoreApi.setState((state) => {
-                    state.diagram.openNodesPanel = DiagramNodesPanel.NONE;
+                    state.diagram.openLhsPanel = DiagramLhsPanel.NONE;
                   })
                 }
               >
@@ -129,7 +140,7 @@ export function ExternalNodesPanel() {
               const _import = importsByNamespace.get(namespace);
               if (!_import) {
                 console.debug(
-                  `DMN EDITOR: Couldn't find import for namespace '${namespace}', although there's an external DMN referncing it.`
+                  `DMN EDITOR: Couldn't find import for namespace '${namespace}', although there's an external DMN referencing it.`
                 );
                 return [];
               }
@@ -152,6 +163,7 @@ export function ExternalNodesPanel() {
                           externalDrgElementId: drgElement["@_id"]!,
                         })
                       }
+                      data-testid={`kie-tools--dmn-editor--external-node-${_import["@_name"] === "" ? _import["@_id"] : _import["@_name"]}-${drgElement["@_name"]}`}
                     >
                       <Flex
                         alignItems={{ default: "alignItemsCenter" }}
@@ -181,7 +193,11 @@ export function ExternalNodesPanel() {
                     {`)`}
                     <br />
                     <small>
-                      <i>{onRequestToResolvePath?.(externalDmn.relativePath) ?? externalDmn.relativePath ?? ""}</i>
+                      <i>
+                        {onRequestToResolvePath?.(externalDmn.normalizedPosixPathRelativeToTheOpenFile) ??
+                          externalDmn.normalizedPosixPathRelativeToTheOpenFile ??
+                          ""}
+                      </i>
                     </small>
                   </div>
                   {nodes}

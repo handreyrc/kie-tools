@@ -102,10 +102,10 @@ interface Props {
    * Delegation for NotificationsChannelApi.kogigotNotifications_setNotifications(path, notifications) to report all validation
    * notifications to the Channel that will replace existing notification for the path. Increases the
    * decoupling of the DashbuilderEditor from the Channel.
-   * @param path The path that references the Notification
+   * @param normalizedPosixPathRelativeToTheWorkspaceRoot The path that references the Notification
    * @param notifications List of Notifications
    */
-  setNotifications: (path: string, notifications: Notification[]) => void;
+  setNotifications: (normalizedPosixPathRelativeToTheWorkspaceRoot: string, notifications: Notification[]) => void;
 
   /**
    * ChannelType where the component is running.
@@ -116,7 +116,7 @@ interface Props {
 const UPDATE_TIME = 1000;
 
 export type DashbuilderEditorRef = {
-  setContent(path: string, content: string): Promise<void>;
+  setContent(normalizedPosixPathRelativeToTheWorkspaceRoot: string, content: string): Promise<void>;
   moveCursorToPosition(position: Position): void;
 };
 
@@ -140,48 +140,44 @@ const RefForwardingDashbuilderEditor: React.ForwardRefRenderFunction<Dashbuilder
     return props.channelType === ChannelType.VSCODE_DESKTOP || props.channelType === ChannelType.VSCODE_WEB;
   }, [props]);
 
-  useImperativeHandle(
-    forwardedRef,
-    () => {
-      return {
-        setContent: (path: string, newContent: string): Promise<void> => {
-          try {
-            setInitialContent({
-              originalContent: newContent,
-              path: path,
-            });
-            return Promise.resolve();
-          } catch (e) {
-            console.error(e);
-            return Promise.reject();
-          }
-        },
-        getContent: (): Promise<string> => {
-          return Promise.resolve(dashbuilderMonacoEditorRef.current?.getContent() || "");
-        },
-        getPreview: (): Promise<string> => {
-          // TODO: implement it on Dashbuilder
-          return Promise.resolve("");
-        },
-        undo: (): Promise<void> => {
-          return dashbuilderMonacoEditorRef.current?.undo() || Promise.resolve();
-        },
-        redo: (): Promise<void> => {
-          return dashbuilderMonacoEditorRef.current?.redo() || Promise.resolve();
-        },
-        validate: (): Notification[] => {
-          return [];
-        },
-        setTheme: (theme: EditorTheme): Promise<void> => {
-          return dashbuilderMonacoEditorRef.current?.setTheme(theme) || Promise.resolve();
-        },
-        moveCursorToPosition: (position: Position) => {
-          dashbuilderMonacoEditorRef.current?.moveCursorToPosition(position);
-        },
-      };
-    },
-    []
-  );
+  useImperativeHandle(forwardedRef, () => {
+    return {
+      setContent: (normalizedPosixPathRelativeToTheWorkspaceRoot: string, newContent: string): Promise<void> => {
+        try {
+          setInitialContent({
+            originalContent: newContent,
+            path: normalizedPosixPathRelativeToTheWorkspaceRoot,
+          });
+          return Promise.resolve();
+        } catch (e) {
+          console.error(e);
+          return Promise.reject();
+        }
+      },
+      getContent: (): Promise<string> => {
+        return Promise.resolve(dashbuilderMonacoEditorRef.current?.getContent() || "");
+      },
+      getPreview: (): Promise<string> => {
+        // TODO: implement it on Dashbuilder
+        return Promise.resolve("");
+      },
+      undo: (): Promise<void> => {
+        return dashbuilderMonacoEditorRef.current?.undo() || Promise.resolve();
+      },
+      redo: (): Promise<void> => {
+        return dashbuilderMonacoEditorRef.current?.redo() || Promise.resolve();
+      },
+      validate: (): Notification[] => {
+        return [];
+      },
+      setTheme: (theme: EditorTheme): Promise<void> => {
+        return dashbuilderMonacoEditorRef.current?.setTheme(theme) || Promise.resolve();
+      },
+      moveCursorToPosition: (position: Position) => {
+        dashbuilderMonacoEditorRef.current?.moveCursorToPosition(position);
+      },
+    };
+  }, []);
 
   const onContentChanged = useCallback(
     (newContent: string, operation?: MonacoEditorOperation) => {

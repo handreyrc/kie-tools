@@ -1,6 +1,6 @@
 <dmn:definitions
   xmlns:dmn="http://www.omg.org/spec/DMN/20180521/MODEL/"
-  xmlns="https://kiegroup.org/dmn/_83E48730-5CFD-4746-8C2A-31BC73999999"
+  xmlns="https://kie.apache.org/dmn/_83E48730-5CFD-4746-8C2A-31BC73999999"
   xmlns:kie="http://www.drools.org/kie/dmn/1.2"
   xmlns:dmndi="http://www.omg.org/spec/DMN/20180521/DMNDI/"
   xmlns:di="http://www.omg.org/spec/DMN/20180521/DI/"
@@ -8,19 +8,19 @@
   id="_9733F3EA-AAFB-41E3-B4EF-CEBAA6CB88B9"
   name="large-model-nodes-226-copies"
   typeLanguage="http://www.omg.org/spec/DMN/20180521/FEEL/"
-  namespace="https://kiegroup.org/dmn/_83E48730-5CFD-4746-8C2A-31BC73999999"
+  namespace="https://kie.apache.org/dmn/_83E48730-5CFD-4746-8C2A-31BC73999999"
 >
-      <dmn:extensionElements />
-      <dmn:decision id="_7EC82766-DFF9-4F04-AA1C-CF2A1BCDAD16" name="Decision-1">
-        <dmn:extensionElements />
-        <dmn:variable id="_2379529E-4751-499C-937E-28B79CF7D018" name="Decision-1" />
-      </dmn:decision>
-      <dmndi:DMNDI>
-        <dmndi:DMNDiagram id="_BFB50EC1-E6D8-4384-9D4B-F33A46862A33" name="DRG">
-          <di:extension>
-            <kie:ComponentsWidthsExtension />
-          </di:extension>
-                <dmndi:DMNShape
+  <dmn:extensionElements />
+  <dmn:decision id="_7EC82766-DFF9-4F04-AA1C-CF2A1BCDAD16" name="Decision-1">
+    <dmn:extensionElements />
+    <dmn:variable id="_2379529E-4751-499C-937E-28B79CF7D018" name="Decision-1" />
+  </dmn:decision>
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram id="_BFB50EC1-E6D8-4384-9D4B-F33A46862A33" name="DRG">
+      <di:extension>
+        <kie:ComponentsWidthsExtension />
+      </di:extension>
+      <dmndi:DMNShape
         id="dmnshape-drg-_7EC82766-DFF9-4F04-AA1C-CF2A1BCDAD00"
         dmnElementRef="_7EC82766-DFF9-4F04-AA1C-CF2A1BCDAD16"
         isCollapsed="false"
@@ -2945,7 +2945,6 @@
         <dc:Bounds x="1550" y="850" width="100" height="50" />
         <dmndi:DMNLabel />
       </dmndi:DMNShape>
-
-        </dmndi:DMNDiagram>
-      </dmndi:DMNDI>
-    </dmn:definitions>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</dmn:definitions>

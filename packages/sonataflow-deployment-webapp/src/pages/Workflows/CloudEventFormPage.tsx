@@ -18,23 +18,24 @@
  */
 import { PromiseStateStatus } from "@kie-tools-core/react-hooks/dist/PromiseState";
 import { Card, CardBody } from "@patternfly/react-core/dist/js/components/Card";
-import { EmptyState, EmptyStateIcon } from "@patternfly/react-core/dist/js/components/EmptyState";
+import { EmptyState, EmptyStateIcon, EmptyStateHeader } from "@patternfly/react-core/dist/js/components/EmptyState";
 import { PageSection } from "@patternfly/react-core/dist/js/components/Page";
 import { Spinner } from "@patternfly/react-core/dist/js/components/Spinner";
 import { Text, TextContent, TextVariants } from "@patternfly/react-core/dist/js/components/Text";
-import { Title } from "@patternfly/react-core/dist/js/components/Title";
+
 import React, { useCallback, useMemo, useState } from "react";
-import { useHistory } from "react-router";
-import { CloudEventRequest, KOGITO_PROCESS_REFERENCE_ID } from "@kie-tools/runtime-tools-gateway-api/dist/types";
+import { useNavigate } from "react-router-dom";
+import { CloudEventRequest } from "@kie-tools/runtime-tools-swf-gateway-api/dist/types";
 import { FormNotification, Notification } from "@kie-tools/runtime-tools-components/dist/components/FormNotification";
-import { CloudEventForm } from "@kie-tools/runtime-tools-enveloped-components/dist/cloudEventForm/envelope/components/CloudEventForm/CloudEventForm";
+import { CloudEventForm } from "@kie-tools/runtime-tools-swf-enveloped-components/dist/cloudEventForm/envelope/components/CloudEventForm/CloudEventForm";
 import { useOpenApi } from "../../context/OpenApiContext";
 import { CloudEventFormGatewayApiImpl } from "../../impl/CloudEventFormGatewayApiImpl";
 import { routes } from "../../routes";
 import { BasePage } from "../BasePage";
 import { ErrorKind, ErrorPage } from "../ErrorPage";
-import { CloudEventFormDefaultValues } from "@kie-tools/runtime-tools-enveloped-components/dist/cloudEventForm";
-import { CloudEventFormDriver } from "@kie-tools/runtime-tools-enveloped-components/dist/cloudEventForm/api/CloudEventFormDriver";
+import { CloudEventFormDefaultValues } from "@kie-tools/runtime-tools-swf-enveloped-components/dist/cloudEventForm";
+import { CloudEventFormDriver } from "@kie-tools/runtime-tools-swf-enveloped-components/dist/cloudEventForm/api/CloudEventFormDriver";
+import { KOGITO_PROCESS_REFERENCE_ID } from "@kie-tools/runtime-tools-shared-gateway-api/dist/types";
 
 const defaultValues: CloudEventFormDefaultValues = {
   instanceId: "",
@@ -44,13 +45,13 @@ const defaultValues: CloudEventFormDefaultValues = {
 export function CloudEventFormPage() {
   const [notification, setNotification] = useState<Notification>();
   const openApi = useOpenApi();
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const gatewayApi = useMemo(() => new CloudEventFormGatewayApiImpl(window.location.href.split("/#")[0]), []);
 
   const goToWorkflowList = useCallback(() => {
-    history.push(routes.workflows.home.path({}));
-  }, [history]);
+    navigate(routes.workflows.home.path({}));
+  }, [navigate]);
 
   const showNotification = useCallback(
     (notificationType: "error" | "success", submitMessage: string, notificationDetails?: string) => {
@@ -152,13 +153,22 @@ export function CloudEventFormPage() {
           <CardBody isFilled>
             {openApi.openApiPromise.status === PromiseStateStatus.PENDING ? (
               <EmptyState>
-                <EmptyStateIcon variant="container" component={Spinner} />
-                <Title size="lg" headingLevel="h4">
-                  Loading...
-                </Title>
+                <EmptyStateHeader
+                  titleText={
+                    <>
+                      Loading...
+                      <EmptyStateIcon icon={Spinner} />
+                    </>
+                  }
+                  headingLevel="h4"
+                />
               </EmptyState>
             ) : (
-              <CloudEventForm driver={driver} defaultValues={defaultValues} />
+              <CloudEventForm
+                driver={driver}
+                defaultValues={defaultValues}
+                serviceUrl={window.location.href.split("/#")[0]}
+              />
             )}
           </CardBody>
         </Card>

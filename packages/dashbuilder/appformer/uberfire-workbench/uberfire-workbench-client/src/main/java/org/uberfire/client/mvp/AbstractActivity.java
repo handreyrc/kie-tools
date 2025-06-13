@@ -19,9 +19,9 @@
 
 package org.uberfire.client.mvp;
 
-import org.uberfire.mvp.PlaceRequest;
+import java.util.Objects;
 
-import static org.kie.soup.commons.validation.PortablePreconditions.checkNotNull;
+import org.uberfire.mvp.PlaceRequest;
 
 /**
  * Implementation of behaviour common to all activity types.
@@ -41,17 +41,17 @@ public abstract class AbstractActivity implements Activity {
     }
 
     /**
-     * Tracks start/shutdown lifecycle. Subclasses should always call <tt>super.onStartup()</tt> in methods that
+     * Tracks start/shutdown lifecycle. Subclasses should always call <code>super.onStartup()</code> in methods that
      * override this one.
      */
     @Override
     public void onStartup(PlaceRequest place) {
-        this.place = checkNotNull("place",
-                place);
+        Objects.requireNonNull(place, "Parameter named 'place' should be not null!");
+        this.place = place;
     }
 
     /**
-     * Tracks open/closed lifecycle. Subclasses should always call <tt>super.onOpen()</tt> in methods that override this
+     * Tracks open/closed lifecycle. Subclasses should always call <code>super.onOpen()</code> in methods that override this
      * one.
      */
     @Override
@@ -67,7 +67,7 @@ public abstract class AbstractActivity implements Activity {
     }
 
     /**
-     * Tracks open/closed lifecycle. Subclasses should always call <tt>super.onClose()</tt> in methods that override
+     * Tracks open/closed lifecycle. Subclasses should always call <code>super.onClose()</code> in methods that override
      * this one.
      */
     @Override
@@ -83,7 +83,7 @@ public abstract class AbstractActivity implements Activity {
     }
 
     /**
-     * Tracks start/shutdown lifecycle. Subclasses should always call <tt>super.onShutdown()</tt> in methods that
+     * Tracks start/shutdown lifecycle. Subclasses should always call <code>super.onShutdown()</code> in methods that
      * override this one.
      */
     @Override

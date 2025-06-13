@@ -23,7 +23,7 @@ import { Form, FormSection, FormGroup } from "@patternfly/react-core/dist/js/com
 import { TextArea } from "@patternfly/react-core/dist/js/components/TextArea";
 import { TextInput } from "@patternfly/react-core/dist/js/components/TextInput";
 import { DataSourceIcon } from "@patternfly/react-icons/dist/js/icons/data-source-icon";
-import { useDmnEditorStore, useDmnEditorStoreApi } from "../store/Store";
+import { useDmnEditorStore, useDmnEditorStoreApi } from "../store/StoreContext";
 import { InlineFeelNameInput } from "../feel/InlineFeelNameInput";
 import { useState } from "react";
 import { Modal, ModalVariant } from "@patternfly/react-core/dist/js/components/Modal";
@@ -32,6 +32,7 @@ import { Button, ButtonVariant } from "@patternfly/react-core/dist/js/components
 import { generateUuid } from "@kie-tools/boxed-expression-component/dist/api";
 import { TimesIcon } from "@patternfly/react-icons/dist/js/icons/times-icon";
 import { PropertiesPanelHeader } from "./PropertiesPanelHeader";
+import { useSettings } from "../settings/DmnEditorSettingsContext";
 
 export function GlobalDiagramProperties() {
   const thisDmn = useDmnEditorStore((s) => s.dmn);
@@ -39,6 +40,7 @@ export function GlobalDiagramProperties() {
   const [isIdNamespaceSectionExpanded, setIdNamespaceSectionExpanded] = useState<boolean>(true);
 
   const dmnEditorStoreApi = useDmnEditorStoreApi();
+  const settings = useSettings();
 
   const [regenerateIdConfirmationModal, setRegenerateIdConfirmationModal] = useState(false);
 
@@ -55,6 +57,7 @@ export function GlobalDiagramProperties() {
             title={"Global properties"}
             action={
               <Button
+                title={"Close"}
                 variant={ButtonVariant.plain}
                 onClick={() => {
                   dmnEditorStoreApi.setState((state) => {
@@ -77,27 +80,27 @@ export function GlobalDiagramProperties() {
                   isPlain={false}
                   id={thisDmn.model.definitions["@_id"]!}
                   name={thisDmn.model.definitions["@_name"]}
-                  isReadonly={false}
+                  isReadOnly={settings.isReadOnly}
                   shouldCommitOnBlur={true}
-                  className={"pf-c-form-control"}
+                  className={"pf-v5-c-form-control"}
                   onRenamed={(newName) => {
                     dmnEditorStoreApi.setState((state) => {
                       state.dmn.model.definitions["@_name"] = newName;
                     });
                   }}
-                  allUniqueNames={new Map()} // Right now, there's no way to know what are the unique names of all DMNs in the scope. So we let any name go.
+                  allUniqueNames={() => new Map()} // Right now, there's no way to know what are the unique names of all DMNs in the scope. So we let any name go.
                 />
               </FormGroup>
               <FormGroup label="Description">
                 <TextArea
                   aria-label={"Description"}
                   type={"text"}
-                  isDisabled={false}
+                  isDisabled={settings.isReadOnly}
                   style={{ resize: "vertical", minHeight: "40px" }}
                   rows={6}
                   placeholder={"Enter a description..."}
                   value={thisDmn.model.definitions.description?.__$$text}
-                  onChange={(newDescription) =>
+                  onChange={(_event, newDescription) =>
                     dmnEditorStoreApi.setState((state) => {
                       state.dmn.model.definitions.description = { __$$text: newDescription };
                     })
@@ -109,10 +112,10 @@ export function GlobalDiagramProperties() {
                 <TextInput
                   aria-label={"Expression language"}
                   type={"text"}
-                  isDisabled={false}
+                  isDisabled={settings.isReadOnly}
                   placeholder={"Enter an expression language..."}
                   value={thisDmn.model.definitions["@_expressionLanguage"]}
-                  onChange={(newExprLang) =>
+                  onChange={(_event, newExprLang) =>
                     dmnEditorStoreApi.setState((state) => {
                       state.dmn.model.definitions["@_expressionLanguage"] = newExprLang;
                     })
@@ -134,7 +137,9 @@ export function GlobalDiagramProperties() {
             title={"ID & Namespace"}
             action={
               <Button
+                title={"Re-generate ID & Namespace"}
                 variant={ButtonVariant.plain}
+                isDisabled={settings.isReadOnly}
                 onClick={() => setRegenerateIdConfirmationModal(true)}
                 style={{ paddingBottom: 0, paddingTop: 0 }}
               >
@@ -149,10 +154,11 @@ export function GlobalDiagramProperties() {
             <FormSection style={{ paddingLeft: "20px", marginTop: 0 }}>
               <FormGroup label="ID">
                 <ClipboardCopy
-                  isReadOnly={false}
+                  placeholder="Enter a diagram ID..."
+                  isReadOnly={settings.isReadOnly}
                   hoverTip="Copy"
                   clickTip="Copied"
-                  onChange={(newId) => {
+                  onChange={(_event, newId) => {
                     dmnEditorStoreApi.setState((state) => {
                       state.dmn.model.definitions["@_id"] = `${newId}`;
                     });
@@ -164,10 +170,11 @@ export function GlobalDiagramProperties() {
 
               <FormGroup label="Namespace">
                 <ClipboardCopy
-                  isReadOnly={false}
+                  placeholder="Enter a diagram Namespace..."
+                  isReadOnly={settings.isReadOnly}
                   hoverTip="Copy"
                   clickTip="Copied"
-                  onChange={(newNamespace) => {
+                  onChange={(_event, newNamespace) => {
                     dmnEditorStoreApi.setState((state) => {
                       state.dmn.model.definitions["@_namespace"] = `${newNamespace}`;
                     });
@@ -189,11 +196,12 @@ export function GlobalDiagramProperties() {
           <Button
             key="confirm"
             variant={ButtonVariant.primary}
+            isDisabled={settings.isReadOnly}
             onClick={() => {
               setRegenerateIdConfirmationModal(false);
               dmnEditorStoreApi.setState((state) => {
                 state.dmn.model.definitions["@_id"] = generateUuid();
-                state.dmn.model.definitions["@_namespace"] = `https://kie.org/dmn/${generateUuid()}`;
+                state.dmn.model.definitions["@_namespace"] = `https://kie.apache.org/dmn/${generateUuid()}`;
               });
             }}
           >

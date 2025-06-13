@@ -18,16 +18,20 @@
  */
 
 import {
-  parseK8sResourceYaml,
+  parseK8sResourceYamls,
   buildK8sApiServerEndpointsByResourceKind,
   callK8sApiServer,
   K8sApiServerEndpointByResourceKind,
-  interpolateK8sResourceYamls,
+  interpolateK8sResourceYaml,
   TokenMap,
   K8sResourceYaml,
+  patchK8sResourceYaml,
+  appendK8sResourceYaml,
 } from "@kie-tools-core/k8s-yaml-to-apiserver-requests/dist";
 import Path from "path";
 import { DeploymentState } from "./common";
+import { ResourceActions } from "./types";
+import { CorsProxyHeaderKeys } from "@kie-tools/cors-proxy-api";
 
 export interface KubernetesConnection {
   namespace: string;
@@ -182,7 +186,11 @@ export class KubernetesService {
     args: Omit<KubernetesServiceArgs, "k8sApiServerEndpointsByResourceKind">
   ) {
     const baseUrl = KubernetesService.getBaseUrl(args);
-    return await buildK8sApiServerEndpointsByResourceKind(baseUrl, args.connection.token);
+    return await buildK8sApiServerEndpointsByResourceKind(
+      baseUrl,
+      args.connection.insecurelyDisableTlsCertificateValidation,
+      args.connection.token
+    );
   }
 
   public static getBaseUrl(args: Omit<KubernetesServiceArgs, "k8sApiServerEndpointsByResourceKind">) {
@@ -191,30 +199,70 @@ export class KubernetesService {
 
   public async kubernetesFetch(path: string, init?: RequestInit): Promise<Response> {
     const url = new URL(Path.join(this.baseUrl, path));
+    const headers = {
+      Authorization: `Bearer ${this.args.connection.token}`,
+      ...(this.args.connection.insecurelyDisableTlsCertificateValidation
+        ? {
+            [CorsProxyHeaderKeys.INSECURELY_DISABLE_TLS_CERTIFICATE_VALIDATION]: Boolean(
+              this.args.connection.insecurelyDisableTlsCertificateValidation
+            ).toString(),
+          }
+        : {}),
+      ...init?.headers,
+    };
     return await fetch(url, {
-      headers: { Authorization: `Bearer ${this.args.connection.token}`, ...init?.headers },
+      headers,
       ...init,
     });
   }
 
-  public async applyResourceYamls(k8sResourceYamls: string[], tokens?: TokenMap) {
-    const interpolatedYamls = tokens
-      ? k8sResourceYamls.map((yamlContent) => interpolateK8sResourceYamls(yamlContent, tokens))
-      : k8sResourceYamls;
+  public async applyResourceYamls(args: {
+    k8sResourceYamls: string[];
+    actions?: ResourceActions[];
+    tokens?: TokenMap;
+    parametersTokens?: TokenMap;
+  }) {
+    const processedYamls = args.k8sResourceYamls.map((yamlContent) => {
+      let resultYaml = yamlContent;
+
+      args.actions?.forEach(({ appendYamls }) => {
+        if (appendYamls) {
+          resultYaml = appendYamls.reduce(
+            (yaml, yamlToAppend) => appendK8sResourceYaml(yaml, yamlToAppend),
+            resultYaml
+          );
+        }
+      });
+
+      args.actions?.forEach(({ resourcePatches }) => {
+        if (resourcePatches) {
+          resultYaml = patchK8sResourceYaml(resultYaml, resourcePatches, args.parametersTokens);
+        }
+      });
+
+      resultYaml = interpolateK8sResourceYaml(resultYaml, args.tokens);
+
+      return resultYaml;
+    });
+
     return await callK8sApiServer({
       k8sApiServerEndpointsByResourceKind: this.args.k8sApiServerEndpointsByResourceKind,
-      k8sResourceYamls: parseK8sResourceYaml(interpolatedYamls),
+      k8sResourceYamls: parseK8sResourceYamls(processedYamls),
       k8sApiServerUrl: this.args.connection.host,
       k8sNamespace: this.args.connection.namespace,
       k8sServiceAccountToken: this.args.connection.token,
+      insecurelyDisableTlsCertificateValidation: this.args.connection.insecurelyDisableTlsCertificateValidation,
     });
   }
 
-  public newResourceName(prefix: string): string {
+  public static newResourceName(prefix: string, suffix?: string): string {
+    if (suffix) {
+      return `${prefix}-${suffix}`;
+    }
     const randomPart = Math.random().toString(36).substring(2, 9);
     const milliseconds = new Date().getMilliseconds();
-    const suffix = `${randomPart}${milliseconds}`;
-    return `${prefix}-${suffix}`;
+    const randomSuffix = `${randomPart}${milliseconds}`;
+    return `${prefix}-${randomSuffix}`;
   }
 
   public extractDeploymentState(args: { deployment?: DeploymentResource }): DeploymentState {
@@ -265,7 +313,7 @@ export class KubernetesService {
                 ...jsonData,
                 kind: args.kind,
                 apiVersion: args.apiVersion,
-              } as ResourceType)
+              }) as ResourceType
           );
       } catch (e) {
         console.error(`Failed to fetch ${args.kind} resource with id ${args.resourceId}: ${e}`);
@@ -300,7 +348,7 @@ export class KubernetesService {
               ...item,
               kind: args.kind,
               apiVersion: args.apiVersion,
-            } as ResourceType)
+            }) as ResourceType
         );
       } catch (e) {
         console.error(`Failed to fetch list of ${args.kind}: ${e}`);

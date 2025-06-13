@@ -21,8 +21,6 @@ const { spawn } = require("node:child_process");
 const path = require("path");
 const { env } = require("../env");
 
-const buildEnv = env;
-
 const mvn = spawn(
   "mvn",
   [
@@ -30,12 +28,10 @@ const mvn = spawn(
     path.join(__dirname, "./quarkus-app"),
     "clean",
     "quarkus:dev",
-    "-Dmaven.test.skip",
-    `-Dquarkus.platform.version=${buildEnv.quarkusPlatform.version}`,
-    `-Dversion.org.kie.kogito=${buildEnv.kogitoRuntime.version}`,
-    `-Dquarkus.http.port=${buildEnv.devDeploymentDmnFormWebapp.dev.quarkusPort}`,
-    `-Dkogito.service.url=http://localhost:${buildEnv.devDeploymentDmnFormWebapp.dev.quarkusPort}`,
-    "-Dquarkus.http.root-path=/",
+    `-Dquarkus.http.port=${env.devDeploymentDmnFormWebapp.dev.quarkusPort}`,
+    `-Dquarkus.http.host=0.0.0.0`,
+    `-Dkogito.service.url=http://0.0.0.0:${env.devDeploymentDmnFormWebapp.dev.quarkusPort}`,
+    `-Drevision=${env.devDeploymentDmnFormWebapp.version}`,
   ],
   { shell: true }
 );
@@ -64,8 +60,26 @@ if (process.argv.indexOf("--env") !== -1 && process.argv[process.argv.indexOf("-
 
 const webpack = spawn(
   "npx",
-  ["webpack", "serve", "-c", path.join(__dirname, "./webapp/webpack.config.js"), "--host", "0.0.0.0", "--env", mode],
-  { shell: true }
+  [
+    "webpack",
+    "serve",
+    "-c",
+    path.join(__dirname, "../webpack.config.ts"),
+    "--host",
+    "0.0.0.0",
+    "--env",
+    mode,
+    "--port",
+    env.devDeploymentDmnFormWebapp.dev.webpackPort,
+  ],
+  {
+    shell: true,
+    env: {
+      ...process.env, // contains PATH which is needed to find the commands
+      DEV_DEPLOYMENT_DMN_FORM_WEBAPP__quarkusAppOrigin: `http://localhost:${env.devDeploymentDmnFormWebapp.dev.quarkusPort}`,
+      DEV_DEPLOYMENT_DMN_FORM_WEBAPP__quarkusAppPath: "",
+    },
+  }
 );
 
 webpack.stdout.on("data", (data) => {

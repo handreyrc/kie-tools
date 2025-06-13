@@ -54,24 +54,20 @@ const RefForwardingSwfDeployOptions: ForwardRefRenderFunction<ConfirmDeployOptio
     setShouldDeployAsProject(canDeployAsProject);
   }, [canDeployAsProject]);
 
-  useImperativeHandle(
-    forwardedRef,
-    () => {
-      return {
-        deploy: async () =>
-          openshift.deploySwf({
-            targetFile: props.workspaceFile,
-            factoryArgs: {
-              kind: shouldDeployAsProject
-                ? DeploymentStrategyKind.KOGITO_PROJECT
-                : DeploymentStrategyKind.KOGITO_SWF_MODEL,
-            },
-            shouldUploadOpenApi,
-          }),
-      };
-    },
-    [openshift, props.workspaceFile, shouldDeployAsProject, shouldUploadOpenApi]
-  );
+  useImperativeHandle(forwardedRef, () => {
+    return {
+      deploy: async () =>
+        openshift.deploySwf({
+          targetFile: props.workspaceFile,
+          factoryArgs: {
+            kind: shouldDeployAsProject
+              ? DeploymentStrategyKind.KOGITO_PROJECT
+              : DeploymentStrategyKind.KOGITO_SWF_MODEL,
+          },
+          shouldUploadOpenApi,
+        }),
+    };
+  }, [openshift, props.workspaceFile, shouldDeployAsProject, shouldUploadOpenApi]);
   return (
     <>
       {i18n.openshift.confirmModal.body}
@@ -88,7 +84,7 @@ const RefForwardingSwfDeployOptions: ForwardRefRenderFunction<ConfirmDeployOptio
           label="Deploy as a project"
           description={"All files in the workspace will be deployed as-is so no pre-built template will be used."}
           isChecked={shouldDeployAsProject}
-          onChange={(checked) => setShouldDeployAsProject(checked)}
+          onChange={(_event, checked) => setShouldDeployAsProject(checked)}
           isDisabled={!canDeployAsProject}
         />
       </Tooltip>
@@ -108,7 +104,7 @@ const RefForwardingSwfDeployOptions: ForwardRefRenderFunction<ConfirmDeployOptio
               "The spec associated with the deployment will be available in the configured Service Registry."
             }
             isChecked={shouldUploadOpenApi}
-            onChange={(checked) => setShouldUploadOpenApi(checked)}
+            onChange={(_event, checked) => setShouldUploadOpenApi(checked)}
             isDisabled={!canUploadOpenApi}
           />
         </Tooltip>

@@ -70,12 +70,12 @@ const dateParse = (value: string, onChange: DateFieldProps["onChange"]) => {
 
 function DateField({ onChange, ...props }: DateFieldProps) {
   const isInvalid = useMemo(() => {
-    if (!props.value) {
+    if (props.value === undefined) {
       return false;
     }
 
     if (props.min) {
-      const minDate = new Date(props.min);
+      const minDate = new DateConstructor(props.min);
       if (minDate.toString() === "Invalid Date") {
         return false;
       } else if (props.value < minDate) {
@@ -83,7 +83,7 @@ function DateField({ onChange, ...props }: DateFieldProps) {
       }
     }
     if (props.max) {
-      const maxDate = new Date(props.max);
+      const maxDate = new DateConstructor(props.max);
       if (maxDate.toString() === "Invalid Date") {
         return false;
       } else if (props.value > maxDate) {
@@ -106,7 +106,7 @@ function DateField({ onChange, ...props }: DateFieldProps) {
         placeholder={props.placeholder}
         ref={props.inputRef}
         type="datetime-local"
-        onChange={(value) => {
+        onChange={(_event, value) => {
           props.disabled || dateParse(value, onChange);
         }}
         value={dateFormat(props.value, props.type) ?? ""}

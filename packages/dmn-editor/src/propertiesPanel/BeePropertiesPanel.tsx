@@ -24,25 +24,30 @@ import {
   DrawerHead,
   DrawerPanelContent,
 } from "@patternfly/react-core/dist/js/components/Drawer";
-import { useDmnEditorStore, useDmnEditorStoreApi } from "../store/Store";
+import { buildXmlHref } from "@kie-tools/dmn-marshaller/dist/xml/xmlHrefs";
+import { useDmnEditorStore, useDmnEditorStoreApi } from "../store/StoreContext";
 import { useMemo } from "react";
-import { useDmnEditorDerivedStore } from "../store/DerivedStore";
-import { buildXmlHref } from "../xml/xmlHrefs";
 import { SingleNodeProperties } from "./SingleNodeProperties";
+import { useExternalModels } from "../includedModels/DmnEditorDependenciesContext";
+import { getOperatingSystem, OperatingSystem } from "@kie-tools-core/operating-system";
 
 export function BeePropertiesPanel() {
   const dmnEditorStoreApi = useDmnEditorStoreApi();
   const { selectedObjectId, activeDrgElementId } = useDmnEditorStore((s) => s.boxedExpressionEditor);
-  const { nodesById } = useDmnEditorDerivedStore();
+  const { externalModelsByNamespace } = useExternalModels();
+  const node = useDmnEditorStore((s) =>
+    activeDrgElementId
+      ? s
+          .computed(s)
+          .getDiagramData(externalModelsByNamespace)
+          .nodesById.get(buildXmlHref({ id: activeDrgElementId }))
+      : undefined
+  );
 
   const shouldDisplayDecisionOrBkmProps = useMemo(
     () => selectedObjectId === undefined || (selectedObjectId && selectedObjectId === activeDrgElementId),
     [activeDrgElementId, selectedObjectId]
   );
-
-  const node = useMemo(() => {
-    return activeDrgElementId ? nodesById.get(buildXmlHref({ id: activeDrgElementId })) : undefined;
-  }, [activeDrgElementId, nodesById]);
 
   return (
     <>
@@ -51,7 +56,14 @@ export function BeePropertiesPanel() {
           isResizable={true}
           minSize={"300px"}
           defaultSize={"500px"}
-          onKeyDown={(e) => e.stopPropagation()} // This prevents ReactFlow KeyboardShortcuts from triggering when editing stuff on Properties Panel
+          onKeyDown={(e) => {
+            // In macOS, we can not stopPropagation here because, otherwise, shortcuts are not handled
+            // See https://github.com/apache/incubator-kie-issues/issues/1164
+            if (!(getOperatingSystem() === OperatingSystem.MACOS && e.metaKey)) {
+              // Prevent ReactFlow KeyboardShortcuts from triggering when editing stuff on Properties Panel
+              e.stopPropagation();
+            }
+          }}
         >
           <DrawerHead>
             {shouldDisplayDecisionOrBkmProps && <SingleNodeProperties nodeId={node.id} />}

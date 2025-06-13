@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { EditorInitArgs } from "./KogitoEditorEnvelopeApi";
+import { EditorInitArgs, KogitoEditorEnvelopeApi } from "./KogitoEditorEnvelopeApi";
 import { Editor } from "./Editor";
 import { KogitoEditorEnvelopeContextType } from "./KogitoEditorEnvelopeContext";
 import { ApiDefinition } from "@kie-tools-core/envelope-bus/dist/api";
@@ -28,12 +28,16 @@ import { KogitoEditorChannelApi } from "./KogitoEditorChannelApi";
  */
 export interface EditorFactory<
   E extends Editor,
-  ChannelApi extends KogitoEditorChannelApi & ApiDefinition<ChannelApi>
+  EnvelopeApi extends KogitoEditorEnvelopeApi & ApiDefinition<EnvelopeApi>,
+  ChannelApi extends KogitoEditorChannelApi & ApiDefinition<ChannelApi>,
 > {
   /**
    * Returns an Editor instance.
    * @param envelopeContext The context to be used by Editor implementation.
    * @param initArgs Initial arguments required for the Editor to initialize itself properly.
    */
-  createEditor(envelopeContext: KogitoEditorEnvelopeContextType<ChannelApi>, initArgs: EditorInitArgs): Promise<E>;
+  createEditor(
+    envelopeContext: KogitoEditorEnvelopeContextType<EnvelopeApi, ChannelApi>,
+    initArgs: EditorInitArgs
+  ): Promise<E>;
 }

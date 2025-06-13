@@ -62,7 +62,8 @@ const RefForwardingKogitoEditorIframe: React.ForwardRefRenderFunction<IsolatedEd
   }, [githubApi, repoInfo, resourceContentServiceFactory]);
 
   const onResourceContentRequest = useCallback(
-    (request: ResourceContentRequest) => resourceContentService.get(request.path, request.opts),
+    (request: ResourceContentRequest) =>
+      resourceContentService.get(request.normalizedPosixPathRelativeToTheWorkspaceRoot, request.opts),
     [resourceContentService]
   );
 
@@ -78,7 +79,7 @@ const RefForwardingKogitoEditorIframe: React.ForwardRefRenderFunction<IsolatedEd
       fileExtension: props.openFileExtension,
       getFileContents: props.getFileContents,
       isReadOnly: props.readonly,
-      path: props.contentPath,
+      normalizedPosixPathRelativeToTheWorkspaceRoot: props.contentPath,
     };
   }, [props.contentPath, props.openFileExtension, props.getFileContents, props.readonly]);
 
@@ -109,19 +110,15 @@ const RefForwardingKogitoEditorIframe: React.ForwardRefRenderFunction<IsolatedEd
   }, [textMode, editor, readonly]);
 
   // Forward reference methods to set content programmatically vs property
-  useImperativeHandle(
-    forwardedRef,
-    () => {
-      if (!editor) {
-        return undefined;
-      }
+  useImperativeHandle(forwardedRef, () => {
+    if (!editor) {
+      return undefined;
+    }
 
-      return {
-        setContent: (content: string) => editor.setContent(contentPath, content),
-      };
-    },
-    [editor, contentPath]
-  );
+    return {
+      setContent: (content: string) => editor.setContent(contentPath, content),
+    };
+  }, [editor, contentPath]);
 
   return (
     <>

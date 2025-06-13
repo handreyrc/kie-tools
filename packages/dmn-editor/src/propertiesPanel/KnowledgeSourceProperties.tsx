@@ -19,53 +19,60 @@
 
 import * as React from "react";
 import { DMN15__tKnowledgeSource } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/ts-gen/types";
+import { Normalized } from "@kie-tools/dmn-marshaller/dist/normalization/normalize";
 import { ClipboardCopy } from "@patternfly/react-core/dist/js/components/ClipboardCopy";
 import { FormGroup } from "@patternfly/react-core/dist/js/components/Form";
 import { TextArea } from "@patternfly/react-core/dist/js/components/TextArea";
 import { TextInput } from "@patternfly/react-core/dist/js/components/TextInput";
 import { DocumentationLinksFormGroup } from "./DocumentationLinksFormGroup";
-import { useDmnEditorStore, useDmnEditorStoreApi } from "../store/Store";
-import { renameDrgElement } from "../mutations/renameNode";
+import { useDmnEditorStore, useDmnEditorStoreApi } from "../store/StoreContext";
+
 import { InlineFeelNameInput } from "../feel/InlineFeelNameInput";
-import { useDmnEditorDerivedStore } from "../store/DerivedStore";
+import { useCallback, useMemo } from "react";
+import { useSettings } from "../settings/DmnEditorSettingsContext";
+import { useRefactor } from "../refactor/RefactorConfirmationDialog";
 
 export function KnowledgeSourceProperties({
   knowledgeSource,
   namespace,
   index,
 }: {
-  knowledgeSource: DMN15__tKnowledgeSource;
+  knowledgeSource: Normalized<DMN15__tKnowledgeSource>;
   namespace: string | undefined;
   index: number;
 }) {
   const { setState } = useDmnEditorStoreApi();
+  const settings = useSettings();
 
   const thisDmnsNamespace = useDmnEditorStore((s) => s.dmn.model.definitions["@_namespace"]);
-  const isReadonly = !!namespace && namespace !== thisDmnsNamespace;
+  const isReadOnly = settings.isReadOnly || (!!namespace && namespace !== thisDmnsNamespace);
+  const identifierId = useMemo(() => knowledgeSource["@_id"], [knowledgeSource]);
+  const oldName = useMemo(() => knowledgeSource["@_label"] ?? knowledgeSource["@_name"], [knowledgeSource]);
 
-  const { allFeelVariableUniqueNames } = useDmnEditorDerivedStore();
+  const { setNewIdentifierNameCandidate, refactorConfirmationDialog, newName } = useRefactor({
+    index,
+    identifierId,
+    oldName,
+  });
+
+  const currentName = useMemo(() => {
+    return newName === "" ? oldName : newName;
+  }, [newName, oldName]);
 
   return (
     <>
+      {refactorConfirmationDialog}
       <FormGroup label="Name">
         <InlineFeelNameInput
           enableAutoFocusing={false}
           isPlain={false}
           id={knowledgeSource["@_id"]!}
-          name={knowledgeSource["@_name"]}
-          isReadonly={isReadonly}
+          name={currentName}
+          isReadOnly={isReadOnly}
           shouldCommitOnBlur={true}
-          className={"pf-c-form-control"}
-          onRenamed={(newName) => {
-            setState((state) => {
-              renameDrgElement({
-                definitions: state.dmn.model.definitions,
-                index,
-                newName,
-              });
-            });
-          }}
-          allUniqueNames={allFeelVariableUniqueNames}
+          className={"pf-v5-c-form-control"}
+          onRenamed={setNewIdentifierNameCandidate}
+          allUniqueNames={useCallback((s) => s.computed(s).getAllFeelVariableUniqueNames(), [])}
         />
       </FormGroup>
 
@@ -73,11 +80,11 @@ export function KnowledgeSourceProperties({
         <TextArea
           aria-label={"Description"}
           type={"text"}
-          isDisabled={isReadonly}
+          isDisabled={isReadOnly}
           value={knowledgeSource.description?.__$$text}
-          onChange={(newDescription) => {
+          onChange={(_event, newDescription) => {
             setState((state) => {
-              (state.dmn.model.definitions.drgElement![index] as DMN15__tKnowledgeSource).description = {
+              (state.dmn.model.definitions.drgElement![index] as Normalized<DMN15__tKnowledgeSource>).description = {
                 __$$text: newDescription,
               };
             });
@@ -98,11 +105,13 @@ export function KnowledgeSourceProperties({
         <TextInput
           aria-label={"Source type"}
           type={"text"}
-          isDisabled={isReadonly}
+          isDisabled={isReadOnly}
           value={knowledgeSource.type?.__$$text}
-          onChange={(newType) => {
+          onChange={(_event, newType) => {
             setState((state) => {
-              (state.dmn.model.definitions.drgElement![index] as DMN15__tKnowledgeSource).type = { __$$text: newType };
+              (state.dmn.model.definitions.drgElement![index] as Normalized<DMN15__tKnowledgeSource>).type = {
+                __$$text: newType,
+              };
             });
           }}
           placeholder={"Enter source type..."}
@@ -113,11 +122,11 @@ export function KnowledgeSourceProperties({
         <TextInput
           aria-label={"Location URI"}
           type={"text"}
-          isDisabled={isReadonly}
+          isDisabled={isReadOnly}
           value={knowledgeSource["@_locationURI"]}
-          onChange={(newLocationUri) => {
+          onChange={(_event, newLocationUri) => {
             setState((state) => {
-              (state.dmn.model.definitions.drgElement![index] as DMN15__tKnowledgeSource)["@_locationURI"] =
+              (state.dmn.model.definitions.drgElement![index] as Normalized<DMN15__tKnowledgeSource>)["@_locationURI"] =
                 newLocationUri;
             });
           }}
@@ -126,13 +135,14 @@ export function KnowledgeSourceProperties({
       </FormGroup>
 
       <DocumentationLinksFormGroup
-        isReadonly={isReadonly}
+        isReadOnly={isReadOnly}
         values={knowledgeSource.extensionElements?.["kie:attachment"]}
         onChange={(newExtensionElements) => {
           setState((state) => {
-            (state.dmn.model.definitions.drgElement![index] as DMN15__tKnowledgeSource).extensionElements = {
-              "kie:attachment": newExtensionElements,
-            };
+            (state.dmn.model.definitions.drgElement![index] as Normalized<DMN15__tKnowledgeSource>).extensionElements =
+              {
+                "kie:attachment": newExtensionElements,
+              };
           });
         }}
       />

@@ -21,20 +21,33 @@ import * as React from "react";
 
 import { DrawerHead, DrawerPanelContent } from "@patternfly/react-core/dist/js/components/Drawer";
 import { GlobalDiagramProperties } from "./GlobalDiagramProperties";
-import "./DiagramPropertiesPanel.css";
-import { useDmnEditorDerivedStore } from "../store/DerivedStore";
 import { SingleNodeProperties } from "./SingleNodeProperties";
 import { MultipleNodeProperties } from "./MultipleNodeProperties";
+import { useDmnEditorStore } from "../store/StoreContext";
+import { useExternalModels } from "../includedModels/DmnEditorDependenciesContext";
+import "./DiagramPropertiesPanel.css";
+import { getOperatingSystem, OperatingSystem } from "@kie-tools-core/operating-system";
 
 export function DiagramPropertiesPanel() {
-  const { selectedNodesById } = useDmnEditorDerivedStore();
+  const { externalModelsByNamespace } = useExternalModels();
+  const selectedNodesById = useDmnEditorStore(
+    (s) => s.computed(s).getDiagramData(externalModelsByNamespace).selectedNodesById
+  );
 
   return (
     <DrawerPanelContent
+      data-testid={"kie-tools--dmn-editor--properties-panel-container"}
       isResizable={true}
       minSize={"300px"}
       defaultSize={"500px"}
-      onKeyDown={(e) => e.stopPropagation()} // This prevents ReactFlow KeyboardShortcuts from triggering when editing stuff on Properties Panel
+      onKeyDown={(e) => {
+        // In macOS, we can not stopPropagation here because, otherwise, shortcuts are not handled
+        // See https://github.com/apache/incubator-kie-issues/issues/1164
+        if (!(getOperatingSystem() === OperatingSystem.MACOS && e.metaKey)) {
+          // Prevent ReactFlow KeyboardShortcuts from triggering when editing stuff on Properties Panel
+          e.stopPropagation();
+        }
+      }}
     >
       <DrawerHead>
         {selectedNodesById.size <= 0 && <GlobalDiagramProperties />}

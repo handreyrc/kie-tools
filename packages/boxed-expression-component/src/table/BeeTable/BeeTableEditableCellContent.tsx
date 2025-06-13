@@ -21,9 +21,10 @@ import * as Monaco from "@kie-tools-core/monaco-editor";
 import { FeelInput, FeelInputRef } from "@kie-tools/feel-input-component";
 import * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { NavigationKeysUtils } from "../../keysUtils";
+import { NavigationKeysUtils } from "../../keysUtils/keyUtils";
+import { useBoxedExpressionEditor } from "../../BoxedExpressionEditorContext";
 import "./BeeTableEditableCellContent.css";
-import { FeelVariables } from "@kie-tools/dmn-feel-antlr4-parser";
+import { getOperatingSystem, OperatingSystem } from "@kie-tools-core/operating-system";
 
 const CELL_LINE_HEIGHT = 20;
 
@@ -51,7 +52,6 @@ export interface BeeTableEditableCellContentProps {
   setEditing: React.Dispatch<React.SetStateAction<boolean>>;
   onFeelTabKeyDown?: (args: { isShiftPressed: boolean }) => void;
   onFeelEnterKeyDown?: (args: { isShiftPressed: boolean }) => void;
-  variables?: FeelVariables;
   expressionId?: string;
 }
 
@@ -64,7 +64,6 @@ export function BeeTableEditableCellContent({
   setEditing,
   onFeelTabKeyDown,
   onFeelEnterKeyDown,
-  variables,
   expressionId,
 }: BeeTableEditableCellContentProps) {
   const [cellHeight, setCellHeight] = useState(CELL_LINE_HEIGHT * 3);
@@ -76,6 +75,17 @@ export function BeeTableEditableCellContent({
   const mode = useMemo(() => {
     return isEditing && !isReadOnly ? Mode.Edit : Mode.Read;
   }, [isEditing, isReadOnly]);
+
+  // FIXME: Tiago --> Temporary fix for the Boxed Expression Editor to work well. Ideally this wouldn't bee here, as the BeeTable should be decoupled from the DMN Editor's Boxed Expression Editor use-case.
+  const { onRequestFeelIdentifiers } = useBoxedExpressionEditor();
+
+  const feelIdentifiers = useMemo(() => {
+    if (mode === Mode.Edit) {
+      return onRequestFeelIdentifiers?.();
+    } else {
+      return undefined;
+    }
+  }, [mode, onRequestFeelIdentifiers]);
 
   useEffect(() => {
     setPreviousValue((prev) => (isEditing ? prev : value));
@@ -121,7 +131,11 @@ export function BeeTableEditableCellContent({
         } else if (feelInputRef.current?.isSuggestionWidgetOpen()) {
           // Do nothing;
         } else {
-          updateValue(newValue);
+          // This line below is commented on because it causes an issue with WebKit (Safari) based browsers,
+          // making the text boxes no longer work. Also, it is not necessary because the newValue is saved
+          // in the onBlur event, called by the BeeTableSelectionContext
+          // updateValue(newValue);
+
           setEditing(false);
           onFeelEnterKeyDown?.({ isShiftPressed: e.shiftKey });
         }
@@ -170,17 +184,19 @@ export function BeeTableEditableCellContent({
     (e) => {
       // When inside FEEL Input, all keyboard events should be kept inside it.
       // Exceptions to this strategy are handled on `onFeelKeyDown`.
-      if (isEditing) {
+      // NOTE: In macOS, we can not stopPropagation here because, otherwise, shortcuts are not handled
+      // See https://github.com/apache/incubator-kie-issues/issues/1164
+      if (isEditing && !(getOperatingSystem() === OperatingSystem.MACOS && e.metaKey)) {
         e.stopPropagation();
       }
 
       // This is used to start editing a cell without being in edit mode.
-      if (isActive && !isEditing && isEditModeTriggeringKey(e)) {
+      if (!isReadOnly && isActive && !isEditing && isEditModeTriggeringKey(e)) {
         setEditingValue("");
         setEditing(true);
       }
     },
-    [isActive, isEditing, setEditing]
+    [isActive, isEditing, isReadOnly, setEditing]
   );
 
   return (
@@ -192,7 +208,7 @@ export function BeeTableEditableCellContent({
         className={cssClass}
         onKeyDown={onKeyDown}
       >
-        <span className="editable-cell-value pf-u-text-break-word" dangerouslySetInnerHTML={{ __html: preview }} />
+        <span className="editable-cell-value pf-v5-u-text-break-word" dangerouslySetInnerHTML={{ __html: preview }} />
         <span data-ouia-component-id={"editable-cell-raw-value"} className={"editable-cell-raw-value"}>
           {value}
         </span>
@@ -205,7 +221,7 @@ export function BeeTableEditableCellContent({
           onPreviewChanged={setPreview}
           options={MONACO_OPTIONS}
           onBlur={onFeelBlur}
-          feelVariables={variables}
+          feelIdentifiers={feelIdentifiers}
           expressionId={expressionId}
         />
       </div>

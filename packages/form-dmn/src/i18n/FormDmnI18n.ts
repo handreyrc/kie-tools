@@ -23,6 +23,7 @@ import { FormI18n } from "@kie-tools/form/dist/i18n/FormI18n";
 export interface FormDmnI18n extends FormI18n {
   validation: {
     xDmnAllowedValues: string;
+    xDmnTypeConstraint: string;
     daysAndTimeError: string;
     yearsAndMonthsError: string;
   };
@@ -32,7 +33,7 @@ export interface FormDmnI18n extends FormI18n {
   };
   result: {
     evaluation: {
-      success: string;
+      succeeded: string;
       skipped: string;
       failed: string;
     };

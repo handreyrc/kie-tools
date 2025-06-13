@@ -43,7 +43,7 @@ function variant(severity: NotificationSeverity) {
     case "ERROR":
       return "danger";
     case "HINT":
-      return "default";
+      return "custom";
     case "SUCCESS":
       return "success";
     case "WARNING":
@@ -65,16 +65,20 @@ export const NotificationPanelTabContent = React.forwardRef<NotificationsChannel
   );
 
   const setNotifications = useCallback(
-    (path: string, notifications: Notification[]) => {
+    (normalizedPosixPathRelativeToTheWorkspaceRoot: string, notifications: Notification[]) => {
       onNotificationsLengthChange(name, notifications.length);
       setTabNotifications(notifications);
     },
     [onNotificationsLengthChange, name]
   );
 
-  const removeNotifications = useCallback((path: string) => {
+  const removeNotifications = useCallback((normalizedPosixPathRelativeToTheWorkspaceRoot: string) => {
     setTabNotifications((previousTabNotifications) => {
-      return previousTabNotifications.filter((tabNotification) => tabNotification.path === path);
+      return previousTabNotifications.filter(
+        (tabNotification) =>
+          tabNotification.normalizedPosixPathRelativeToTheWorkspaceRoot ===
+          normalizedPosixPathRelativeToTheWorkspaceRoot
+      );
     });
   }, []);
 
@@ -86,11 +90,11 @@ export const NotificationPanelTabContent = React.forwardRef<NotificationsChannel
 
   const notificationsMap: Map<string, Notification[]> = useMemo(() => {
     return tabNotifications.reduce((acc, notification) => {
-      const notificationEntry = acc.get(notification.path);
+      const notificationEntry = acc.get(notification.normalizedPosixPathRelativeToTheWorkspaceRoot);
       if (!notificationEntry) {
-        acc.set(notification.path, [notification]);
+        acc.set(notification.normalizedPosixPathRelativeToTheWorkspaceRoot, [notification]);
       } else {
-        acc.set(notification.path, [...notificationEntry, notification]);
+        acc.set(notification.normalizedPosixPathRelativeToTheWorkspaceRoot, [...notificationEntry, notification]);
       }
       return acc;
     }, new Map());
@@ -124,7 +128,7 @@ export const NotificationPanelTabContent = React.forwardRef<NotificationsChannel
                       </NotificationDrawerList>
                     ) : (
                       <NotificationTabDrawerGroup
-                        key={`execution-notification-group-${groupIndex}`}
+                        key={`evaluation-notification-group-${groupIndex}`}
                         path={path}
                         notifications={notifications}
                         allExpanded={props.expandAll}
@@ -171,7 +175,7 @@ export function NotificationTabDrawerGroup(props: NotificationDrawerGroupProps) 
       onExpand={onExpand}
     >
       {props.notifications.map((notification, index) => (
-        <NotificationDrawerList key={`execution-notification-item-${props.path}-${index}`} isHidden={!isExpanded}>
+        <NotificationDrawerList key={`evaluation-notification-item-${props.path}-${index}`} isHidden={!isExpanded}>
           <NotificationDrawerListItem isRead={true} variant={variant(notification.severity)}>
             <NotificationDrawerListItemHeader title={notification.message} variant={variant(notification.severity)} />
           </NotificationDrawerListItem>

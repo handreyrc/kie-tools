@@ -21,18 +21,22 @@ import * as React from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { EmptyLabel } from "./Nodes";
 import { XmlQName } from "@kie-tools/xml-parser-ts/dist/qNames";
-import { useDmnEditorStore } from "../../store/Store";
-import { useDmnEditorDerivedStore } from "../../store/DerivedStore";
-import { UniqueNameIndex } from "../../Dmn15Spec";
+import { useDmnEditorStore, useDmnEditorStoreApi } from "../../store/StoreContext";
+import { UniqueNameIndex } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/Dmn15Spec";
 import { buildFeelQNameFromXmlQName } from "../../feel/buildFeelQName";
 import { DMN15__tNamedElement } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/ts-gen/types";
+import { Normalized } from "@kie-tools/dmn-marshaller/dist/normalization/normalize";
 import { Truncate } from "@patternfly/react-core/dist/js/components/Truncate";
-import { DMN15_SPEC } from "../../Dmn15Spec";
+import { DMN15_SPEC } from "@kie-tools/dmn-marshaller/dist/schemas/dmn-1_5/Dmn15Spec";
 import { invalidInlineFeelNameStyle } from "../../feel/InlineFeelNameInput";
 import { generateUuid } from "@kie-tools/boxed-expression-component/dist/api";
-import "./EditableNodeLabel.css";
 import { useFocusableElement } from "../../focus/useFocusableElement";
 import { flushSync } from "react-dom";
+import { NodeLabelPosition } from "./NodeSvgs";
+import { State } from "../../store/Store";
+import "./EditableNodeLabel.css";
+import { useSettings } from "../../settings/DmnEditorSettingsContext";
+import { getOperatingSystem, OperatingSystem } from "@kie-tools-core/operating-system";
 
 export type OnEditableNodeLabelChange = (value: string | undefined) => void;
 
@@ -49,26 +53,47 @@ export function EditableNodeLabel({
   grow,
   shouldCommitOnBlur,
   skipValidation,
-  allUniqueNames,
-  fontStyle,
+  onGetAllUniqueNames,
+  fontCssProperties,
+  setLabelHeight,
+  enableAutoFocusing,
 }: {
   id?: string;
   shouldCommitOnBlur?: boolean;
   grow?: boolean;
   truncate?: boolean;
-  namedElement?: DMN15__tNamedElement;
+  namedElement?: Normalized<DMN15__tNamedElement>;
   namedElementQName?: XmlQName;
-  position?: "center-center" | "top-center" | "center-left" | "top-left";
+  position: NodeLabelPosition;
   isEditing: boolean;
   value: string | undefined;
   setEditing: React.Dispatch<React.SetStateAction<boolean>>;
   onChange: OnEditableNodeLabelChange;
   skipValidation?: boolean;
-  allUniqueNames: UniqueNameIndex;
-  fontStyle?: React.CSSProperties;
+  onGetAllUniqueNames: (s: State) => UniqueNameIndex;
+  fontCssProperties?: React.CSSProperties;
+  setLabelHeight?: React.Dispatch<React.SetStateAction<number>>;
+  enableAutoFocusing?: boolean;
 }) {
-  const thisDmn = useDmnEditorStore((s) => s.dmn);
-  const { importsByNamespace } = useDmnEditorDerivedStore();
+  const displayValue = useDmnEditorStore((s) => {
+    if (!value) {
+      return undefined;
+    }
+
+    if (!namedElement || !namedElementQName) {
+      return value;
+    }
+
+    const feelName = buildFeelQNameFromXmlQName({
+      namedElement,
+      importsByNamespace: s.computed(s).importsByNamespace(),
+      model: s.dmn.model.definitions,
+      namedElementQName,
+      relativeToNamespace: s.dmn.model.definitions["@_namespace"],
+    });
+
+    return feelName.full;
+  });
 
   const isEditing = useMemo(() => {
     return !namedElementQName?.prefix && _isEditing; // Can't ever change the names of external nodes
@@ -85,26 +110,6 @@ export function EditableNodeLabel({
     },
     [_setEditing, namedElementQName?.prefix]
   );
-
-  const displayValue = useMemo(() => {
-    if (!value) {
-      return undefined;
-    }
-
-    if (!namedElement || !namedElementQName) {
-      return value;
-    }
-
-    const feelName = buildFeelQNameFromXmlQName({
-      namedElement,
-      importsByNamespace,
-      model: thisDmn.model.definitions,
-      namedElementQName,
-      relativeToNamespace: thisDmn.model.definitions["@_namespace"],
-    });
-
-    return feelName.full;
-  }, [value, namedElement, namedElementQName, importsByNamespace, thisDmn.model.definitions]);
 
   const [internalValue, setInternalValue] = useState(displayValue);
   useEffect(() => {
@@ -129,13 +134,17 @@ export function EditableNodeLabel({
     }, 0);
   }, []);
 
-  const isValid = useMemo(() => {
+  const isValid = useDmnEditorStore((s) => {
     if (skipValidation) {
       return true;
     }
 
-    return DMN15_SPEC.namedElement.isValidName(namedElement?.["@_id"] ?? generateUuid(), internalValue, allUniqueNames);
-  }, [skipValidation, namedElement, internalValue, allUniqueNames]);
+    return DMN15_SPEC.namedElement.isValidName(
+      namedElement?.["@_id"] ?? generateUuid(),
+      internalValue,
+      onGetAllUniqueNames(s)
+    );
+  });
 
   const onBlur = useCallback(() => {
     setEditing(false);
@@ -144,6 +153,7 @@ export function EditableNodeLabel({
 
     if (isValid && internalValue !== value && shouldCommit) {
       onChange(internalValue);
+      setInternalValue(value); // Reset the component after the commit
     } else {
       console.debug(`Label change cancelled for node with label ${value}`);
       setInternalValue(value);
@@ -153,7 +163,11 @@ export function EditableNodeLabel({
   // Finish editing on `Enter` pressed.
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      e.stopPropagation();
+      // In macOS, we can not stopPropagation here because, otherwise, shortcuts are not handled
+      // See https://github.com/apache/incubator-kie-issues/issues/1164
+      if (!(getOperatingSystem() === OperatingSystem.MACOS && e.metaKey)) {
+        e.stopPropagation();
+      }
 
       if (e.key === "Enter") {
         if (!isValid) {
@@ -197,7 +211,7 @@ export function EditableNodeLabel({
 
   useFocusableElement(
     ref,
-    id ?? namedElement?.["@_id"],
+    enableAutoFocusing ?? true ? id ?? namedElement?.["@_id"] : undefined,
     useCallback(
       (cb) => {
         setTimeout(() => {
@@ -205,21 +219,23 @@ export function EditableNodeLabel({
             setEditing(true);
           });
           cb();
-        });
+        }, 100);
       },
       [setEditing]
     )
   );
 
-  const positionClass = position ?? "center-center";
-
   return (
-    <div className={`kie-dmn-editor--editable-node-name-input ${positionClass} ${grow ? "grow" : ""}`}>
+    <div
+      className={`kie-dmn-editor--editable-node-name-input ${position} ${grow ? "grow" : ""} ${
+        namedElementQName?.prefix ? "kie-dmn-editor--node-external" : ""
+      }`}
+    >
       {(isEditing && (
         <input
           spellCheck={"false"} // Let's not confuse FEEL name validation with the browser's grammar check.
           style={{
-            ...fontStyle,
+            ...fontCssProperties,
             ...(isValid ? {} : invalidInlineFeelNameStyle),
           }}
           onMouseDownCapture={(e) => e.stopPropagation()} // Make sure mouse events stay inside the node.
@@ -232,9 +248,11 @@ export function EditableNodeLabel({
         />
       )) || (
         <span
+          // clientHeight isn't affected by the zoom in/out
+          ref={(ref) => setLabelHeight?.(ref?.clientHeight ?? 0)}
           style={{
             whiteSpace: "pre-wrap",
-            ...fontStyle,
+            ...fontCssProperties,
             ...(isValid ? {} : invalidInlineFeelNameStyle),
           }}
         >
@@ -252,13 +270,24 @@ export function EditableNodeLabel({
 }
 
 export function useEditableNodeLabel(id: string | undefined) {
-  const focus = useDmnEditorStore((s) => s.focus);
-  const [isEditingLabel, setEditingLabel] = useState(!!id && !!focus.consumableId && focus.consumableId === id);
-  const triggerEditing = useCallback<React.EventHandler<React.SyntheticEvent>>((e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setEditingLabel(true);
-  }, []);
+  const dmnEditorStoreApi = useDmnEditorStoreApi();
+  const settings = useSettings();
+
+  const [isEditingLabel, setEditingLabel] = useState(
+    !!id && !!dmnEditorStoreApi.getState().focus.consumableId && dmnEditorStoreApi.getState().focus.consumableId === id
+  );
+
+  const triggerEditing = useCallback<React.EventHandler<React.SyntheticEvent>>(
+    (e) => {
+      if (settings.isReadOnly) {
+        return;
+      }
+      e.stopPropagation();
+      e.preventDefault();
+      setEditingLabel(true);
+    },
+    [settings.isReadOnly]
+  );
 
   // Trigger editing on `Enter` pressed.
   const triggerEditingIfEnter = useCallback<React.KeyboardEventHandler>(
@@ -270,5 +299,8 @@ export function useEditableNodeLabel(id: string | undefined) {
     [triggerEditing]
   );
 
-  return { isEditingLabel, setEditingLabel, triggerEditing, triggerEditingIfEnter };
+  return useMemo(
+    () => ({ isEditingLabel, setEditingLabel, triggerEditing, triggerEditingIfEnter }),
+    [isEditingLabel, triggerEditing, triggerEditingIfEnter]
+  );
 }

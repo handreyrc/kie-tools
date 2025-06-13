@@ -23,30 +23,30 @@ import * as path from "path";
 import * as fs from "fs";
 import { expect } from "chai";
 import { Key } from "vscode-extension-tester";
-import { VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
+import { sleep, VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
 import SwfEditorTestHelper from "./helpers/swf/SwfEditorTestHelper";
 import SwfTextEditorTestHelper from "./helpers/swf/SwfTextEditorTestHelper";
 
 describe("Serverless workflow editor - autocompletion tests", () => {
   const TEST_PROJECT_FOLDER: string = path.resolve("e2e-tests-tmp", "resources", "autocompletion");
-  const DIST_E2E_TESTS_FOLDER: string = path.resolve("dist-e2e-tests");
+  const DIST_E2E_TESTS_FOLDER: string = path.resolve("dist-tests-e2e");
 
   let testHelper: VSCodeTestHelper;
 
   before(async function () {
-    this.timeout(60000);
+    this.timeout(50000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
   });
 
   beforeEach(async function () {
-    this.timeout(60000);
+    this.timeout(30000);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   afterEach(async function () {
-    this.timeout(60000);
+    this.timeout(30000);
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
@@ -54,12 +54,13 @@ describe("Serverless workflow editor - autocompletion tests", () => {
 
   describe("JSON files", () => {
     it("Completes serverless workflow with function and state autocompletion", async function () {
-      this.timeout(80000);
-
+      this.timeout(100000);
       const editorWebviews = await testHelper.openFileFromSidebar("autocompletion.sw.json");
       const swfEditor = new SwfEditorTestHelper(editorWebviews[1]);
       const swfTextEditor = new SwfTextEditorTestHelper(editorWebviews[0]);
       const textEditor = await swfTextEditor.getSwfTextEditor();
+
+      testHelper.setimplicitTimeout(30000);
 
       await textEditor.moveCursor(7, 26);
       await textEditor.typeText(Key.ENTER);
@@ -118,11 +119,13 @@ describe("Serverless workflow editor - autocompletion tests", () => {
     });
 
     it("Completes serverless workflow from an empty file", async function () {
-      this.timeout(80000);
+      this.timeout(100000);
 
       const editorWebviews = await testHelper.openFileFromSidebar("emptyfile_autocompletion.sw.json");
       const swfTextEditor = new SwfTextEditorTestHelper(editorWebviews[0]);
       const textEditor = await swfTextEditor.getSwfTextEditor();
+
+      testHelper.setimplicitTimeout(30000);
 
       // select the autocompletion
       await textEditor.selectFromContentAssist("Serverless Workflow Example");
@@ -145,6 +148,8 @@ describe("Serverless workflow editor - autocompletion tests", () => {
       const swfEditor = new SwfEditorTestHelper(editorWebviews[1]);
       const swfTextEditor = new SwfTextEditorTestHelper(editorWebviews[0]);
       const textEditor = await swfTextEditor.getSwfTextEditor();
+
+      testHelper.setimplicitTimeout(30000);
 
       await textEditor.moveCursor(9, 17);
       await textEditor.typeText(Key.ENTER);
@@ -212,6 +217,8 @@ actions:
       const swfTextEditor = new SwfTextEditorTestHelper(editorWebviews[0]);
       const textEditor = await swfTextEditor.getSwfTextEditor();
 
+      testHelper.setimplicitTimeout(30000);
+
       // select the autocompletion
       await textEditor.selectFromContentAssist("Serverless Workflow Example");
 
@@ -223,12 +230,15 @@ actions:
       );
       expect(editorContent).equal(expectedContent);
     });
+
     it("Completes serverless workflow from an empty file and create Empty Serverless Workflow", async function () {
       this.timeout(80000);
 
       const editorWebviews = await testHelper.openFileFromSidebar("emptyworkflow_autocompletion.sw.json");
       const swfTextEditor = new SwfTextEditorTestHelper(editorWebviews[0]);
       const textEditor = await swfTextEditor.getSwfTextEditor();
+
+      testHelper.setimplicitTimeout(30000);
 
       // select the autocompletion
       await textEditor.selectFromContentAssist("Empty Serverless Workflow");

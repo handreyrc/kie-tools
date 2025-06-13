@@ -22,41 +22,42 @@ require("./serverless-workflow-editor-extension-smoke.test");
 import * as path from "path";
 import { expect } from "chai";
 import { Key } from "vscode-extension-tester";
-import { VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
+import { sleep, VSCodeTestHelper } from "@kie-tools/vscode-extension-common-test-helpers";
 import SwfTextEditorTestHelper from "./helpers/swf/SwfTextEditorTestHelper";
 
 describe("Serverless workflow editor - expression tests", () => {
   const TEST_PROJECT_FOLDER: string = path.resolve("e2e-tests-tmp", "resources", "expression");
-  const DIST_E2E_TESTS_FOLDER: string = path.resolve("dist-e2e-tests");
+  const DIST_E2E_TESTS_FOLDER: string = path.resolve("dist-tests-e2e");
 
   let testHelper: VSCodeTestHelper;
 
   before(async function () {
-    this.timeout(30000);
+    this.timeout(50000);
     testHelper = new VSCodeTestHelper();
     await testHelper.openFolder(TEST_PROJECT_FOLDER);
   });
 
   beforeEach(async function () {
+    this.timeout(30000);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   afterEach(async function () {
-    this.timeout(15000);
+    this.timeout(30000);
     await testHelper.takeScreenshotOnTestFailure(this, DIST_E2E_TESTS_FOLDER);
     await testHelper.closeAllEditors();
     await testHelper.closeAllNotifications();
   });
 
   it("Checks expression autocompletion in JSON serverless workflow file", async function () {
-    this.timeout(50000);
+    this.timeout(80000);
 
     await testExpressionsOnLocation("expression.sw.json", 11, 31);
   });
 
   it("Checks expression autocompletion in YAML serverless workflow file", async function () {
-    this.timeout(50000);
+    this.timeout(80000);
 
     await testExpressionsOnLocation("expression.sw.yaml", 9, 27);
   });
@@ -65,6 +66,8 @@ describe("Serverless workflow editor - expression tests", () => {
     const editorWebviews = await testHelper.openFileFromSidebar(fileName);
     const swfTextEditor = new SwfTextEditorTestHelper(editorWebviews[0]);
     const textEditor = await swfTextEditor.getSwfTextEditor();
+
+    testHelper.setimplicitTimeout(30000);
 
     await textEditor.moveCursor(line, column);
     const contentAssist = await textEditor.toggleContentAssist(true);

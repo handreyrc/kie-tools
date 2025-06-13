@@ -66,7 +66,7 @@ export function useEditorNotifications(args: HookArgs) {
             const mappedDiagnostics = lsDiagnostics.map(
               (lsDiagnostic) =>
                 ({
-                  path: "", // empty to not group them by path, as we're only validating one file.
+                  normalizedPosixPathRelativeToTheWorkspaceRoot: "", // empty to not group them by path, as we're only validating one file.
                   severity: lsDiagnostic.severity === DiagnosticSeverity.Error ? "ERROR" : "WARNING",
                   message: `${lsDiagnostic.message} [Line ${lsDiagnostic.range.start.line + 1}]`,
                   type: "PROBLEM",
@@ -76,7 +76,7 @@ export function useEditorNotifications(args: HookArgs) {
                     endLineNumber: lsDiagnostic.range.end.line + 1,
                     endColumn: lsDiagnostic.range.end.character + 1,
                   },
-                } as Notification)
+                }) as Notification
             );
             setNotifications([...mappedDiagnostics, ...lazyNotifications]);
           })

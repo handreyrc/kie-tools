@@ -21,13 +21,15 @@ package quarkus
 
 import (
 	"fmt"
+	fsutils "github.com/apache/incubator-kie-tools/packages/kn-plugin-workflow/pkg/common/fs"
+	"io"
+	"os"
+	"path/filepath"
+
 	"github.com/apache/incubator-kie-tools/packages/kn-plugin-workflow/pkg/common"
 	"github.com/apache/incubator-kie-tools/packages/kn-plugin-workflow/pkg/metadata"
 	"github.com/ory/viper"
 	"github.com/spf13/cobra"
-	"io"
-	"os"
-	"path/filepath"
 )
 
 func NewConvertCommand() *cobra.Command {
@@ -75,15 +77,10 @@ func loadConvertCmdConfig() (cfg CreateQuarkusProjectConfig, err error) {
 	quarkusVersion := viper.GetString("quarkus-version")
 
 	cfg = CreateQuarkusProjectConfig{
-		Extensions: fmt.Sprintf("%s,%s,%s,%s,%s,%s,%s,%s,%s",
-			metadata.KogitoQuarkusServerlessWorkflowExtension,
-			metadata.KogitoAddonsQuarkusKnativeEventingExtension,
+		Extensions: fmt.Sprintf("%s,%s,%s,%s",
 			metadata.QuarkusKubernetesExtension,
 			metadata.QuarkusResteasyJacksonExtension,
-			metadata.KogitoQuarkusServerlessWorkflowDevUi,
-			metadata.KogitoAddonsQuarkusSourceFiles,
 			metadata.SmallryeHealth,
-			metadata.KogitoDataIndexInMemory,
 			viper.GetString("extension"),
 		),
 		DependenciesVersion: metadata.DependenciesVersion{
@@ -171,6 +168,14 @@ func moveSWFFilesToQuarkusProject(cfg CreateQuarkusProjectConfig, rootFolder str
 			continue
 		}
 
+		info, err := item.Info()
+		if err != nil {
+			return err
+		}
+		if fsutils.IsHidden(info, item.Name()) && info.IsDir() {
+			continue
+		}
+
 		srcPath := filepath.Join(rootFolder, item.Name())
 		dstPath := filepath.Join(targetFolder, item.Name())
 
@@ -207,6 +212,10 @@ func copyDir(src, dst string) error {
 	err := filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
+		}
+
+		if fsutils.IsHidden(info, path) && info.IsDir() {
+			return nil
 		}
 
 		dstPath := filepath.Join(dst, path[len(src):])
